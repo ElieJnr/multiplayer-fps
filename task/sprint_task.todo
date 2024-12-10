@@ -1,0 +1,124 @@
+# Sprint 1: Base du projet et première implémentation du niveau 1 (10 jours)
+
+## Développeur 1: Serveur de base
+- [ ] Créer une architecture de serveur UDP pour la communication client-serveur.
+- [ ] Gérer les connexions et déconnexions des clients.
+- [ ] Implémenter un protocole basique pour échanger les positions des joueurs.
+  - **Livrables**: Serveur fonctionnel acceptant les connexions, gestion des sessions, protocole JSON pour les positions.
+  - **Ressources**: [Rust UDP Documentation](https://doc.rust-lang.org/std/net/udp/), [Rust Async](https://tokio.rs/), [serde_json](https://serde.rs/).
+  - **Focus Learning**: Communication réseau, gestion des événements réseau asynchrones, sérialisation et dé-sérialisation des données.
+
+## Développeur 2: Génération du labyrinthe pour le niveau 1
+- [ ] Implémenter un algorithme de génération procédurale basique.
+- [ ] Sauvegarder le labyrinthe sous forme de fichier JSON.
+- [ ] Tester le labyrinthe avec différents paramètres.
+  - **Livrables**: Fonction générant un labyrinthe, fichier JSON exemple, tests unitaires validés.
+  - **Ressources**: [Maze generation algorithms](https://weblog.jamisbuck.org/2011/2/7/maze-generation-algorithm-recap), [Rust File I/O](https://doc.rust-lang.org/std/fs/), [Rust Unit Testing](https://doc.rust-lang.org/book/ch11-01-writing-tests.html).
+  - **Focus Learning**: Génération procédurale, manipulation JSON, écriture de tests unitaires.
+
+## Développeur 3: Navigation dans le labyrinthe côté client
+- [ ] Implémenter la gestion des déplacements du joueur avec les touches directionnelles.
+- [ ] Synchroniser la position avec le serveur.
+- [ ] Ajouter des tests unitaires pour valider les mouvements.
+  - **Livrables**: Déplacements fonctionnels, communication client-serveur, couverture de test pour les mouvements.
+  - **Ressources**: [ggez Rust Library](https://ggez.rs/), [Input handling in Rust](https://docs.rs/winit/latest/winit/), [Tokio UDP](https://tokio.rs/).
+  - **Focus Learning**: Gestion des événements utilisateur, mises à jour réseau, tests unitaires.
+
+## Développeur 4: Rendu graphique du labyrinthe
+- [ ] Mettre en place le rendu des murs et des zones accessibles.
+- [ ] Implémenter un affichage basique de la position du joueur.
+- [ ] Ajouter une mini-carte simple.
+  - **Livrables**: Rendu graphique, position visible sur la carte, mini-carte fonctionnelle.
+  - **Ressources**: [ggez](https://ggez.rs/), [Rust Image Drawing](https://docs.rs/image/latest/image/).
+  - **Focus Learning**: Manipulation graphique en 2D, gestion des éléments UI.
+
+## Développeur 5: Documentation et tests initiaux
+- [ ] Documenter les fonctionnalités initiales.
+- [ ] Rédiger des cas de tests automatisés pour valider la communication serveur-client.
+- [ ] Tester les performances du serveur avec un client.
+  - **Livrables**: Documentation claire, scénarios de test réseau, rapport de performance.
+  - **Ressources**: [Rustdoc Documentation](https://doc.rust-lang.org/rustdoc/), [Mocking in Rust](https://docs.rs/mockall/latest/mockall/).
+  - **Focus Learning**: Documentation technique, tests de communication réseau, analyse de performance.
+
+---
+
+# Sprint 2: Gameplay et niveaux avancés (10 jours)
+
+## Développeur 1: Gestion des sessions multijoueurs côté serveur
+- [ ] Implémenter la logique pour gérer plusieurs joueurs connectés.
+- [ ] Diffuser les événements (positions, interactions) via UDP.
+- [ ] Gérer les déconnexions et les reconnexions.
+  - **Livrables**: Serveur multijoueur robuste, diffusion fluide des événements.
+  - **Ressources**: [Rust Concurrency](https://tokio.rs/), [UDP Broadcasting](https://doc.rust-lang.org/std/net/struct.UdpSocket.html).
+  - **Focus Learning**: Concurrence en Rust, gestion des états réseau.
+
+## Développeur 2: Complexité des labyrinthes
+- [ ] Ajouter des obstacles interactifs (portes, leviers).
+- [ ] Sauvegarder les labyrinthes complexes.
+- [ ] Tester les nouvelles interactions avec le joueur.
+  - **Livrables**: Labyrinthes avec obstacles, tests fonctionnels des interactions.
+  - **Ressources**: [Rust Systems Programming](https://doc.rust-lang.org/book/), [Pattern Matching in Rust](https://doc.rust-lang.org/book/ch18-03-pattern-syntax.html).
+  - **Focus Learning**: Systèmes interactifs, tests d'intégration.
+
+## Développeur 3: Améliorations de la navigation
+- [ ] Ajouter des animations pour les mouvements.
+- [ ] Implémenter une logique de collisions.
+- [ ] Tester les nouvelles fonctionnalités.
+  - **Livrables**: Mouvements animés, logique de collision, tests validés.
+  - **Ressources**: [Rust Animation Libraries](https://arewegameyet.rs/), [Collision Detection Basics](https://en.wikipedia.org/wiki/Collision_detection).
+  - **Focus Learning**: Animation et physique en 2D.
+
+## Développeur 4: Rendu graphique avancé
+- [ ] Ajouter des textures aux labyrinthes.
+- [ ] Améliorer la mini-carte.
+- [ ] Tester les performances graphiques.
+  - **Livrables**: Labyrinthes texturés, mini-carte avancée, rapport de performance.
+  - **Ressources**: [Rust Texture Mapping](https://docs.rs/wgpu/latest/wgpu/), [Game Optimization](https://gamedevelopment.tutsplus.com/).
+  - **Focus Learning**: Optimisation graphique, gestion avancée des textures.
+
+## Développeur 5: Tests avancés et documentation
+- [ ] Rédiger des scénarios pour les interactions multijoueurs.
+- [ ] Mettre à jour la documentation avec les nouvelles fonctionnalités.
+- [ ] Valider les performances du jeu en conditions réelles.
+  - **Livrables**: Scénarios de tests, documentation actualisée, rapport de validation.
+  - **Ressources**: [Rust Integration Testing](https://doc.rust-lang.org/book/ch11-02-running-tests.html), [Profiling Tools](https://github.com/flamegraph-rs).
+  - **Focus Learning**: Tests d'intégration, documentation avancée.
+
+---
+
+# Sprint 3: Optimisation et bonus (10 jours)
+
+## Développeur 1: Intégration d'une IA
+- [ ] Implémenter un joueur IA capable de se déplacer automatiquement.
+- [ ] Tester le comportement de l'IA dans différents scénarios.
+  - **Livrables**: Joueur IA interactif, tests validés.
+  - **Ressources**: [Pathfinding Algorithms](https://en.wikipedia.org/wiki/Pathfinding), [Rust AI crates](https://lib.rs/crates).
+  - **Focus Learning**: Implémentation d'algorithmes de pathfinding.
+
+## Développeur 2: Labyrinthes dynamiques
+- [ ] Ajouter des labyrinthes générés dynamiquement selon des paramètres.
+- [ ] Tester les labyrinthes dynamiques.
+  - **Livrables**: Labyrinthes dynamiques fonctionnels, tests validés.
+  - **Ressources**: [Rust Procedural Generation](https://rust-gamedev.github.io/).
+  - **Focus Learning**: Génération dynamique de contenu.
+
+## Développeur 3: Expérience utilisateur
+- [ ] Améliorer les animations globales.
+- [ ] Ajouter des transitions fluides entre niveaux.
+  - **Livrables**: Animations et transitions optimisées.
+  - **Ressources**: [Animation Easing Functions](https://easings.net/).
+  - **Focus Learning**: Fluidité et optimisation UX.
+
+## Développeur 4: Graphismes avancés
+- [ ] Ajouter des effets visuels (ombres, lumières).
+- [ ] Optimiser les performances graphiques.
+  - **Livrables**: Effets visuels avancés, performances améliorées.
+  - **Ressources**: [Rust Shader Programming](https://docs.rs/wgpu/latest/wgpu/).
+  - **Focus Learning**: Effets graphiques et optimisation avancée.
+
+## Développeur 5: Validation finale
+- [ ] Effectuer des tests de stress pour le jeu complet.
+- [ ] Finaliser la documentation.
+  - **Livrables**: Rapport de stress, documentation finale.
+  - **Ressources**: [Rust Profiling Tools](https://github.com/flamegraph-rs).
+  - **Focus Learning**: Validation complète et documentation finale.
