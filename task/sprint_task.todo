@@ -27,7 +27,7 @@
      ☐ Travailler sur la conception de l'interface utilisateur pour le client.  
      ☐ Créer des wireframes pour l’interface du jeu et les menus.  
     
-  5. `Dev 5 : Conception de la Mini-carte`  
+  5. @babacandiaye :  `Conception de la Mini-carte`  
      ☐ Concevoir une mini-carte statique qui affiche une vue de base d’un labyrinthe.  
      ☐ Intégrer une position fixe pour le joueur en tant que preuve de concept.  
     
@@ -55,7 +55,7 @@
      ☐ Concevoir un système de transitions visuelles pour l'interface.  
      ☐ Ajouter des effets visuels comme des animations de menus et des transitions entre les écrans.  
     
-  5. `Dev 5 : Animation des Mouvements`  
+  5. @babacandiaye :  `Animation des Mouvements`  
      ☐ Implémenter le mouvement du joueur dans le labyrinthe avec une vue dynamique.  
      ☐ Synchroniser le mouvement avec la position dans la mini-carte.  
     
@@ -83,7 +83,7 @@
      ☐ Créer un système pour gérer les transitions de niveaux, en s'assurant que les objets et ennemis sont correctement réinitialisés.  
      ☐ Ajouter un écran de chargement ou une animation de transition lors du changement de niveau.  
     
-  5. `Dev 5 : Mode Multijoueur Étendu`  
+  5. @babacandiaye :  `Mode Multijoueur Étendu`  
      ☐ Tester la synchronisation des positions des joueurs dans le labyrinthe.  
      ☐ Assurer que chaque joueur voit les mouvements des autres en temps réel.  
     
@@ -111,7 +111,7 @@
      ☐ Peaufiner l’interface utilisateur et les animations.  
      ☐ Optimiser l'expérience utilisateur en améliorant la navigation entre les écrans et en ajoutant des fonctionnalités comme la personnalisation du joueur.  
     
-  5. `Dev 5 : Améliorations Visuelles`  
+  5. @babacandiaye :  `Améliorations Visuelles`  
      ☐ Ajouter des effets graphiques (ex. ombres, lumières).  
      ☐ Rendre l’interface plus intuitive et attrayante.  
     
