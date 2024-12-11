@@ -13,7 +13,7 @@
     
   1. @emalo : `Serveur`  
      ☐ Implémenter un serveur UDP qui peut accepter des connexions multiples.  
-     ☐ Gérer les messages d’authentification de base (envoi et réception de l’IP et du nom d’utilisateur).  
+     ☐ Gérer les messages d’authentification de base (envoi et réception d’IP et de nom d’utilisateur).  
     
   2. `Dev 2 : Client`  
      ☐ Implémenter un client UDP capable de se connecter à un serveur en utilisant une IP fournie.  
