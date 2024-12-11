@@ -43,11 +43,11 @@
      ☐ Ajouter des fonctions pour envoyer la structure du labyrinthe au client.  
      ☐ Implémenter la logique pour transmettre la position initiale des joueurs.  
     
-  2. `Dev 2 : Client : Labyrinthe et Position`  
+  2. @ousmasene : Client : Labyrinthe et Position`  
      ☐ Créer une interface graphique basique utilisant une bibliothèque graphique (ex. SDL, SFML).  
      ☐ Afficher le labyrinthe reçu depuis le serveur.  
     
-  3. `Dev 3 : Affichage des FPS`  
+  3. @ousmasene : Affichage des FPS`  
      ☐ Intégrer un compteur FPS dans l’interface graphique.  
      ☐ Assurer une mise à jour fluide et précise.  
     
