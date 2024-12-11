@@ -11,7 +11,7 @@
     
   ## `Sprint 1 : Infrastructure de Base (Semaine 1)`
     
-  1. `Dev 1 : Serveur`  
+  1. `Dev 1 : Serveur`  @ousmasene 
      ☐ Implémenter un serveur UDP qui peut accepter des connexions multiples.  
      ☐ Gérer les messages d’authentification de base (envoi et réception d’IP et de nom d’utilisateur).  
     
