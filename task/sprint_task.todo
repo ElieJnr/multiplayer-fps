@@ -15,7 +15,7 @@
      ☐ Implémenter un serveur UDP qui peut accepter des connexions multiples.  
      ☐ Gérer les messages d’authentification de base (envoi et réception d’IP et de nom d’utilisateur).  
     
-  2. `Dev 2 : Client`  
+  2. `Dev 2 : Client`  @elie
      ☐ Implémenter un client UDP capable de se connecter à un serveur en utilisant une IP fournie.  
      ☐ Ajouter une interface en ligne de commande pour demander l’IP et le nom d’utilisateur.  
     
@@ -27,7 +27,7 @@
      ☐ Travailler sur la conception de l'interface utilisateur pour le client.  
      ☐ Créer des wireframes pour l’interface du jeu et les menus.  
     
-  5. `Dev 4 : Conception de la Mini-carte`  
+  5. `Dev 4 : Conception de la Mini-carte` @babacar
      ☐ Concevoir une mini-carte statique qui affiche une vue de base d’un labyrinthe.  
      ☐ Intégrer une position fixe pour le joueur en tant que preuve de concept.  
     
