@@ -1,3 +1,5 @@
+use multiplayer_fps::client::udp::init_connection;
+
 fn main() {
-    println!("Hello... ");
+    init_connection();
 }
