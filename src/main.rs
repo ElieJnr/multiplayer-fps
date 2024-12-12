@@ -1,3 +1,5 @@
+use multiplayer_fps::server::udp::run_socket;
+
 fn main() {
-    println!("Hello... ");
+    run_socket();
 }
