@@ -29,7 +29,7 @@ fn create_server_socket(ip: Ipv4Addr) -> Option<UdpSocket> {
 pub fn run_socket() {
     let mut choice = String::new();
 
-    println!("Votre choix svp: \n1-Server \n2-Client");
+    println!("Your choice please: \n1-Server \n2-Client");
 
     let _ = stdout().flush();
     stdin()
@@ -37,7 +37,7 @@ pub fn run_socket() {
         .expect("not a correct number");
 
     let choice_int = match choice.trim().parse::<u32>() {
-        Ok(my_int) => my_int,
+        Ok(choice_int) => choice_int,
         Err(e) => {
             eprintln!("{}", e);
             return;
