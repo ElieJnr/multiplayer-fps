@@ -1,9 +1,7 @@
 use std::{
-    env,
+    io::{stdin, stdout, Write},
     net::{IpAddr, Ipv4Addr, UdpSocket},
 };
-
-use crate::client::udp::client_udp;
 
 fn get_local_ipv4() -> Option<Ipv4Addr> {
     let socket = UdpSocket::bind("0.0.0.0:0").ok()?;
@@ -29,10 +27,24 @@ fn create_server_socket(ip: Ipv4Addr) -> Option<UdpSocket> {
 }
 
 pub fn run_socket() {
-    let args: Vec<String> = env::args().collect();
-    // let mut server_socket: Option<UdpSocket> = None;
-    let mut clients_socket: Vec<UdpSocket> = Vec::new();
-    match args.len() {
+    let mut choice = String::new();
+
+    println!("Votre choix svp: \n1-Server \n2-Client");
+
+    let _ = stdout().flush();
+    stdin()
+        .read_line(&mut choice)
+        .expect("not a correct number");
+
+    let choice_int = match choice.trim().parse::<u32>() {
+        Ok(my_int) => my_int,
+        Err(e) => {
+            eprintln!("{}", e);
+            return;
+        }
+    };
+
+    match choice_int {
         1 => match get_local_ipv4() {
             Some(ip) => {
                 let server_socket = create_server_socket(ip);
@@ -40,24 +52,17 @@ pub fn run_socket() {
                     println!("Server is running on {}:8080", ip);
                 }
                 if let Some(socket) = server_socket {
-                    server(socket, clients_socket);
+                    server(socket);
                 }
             }
             None => eprintln!("can't run the server"),
         },
-        2 => {
-            let host = &args[1];
-            if let Some(client_socket) = client_udp(host) {
-                clients_socket.push(client_socket);
-            } else {
-                eprintln!("Failed to create client socket");
-            }
-        }
-        _ => eprintln!("Usage: cargo r or cargo r <IP_LOCAL:PORT>"),
+        2 => {}
+        _ => eprintln!("make a choice between 1 and 2"),
     }
 }
 
-pub fn server(server_socket: UdpSocket, _client_sockets: Vec<UdpSocket>) {
+pub fn server(server_socket: UdpSocket) {
     let mut buf = [0; 1024];
     loop {
         let (size, src) = match server_socket.recv_from(&mut buf) {
