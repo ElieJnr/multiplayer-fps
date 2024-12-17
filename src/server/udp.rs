@@ -1,5 +1,5 @@
 use crate::client::udp::client_udp;
-use serde::Deserialize;
+use crate::utils::model::Message;
 use serde_json;
 use std::{
     collections::HashMap,
@@ -107,19 +107,3 @@ pub fn server(server_socket: UdpSocket, mut client_addresses: HashMap<String, So
     }
 }
 
-#[derive(Debug, Deserialize)]
-struct NewConnexion {
-    pub name: String,
-}
-
-// Structure représentant le message à envoyer
-#[derive(Debug, Deserialize)]
-struct Message {
-    pub message_type: String,
-    pub message_content: AllOption,
-}
-// Structure englobant l'option de message
-#[derive(Debug, Deserialize)]
-struct AllOption {
-    pub new_connexion: NewConnexion,
-}

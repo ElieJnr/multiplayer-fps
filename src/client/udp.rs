@@ -1,6 +1,6 @@
-use serde::Serialize;
 use serde_json;
 use std::{io::stdin, net::UdpSocket};
+use crate::utils::model::{AllOption,Message,NewConnexion};
 
 pub fn client_udp() -> Option<()> {
     let mut name = String::new();
@@ -72,22 +72,4 @@ pub fn client_udp() -> Option<()> {
             Err(err) => eprintln!("Failed to receive response: {}", err),
         }
     }
-}
-
-// Structure représentant la nouvelle connexion
-#[derive(Serialize)]
-struct NewConnexion {
-    pub name: String,
-}
-
-// Structure représentant le message à envoyer
-#[derive(Serialize)]
-struct Message {
-    pub message_type: String,
-    pub message_content: AllOption,
-}
-// Structure englobant l'option de message
-#[derive(Serialize)]
-struct AllOption {
-    pub new_connexion: NewConnexion,
 }
