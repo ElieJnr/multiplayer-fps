@@ -2367,9 +2367,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "itoa"
+version = "1.0.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d75a2a4b1b190afb6f5425f10f6a8f959d2ea0b9c2b1d79553551850539e4674"
+
+[[package]]
+name = "memchr"
+version = "2.7.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
+
+[[package]]
 name = "multiplayer_fps"
 version = "0.1.0"
 dependencies = [
+<<<<<<< HEAD
  "bevy",
 ]
 
@@ -2976,6 +2989,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ecf48c7ca261d60b74ab1a7b20da18bede46776b2e55535cb958eb595c5fa7b"
 dependencies = [
  "toml_edit",
+=======
+ "serde",
+ "serde_json",
+>>>>>>> master
 ]
 
 [[package]]
@@ -2988,12 +3005,15 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "profiling"
 version = "1.0.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "afbdc74edc00b6f6a218ca6a5364d6226a259d4b8ea1af4a0ea063f27e179f4d"
 
 [[package]]
+=======
+>>>>>>> master
 name = "quote"
 version = "1.0.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3003,6 +3023,7 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "radsort"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3161,12 +3182,15 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> master
 name = "ryu"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
 
 [[package]]
+<<<<<<< HEAD
 name = "same-file"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3188,6 +3212,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd0b0ec5f1c1ca621c432a25813d8d60c88abe6d3e08a3eb9cf37d97a0fe3d73"
 
 [[package]]
+=======
+>>>>>>> master
 name = "serde"
 version = "1.0.216"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3204,7 +3230,11 @@ checksum = "46f859dbbf73865c6627ed570e78961cd3ac92407a2d117204c49232485da55e"
 dependencies = [
  "proc-macro2",
  "quote",
+<<<<<<< HEAD
  "syn 2.0.90",
+=======
+ "syn",
+>>>>>>> master
 ]
 
 [[package]]
@@ -3220,6 +3250,7 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "sharded-slab"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3306,6 +3337,8 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> master
 name = "syn"
 version = "2.0.90"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3317,6 +3350,7 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "sysinfo"
 version = "0.30.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3509,10 +3543,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0e13db2e0ccd5e14a544e8a246ba2312cd25223f616442d7f2cb0e3db614236e"
 
 [[package]]
+=======
+>>>>>>> master
 name = "unicode-ident"
 version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "adb9e6ca4f869e1180728b7950e35922a7fc6397f7b641499e8f3ef06e50dc83"
+<<<<<<< HEAD
 
 [[package]]
 name = "unicode-segmentation"
@@ -4285,3 +4322,5 @@ dependencies = [
  "quote",
  "syn 2.0.90",
 ]
+=======
+>>>>>>> master
