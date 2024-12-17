@@ -1,5 +1,6 @@
 use serde_json;
 use std::{io::stdin, net::UdpSocket};
+use std::io::{self,Write};
 use crate::utils::model::{AllOption,Message,NewConnexion};
 
 pub fn client_udp() -> Option<()> {
@@ -7,9 +8,11 @@ pub fn client_udp() -> Option<()> {
     let mut ip = String::new();
 
     // Demander l'adresse IP et le pseudo
-    println!("Veuillez saisir l'adresse IP: ");
+    print!("Enter The Server IP Address: ");
+    io::stdout().flush().unwrap();
     stdin().read_line(&mut ip).expect("failed to read the IP");
-    println!("Veuillez saisir votre pseudo: ");
+    print!("Enter Your Name: ");
+    io::stdout().flush().unwrap();
     stdin().read_line(&mut name).expect("failed to read the name");
 
     // Trim les espaces superflus
