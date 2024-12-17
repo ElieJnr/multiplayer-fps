@@ -1,6 +1,21 @@
-use std::net::UdpSocket;
+use serde::Serialize;
+use serde_json;
+use std::{io::stdin, net::UdpSocket};
 
-pub fn client_udp(host_addr: &str) -> Option<()> {
+pub fn client_udp() -> Option<()> {
+    let mut name = String::new();
+    let mut ip = String::new();
+
+    // Demander l'adresse IP et le pseudo
+    println!("Veuillez saisir l'adresse IP: ");
+    stdin().read_line(&mut ip).expect("failed to read the IP");
+    println!("Veuillez saisir votre pseudo: ");
+    stdin().read_line(&mut name).expect("failed to read the name");
+
+    // Trim les espaces superflus
+    ip = ip.trim().to_string();
+    name = name.trim().to_string();
+
     // Création d'une socket UDP
     let socket = match UdpSocket::bind("0.0.0.0:0") {
         Ok(socket) => socket,
@@ -11,45 +26,68 @@ pub fn client_udp(host_addr: &str) -> Option<()> {
     };
 
     // Connexion au serveur
-    if let Err(err) = socket.connect(host_addr) {
-        eprintln!("Failed to connect to server {}: {}", host_addr, err);
+    if let Err(err) = socket.connect(&ip) {
+        eprintln!("Failed to connect to server {}: {}", ip, err);
         return None;
     }
 
-    
-    println!("Connected to server at {}", host_addr);
+    println!("Connected to server at {}", ip);
 
+    // Créer une nouvelle connexion
+    let new_connexion = NewConnexion { name };
 
-    // Boucle principale pour envoyer/recevoir des messages
-    let mut buffer = [0; 1024];
+    // Créer le message avec les données de la connexion
+    let msg = Message {
+        message_type: "newconnection".to_string(),
+        message_content: AllOption { new_connexion },
+    };
 
-    let  input = "je suis connecté";
-
-        // Envoi du message au serveur
-        if let Err(err) = socket.send(input.as_bytes()) {
-            eprintln!("Failed to send message: {}", err);
+    // Sérialiser le message en JSON
+    let msg_json = match serde_json::to_string(&msg) {
+        Ok(json) => json,
+        Err(err) => {
+            eprintln!("Failed to serialize message: {}", err);
+            return None;
         }
+    };
 
+    // Convertir le JSON en bytes
+    let msg_bytes = msg_json.as_bytes();
+
+    // Envoi du message sérialisé au serveur
+    if let Err(err) = socket.send(msg_bytes) {
+        eprintln!("Failed to send message: {}", err);
+        return None;
+    }
+
+    // Boucle principale pour recevoir la réponse du serveur
+    let mut buffer = [0; 1024]; // tampon pour recevoir les messages
 
     loop {
-
-        // let mut input = String::new();
-
-        // // Envoi du message au serveur
-        // if let Err(err) = socket.send(input.as_bytes()) {
-        //     eprintln!("Failed to send message: {}", err);
-        //     continue;
-        // }
-
-        // Réception de la réponse du serveur
         match socket.recv(&mut buffer) {
             Ok(size) => {
                 let response = String::from_utf8_lossy(&buffer[..size]);
-                println!("Server response: {}", response);
+                println!("From server: {}", response);
             }
             Err(err) => eprintln!("Failed to receive response: {}", err),
         }
     }
+}
 
-    
+// Structure représentant la nouvelle connexion
+#[derive(Serialize)]
+struct NewConnexion {
+    pub name: String,
+}
+
+// Structure représentant le message à envoyer
+#[derive(Serialize)]
+struct Message {
+    pub message_type: String,
+    pub message_content: AllOption,
+}
+// Structure englobant l'option de message
+#[derive(Serialize)]
+struct AllOption {
+    pub new_connexion: NewConnexion,
 }

@@ -1,10 +1,11 @@
-use std::{
-    env,
-    net::{IpAddr, Ipv4Addr, UdpSocket},
-    collections::HashSet,
-};
-
 use crate::client::udp::client_udp;
+use serde::Deserialize;
+use serde_json;
+use std::{
+    collections::HashMap,
+    io::{stdin, stdout, Write},
+    net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket},
+};
 
 fn get_local_ipv4() -> Option<Ipv4Addr> {
     let socket = UdpSocket::bind("0.0.0.0:0").ok()?;
@@ -28,10 +29,24 @@ fn create_server_socket(ip: Ipv4Addr) -> Option<UdpSocket> {
 }
 
 pub fn run_socket() {
-    let args: Vec<String> = env::args().collect();
-    let client_addresses: HashSet<std::net::SocketAddr> = HashSet::new();
+    let mut choice = String::new();
+    let client_addresses = HashMap::new();
+    println!("Your choice please: \n1-Server \n2-Client");
 
-    match args.len() {
+    let _ = stdout().flush();
+    stdin()
+        .read_line(&mut choice)
+        .expect("not a correct number");
+
+    let choice_int = match choice.trim().parse::<u32>() {
+        Ok(choice_int) => choice_int,
+        Err(e) => {
+            eprintln!("{}", e);
+            return;
+        }
+    };
+
+    match choice_int {
         1 => match get_local_ipv4() {
             Some(ip) => {
                 if let Some(socket) = create_server_socket(ip) {
@@ -42,16 +57,15 @@ pub fn run_socket() {
             None => eprintln!("Unable to determine local IP address."),
         },
         2 => {
-            let host = &args[1];
-            if client_udp(host).is_none() {
+            if client_udp().is_none() {
                 eprintln!("Failed to create client socket");
             }
         }
-        _ => eprintln!("Usage: cargo run or cargo run <IP_LOCAL:PORT>"),
+        _ => eprintln!("make a choice between 1 and 2"),
     }
 }
 
-pub fn server(server_socket: UdpSocket, mut client_addresses: HashSet<std::net::SocketAddr>) {
+pub fn server(server_socket: UdpSocket, mut client_addresses: HashMap<String, SocketAddr>) {
     let mut buf = [0; 1024];
     loop {
         let (size, src) = match server_socket.recv_from(&mut buf) {
@@ -62,24 +76,50 @@ pub fn server(server_socket: UdpSocket, mut client_addresses: HashSet<std::net::
             }
         };
 
-        client_addresses.insert(src);
+        //
 
-        let message = String::from_utf8_lossy(&buf[..size]);
-        println!("Received from {}: {}", src, message);
+        // let message = match String::from_utf8_lossy(&buf[..size]);
+        let message: Message = match serde_json::from_slice(&buf[..size]) {
+            Ok(m) => m,
+            Err(e) => {
+                eprintln!("Erreur lors de la désérialisation: {}", e);
+                continue;
+            }
+        };
 
-        // Send acknowledgment to sender
-        let response = format!("Server received: {}", message);
-        if let Err(err) = server_socket.send_to(response.as_bytes(), src) {
-            eprintln!("Failed to send data to {}: {}", src, err);
-        }
+        if message.message_type == "newconnection" {
+            client_addresses.insert(message.message_content.new_connexion.name.clone(), src);
+            println!("{} est connecté",message.message_content.new_connexion.name);
 
-        // Broadcast to all other clients
-        for client in &client_addresses {
-            if *client != src {
-                if let Err(err) = server_socket.send_to(message.as_bytes(), client) {
-                    eprintln!("Failed to send data to {}: {}", client, err);
+            // Broadcast to all other clients
+            for (_, client_src) in &client_addresses {
+                if *client_src != src {
+                    let msg = format!(
+                        "{} est connecté",
+                        &message.message_content.new_connexion.name
+                    );
+                    if let Err(err) = server_socket.send_to(msg.as_bytes(), client_src) {
+                        eprintln!("Failed to send data to {}: {}", client_src, err);
+                    }
                 }
             }
         }
     }
+}
+
+#[derive(Debug, Deserialize)]
+struct NewConnexion {
+    pub name: String,
+}
+
+// Structure représentant le message à envoyer
+#[derive(Debug, Deserialize)]
+struct Message {
+    pub message_type: String,
+    pub message_content: AllOption,
+}
+// Structure englobant l'option de message
+#[derive(Debug, Deserialize)]
+struct AllOption {
+    pub new_connexion: NewConnexion,
 }
