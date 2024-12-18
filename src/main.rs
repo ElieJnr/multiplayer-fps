@@ -1,5 +1,5 @@
-use multiplayer_fps::server::udp::run_socket;
+use multiplayer_fps::client::graphics::start;
 
-fn main(){
-    run_socket();
+fn main() {
+    start();
 }
