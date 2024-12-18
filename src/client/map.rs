@@ -49,8 +49,8 @@ fn display_minimap(mut commands: Commands, asset_server: Res<AssetServer>) {
     let floor_texture = asset_server.load("black_maze.png");
     let player_position = asset_server.load("player.png");
 
-    let x_offset = width as f32 * TILE_SIZE + 25.0;
-    let y_offset = height as f32 - 210.0;
+    let x_offset = width as f32 * TILE_SIZE + 33.0;
+    let y_offset = height as f32 - 200.0;
 
     for y in 0..height {
         for x in 0..width {                                         
