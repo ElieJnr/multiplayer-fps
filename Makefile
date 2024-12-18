@@ -5,5 +5,8 @@ config:
 push: 
 	git add . && git commit -m "$(MESSAGE)" && git push origin && git push github 
 
+merge:
+	git checkout $(TO) && git merge $(FROM)
 
-	
+speed:
+	cargo run --release

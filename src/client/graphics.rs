@@ -1,10 +1,10 @@
-// Enum that will b used as a global stae for the game
-
 use bevy::{
     app::{App, Startup},
     prelude::{AppExtStates, Camera2dBundle, Commands, Component, Resource, States},
     DefaultPlugins,
 };
+
+// Enum that will b used as a global state for the game
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, States)]
 enum GameState {
