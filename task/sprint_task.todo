@@ -1,0 +1,123 @@
+  ## `Chronologie des Sprints`
+    
+  | `Semaine`   |          `Focus Principal`           |            `Tâches Complètes`           |
+  |-------------|--------------------------------------|-----------------------------------------|
+  | 1           | Architecture de base                 | Client-Serveur, Communication UDP       |
+  | 2           | Interfaces et Graphiques             | Mini-carte, FPS, Mouvements             |
+  | 3           | Niveaux et Algorithmes               | Génération de labyrinthes, Multijoueur  |
+  | 4           | Finalisation et Bonus                | Éditeur, IA, Historique des connexions  |
+    
+  ---
+    
+  ## `Sprint 1 : Infrastructure de Base (Semaine 1)`
+    
+  1. `Dev 1 : Serveur`  @elie
+     ☐ Implémenter un serveur UDP qui peut accepter des connexions multiples.  
+     ☐ Gérer les messages d’authentification de base (envoi et réception d’IP et de nom d’utilisateur).  
+    
+  2. `Dev 2 : Client`  @ousmane
+     ☐ Implémenter un client UDP capable de se connecter à un serveur en utilisant une IP fournie.  
+     ☐ Ajouter une interface en ligne de commande pour demander l’IP et le nom d’utilisateur.  
+    
+  3. `Dev 3 : Documentation et Protocoles`  @jgoudj
+     ☐ Définir le format des messages échangés entre client et serveur (ex. JSON ou binaire).  
+     ☐ Documenter les étapes pour configurer et exécuter le serveur et le client sur une machine.  
+    
+  4. `Dev 4 : Design et UX`  @aliouniang
+     ☐ Travailler sur la conception de l'interface utilisateur pour le client.  
+     ☐ Créer des wireframes pour l’interface du jeu et les menus.  
+    
+  5. `Dev 4 : Conception de la Mini-carte` @babacar
+     ☐ Concevoir une mini-carte statique qui affiche une vue de base d’un labyrinthe.  
+     ☐ Intégrer une position fixe pour le joueur en tant que preuve de concept.  
+    
+  6. `Dev 6 : Éléments de Base et Synchronisation`  @kendi
+     ☐ Mettre en place une synchronisation basique entre plusieurs clients connectés.  
+     ☐ Implémenter un système simple pour envoyer un message de bienvenue à tous les clients connectés.  
+    
+  ---
+    
+  ## `Sprint 2 : Graphiques et Interfaces (Semaine 2)`
+    
+  1. `Dev 1 : Serveur`  
+     ☐ Ajouter des fonctions pour envoyer la structure du labyrinthe au client.  
+     ☐ Implémenter la logique pour transmettre la position initiale des joueurs.  
+    
+  2. `Dev 2 : Client : Labyrinthe et Position`  
+     ☐ Créer une interface graphique basique utilisant une bibliothèque graphique (ex. SDL, SFML).  
+     ☐ Afficher le labyrinthe reçu depuis le serveur.  
+    
+  3. `Dev 3 Affichage des FPS`  
+     ☐ Intégrer un compteur FPS dans l’interface graphique.  
+     ☐ Assurer une mise à jour fluide et précise.  
+    
+  4. `Dev 4 : Améliorations Visuelles`  
+     ☐ Concevoir un système de transitions visuelles pour l'interface.  
+     ☐ Ajouter des effets visuels comme des animations de menus et des transitions entre les écrans.  
+    
+  5 `.Dev 5 : Animation des Mouvements`  
+     ☐ Implémenter le mouvement du joueur dans le labyrinthe avec une vue dynamique.  
+     ☐ Synchroniser le mouvement avec la position dans la mini-carte.  
+    
+  6. `Dev 6 : Interface Améliorée`  
+     ☐ Ajouter une fonctionnalité pour zoomer et dézoomer sur la mini-carte.  
+     ☐ Créer une barre d’état affichant des informations comme la position actuelle et l’objectif.  
+    
+  ---
+  
+  ## `Sprint 3 : Niveaux et Algorithmes (Semaine 3)`
+    
+  1. `Dev 1 : Génération de Labyrinthes`  
+     ☐ Implémenter un algorithme pour générer automatiquement des labyrinthes.  
+     ☐ Paramétrer la difficulté en ajustant le nombre de chemins et d’impasses.  
+    
+  2. `Dev 2 : Chargement des Niveaux`  
+     ☐ Créer une logique côté serveur pour charger différents niveaux.  
+     ☐ Ajouter une fonctionnalité pour changer de niveau une fois qu’un objectif est atteint.  
+    
+  3. `Dev 3 : Interaction avec le Labyrinthe`  
+     ☐ Ajouter des interactions basiques (ex. ouverture de portes ou activation de zones).  
+     ☐ Synchroniser ces actions entre le client et le serveur.  
+    
+  4. `Dev 4 : Logique de Niveau`  
+     ☐ Créer un système pour gérer les transitions de niveaux, en s'assurant que les objets et ennemis sont correctement réinitialisés.  
+     ☐ Ajouter un écran de chargement ou une animation de transition lors du changement de niveau.  
+    
+  5. `Dev 4 : Mode Multijoueur Étendu`  
+     ☐ Tester la synchronisation des positions des joueurs dans le labyrinthe.  
+     ☐ Assurer que chaque joueur voit les mouvements des autres en temps réel.  
+    
+  6. `Dev 6 : Scénarios de Difficulté`  
+     ☐ Créer plusieurs scénarios de labyrinthes préconfigurés avec des niveaux croissants de difficulté.  
+     ☐ Ajouter des défis dynamiques comme des zones temporisées ou des pièges.  
+    
+  ---
+  
+  ## `Sprint 4 : Finalisation et Bonus (Semaine 4)`
+    
+  1. `Dev 1 : Éditeur de Labyrinthes`  
+     ☐ Implémenter une interface graphique pour créer et éditer des labyrinthes.  
+     ☐ Ajouter une option pour sauvegarder et charger des labyrinthes personnalisés.  
+    
+  2. `Dev 2 : Intelligence Artificielle`  
+     ☐ Ajouter des joueurs contrôlés par l’IA qui peuvent se déplacer dans le labyrinthe.  
+     ☐ Permettre aux joueurs humains de jouer contre ces IA.  
+    
+  3. `Dev 3 : Historique des Connexions`  
+     ☐ Ajouter une fonctionnalité pour sauvegarder les serveurs récents avec des alias.  
+     ☐ Permettre une reconnexion rapide via un menu.  
+    
+  4. `Dev 4 : UI/UX Finalisation`  
+     ☐ Peaufiner l’interface utilisateur et les animations.  
+     ☐ Optimiser l'expérience utilisateur en améliorant la navigation entre les écrans et en ajoutant des fonctionnalités comme la personnalisation du joueur.  
+    
+  5. `Dev 5 : Améliorations Visuelles`  
+     ☐ Ajouter des effets graphiques (ex. ombres, lumières).  
+     ☐ Rendre l’interface plus intuitive et attrayante.  
+    
+  6. `Dev 6 : Récompenses et Statistiques`  
+     ☐ Ajouter un système de récompenses pour les joueurs (ex. médailles ou scores).  
+     ☐ Intégrer un tableau des scores affichant les meilleurs joueurs en temps réel.  
+    
+  ---
+ 

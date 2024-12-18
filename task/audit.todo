@@ -1,0 +1,41 @@
+maze-wars/
+├── src/
+│   ├── server/
+│   │   ├── mod.rs              # Développeur 1 (Responsable : Serveur principal)
+│   │   ├── connection.rs       # Développeur 1 (Responsable : Connexions clients)
+│   │   ├── protocol.rs         # Développeur 1 (Responsable : Protocole de communication)
+│   │   ├── session.rs          # Développeur 1 (Responsable : Gestion des sessions des joueurs)
+│   │   └── player.rs           # Développeur 1 (Responsable : Gestion des joueurs)
+│   ├── client/
+│   │   ├── mod.rs              # Développeur 2 (Responsable : Module principal du client)
+│   │   ├── connection.rs       # Développeur 2 (Responsable : Connexion au serveur)
+│   │   ├── input.rs            # Développeur 3 (Responsable : Gestion des entrées du joueur)
+│   │   ├── graphics.rs         # Développeur 3 (Responsable : Gestion de l'affichage graphique)
+│   │   ├── map.rs              # Développeur 2 (Responsable : Gestion de la carte/labyrinthe)
+│   │   └── camera.rs           # Développeur 3 (Responsable : Gestion de la caméra)
+│   ├── game/
+│   │   ├── mod.rs              # Développeur 4 (Responsable : Module principal du jeu)
+│   │   ├── maze_generator.rs   # Développeur 4 (Responsable : Génération des labyrinthes)
+│   │   ├── game_state.rs       # Développeur 4 (Responsable : État du jeu, niveaux, scores)
+│   │   └── ai.rs               # Développeur 4 (Responsable : IA des joueurs contrôlés par le serveur)
+│   ├── ui/
+│   │   ├── mod.rs              # Développeur 5 (Responsable : Module principal de l'interface utilisateur)
+│   │   ├── menu.rs             # Développeur 5 (Responsable : Gestion du menu principal)
+│   │   ├── hud.rs              # Développeur 5 (Responsable : Affichage du HUD)
+│   │   └── animations.rs       # Développeur 5 (Responsable : Gestion des animations)
+│   ├── networking/
+│   │   ├── mod.rs              # Développeur 1 (Responsable : Module de communication réseau)
+│   │   ├── udp_client.rs       # Développeur 1 (Responsable : Client UDP)
+│   │   └── udp_server.rs       # Développeur 1 (Responsable : Serveur UDP)
+│   └── main.rs                 # Développeur 1 (Responsable : Point d'entrée du programme)
+├── assets/                      # Ressources statiques (textures, sons)
+│   ├── textures/                # Textures et images
+│   └── sounds/                  # Sons et effets audio
+├── tests/                       # Tests automatisés
+│   ├── server_tests.rs          # Développeur 6 (Responsable : Tests serveur)
+│   ├── client_tests.rs          # Développeur 6 (Responsable : Tests client)
+│   ├── game_tests.rs            # Développeur 6 (Responsable : Tests logique du jeu)
+│   ├── ui_tests.rs              # Développeur 6 (Responsable : Tests interface utilisateur)
+│   └── networking_tests.rs      # Développeur 6 (Responsable : Tests réseau)
+├── Cargo.toml                   # Développeur 1 (Responsable : Fichier de configuration)
+└── README.md                    # Développeur 6 (Responsable : Documentation du projet)
