@@ -31,13 +31,6 @@ impl Plugin for MazePlugin {
     }
 }
 
-// The setup_minimap function initializes and runs a Bevy application with the plugins needed to display a minimap in a graphical environment.
-pub fn setup_minimap() {
-    App::new()
-        .add_plugins(DefaultPlugins)
-        .add_plugins(MazePlugin)
-        .run();
-}
 
 // his function generates a graphical minimap based on JSON data for a maze, with specific textures for the wall, floor and player.
 fn display_minimap(mut commands: Commands, asset_server: Res<AssetServer>) {
