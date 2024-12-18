@@ -1,20 +1,19 @@
+use bevy::app::Update;
 use bevy::math::Vec3;
-use bevy::sprite::SpriteBundle;
-use bevy::DefaultPlugins;
-use bevy::prelude::Update;
 use bevy::prelude::App;
-use bevy::prelude::Startup;
-use bevy::prelude::Plugin;
-use bevy::prelude::Transform;
-use bevy::prelude::Camera2dBundle;
 use bevy::prelude::AssetServer;
-use bevy::prelude::Res;
+use bevy::prelude::Camera2dBundle;
 use bevy::prelude::Commands;
+use bevy::prelude::Plugin;
+use bevy::prelude::Res;
+use bevy::prelude::Startup;
+use bevy::prelude::Transform;
+use bevy::sprite::SpriteBundle;
 use serde::Deserialize;
 use std::fs;
 
-const TILE_SIZE: f32 = 15.0; 
-const TEXTURE_SIZE: f32 = 114.0; 
+const TILE_SIZE: f32 = 15.0;
+const TEXTURE_SIZE: f32 = 114.0;
 
 #[derive(Deserialize)]
 struct Maze {
@@ -30,7 +29,6 @@ impl Plugin for MazePlugin {
         app.add_systems(Update, display_minimap);
     }
 }
-
 
 // his function generates a graphical minimap based on JSON data for a maze, with specific textures for the wall, floor and player.
 fn display_minimap(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -48,10 +46,10 @@ fn display_minimap(mut commands: Commands, asset_server: Res<AssetServer>) {
     let y_offset = height as f32 - 200.0;
 
     for y in 0..height {
-        for x in 0..width {                                         
+        for x in 0..width {
             let texture = if maze.maze_1[y][x] == 1 {
                 wall_texture.clone()
-            }else if maze.maze_1[y][x] == 2 {
+            } else if maze.maze_1[y][x] == 2 {
                 player_position.clone()
             } else {
                 floor_texture.clone()
