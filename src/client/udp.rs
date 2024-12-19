@@ -1,6 +1,6 @@
 use serde_json;
+use std::io::{self, Write};
 use std::{io::stdin, net::UdpSocket};
-use std::io::{self,Write};
 
 use crate::utils::data_handling::serialize_message;
 use crate::utils::model::{GameMessage, MessageContent, MessageType};
@@ -18,15 +18,15 @@ fn get_user_input() -> Option<(String, String)> {
     let mut name = String::new();
     let mut ip = String::new();
 
-    // Demander l'adresse IP et le pseudo
     print!("Enter The Server IP Address: ");
     io::stdout().flush().unwrap();
     stdin().read_line(&mut ip).expect("failed to read the IP");
     print!("Enter Your Name: ");
     io::stdout().flush().unwrap();
-    stdin().read_line(&mut name).expect("failed to read the name");
+    stdin()
+        .read_line(&mut name)
+        .expect("failed to read the name");
 
-    // Trim les espaces superflus
     ip = ip.trim().to_string();
     name = name.trim().to_string();
 
@@ -57,9 +57,11 @@ fn send_new_connection(socket: &UdpSocket, name: &str) -> Option<()> {
     let message = GameMessage {
         message_type: MessageType::NewConnection,
         sender: name.to_string(),
-        content: MessageContent::NewConnection { name: name.to_string() },
+        content: MessageContent::NewConnection {
+            name: name.to_string(),
+        },
     };
-    
+
     let msg_bytes = match serialize_message(&message) {
         Some(bytes) => bytes,
         None => return None,
@@ -91,15 +93,34 @@ fn receive_game_update(socket: &UdpSocket) {
                 match game_message.message_type {
                     MessageType::GameUpdate => {
                         println!("Received game update: {:?}", game_message.content);
-                    },
-                    MessageType::Disconnect => {},
+                    }
+                    MessageType::Disconnect => {
+                        handle_disconnect(game_message.content);
+                        break;
+                    }
                     MessageType::NewConnection => handle_new_connection(game_message.content),
                     MessageType::PlayerAction => {},
-                    MessageType::ServerInfo => {},
+                    MessageType::ServerInfo => handle_server_info(game_message.content),
                 }
             }
             Err(err) => eprintln!("Failed to receive response: {}", err),
         }
+    }
+}
+
+fn handle_disconnect(content: MessageContent) {
+    if let MessageContent::Disconnect { reason } = content {
+        println!("[{}]", reason);
+    } else {
+        eprintln!("Received invalid content type for NewConnection");
+    }
+}
+
+fn handle_server_info(content: MessageContent) {
+    if let MessageContent::ServerInfo { server_status } = content {
+        println!("[{}]", server_status);
+    } else {
+        eprintln!("Received invalid content type for ServerInfo");
     }
 }
 
