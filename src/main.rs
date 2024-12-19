@@ -1,5 +1,5 @@
 use multiplayer_fps::server::udp::run_socket;
 
-fn main(){
+fn main() {
     run_socket();
 }
