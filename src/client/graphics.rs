@@ -5,7 +5,6 @@ use bevy::{
 };
 
 // Enum that will b used as a global state for the game
-
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, States)]
 enum GameState {
     #[default]
