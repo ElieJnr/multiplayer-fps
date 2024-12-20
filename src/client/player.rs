@@ -18,7 +18,7 @@ pub fn add_player(players: &mut HashMap<String, Player>, name: String, address: 
             Player {
                 name: name.clone(),
                 address,
-                health: 100,
+                health: 3,
             },
         );
         display_info(&format!("{} has joined", name.clone()));
