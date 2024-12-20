@@ -59,12 +59,13 @@ fn send_new_connection(socket: &UdpSocket, name: &str) -> Option<()> {
 
 fn receive_server_message(socket: &UdpSocket) {
     let mut buffer = [0; 1024];
-
     loop {
         match receive_data_from_socket(socket, &mut buffer) {
             Some((data, _)) => {
                 if let Some(game_message) = deserialize_message(&data) {
-                    process_game_message(game_message);
+                    if process_game_message(game_message) {
+                        break;
+                    }
                 } else {
                     display_error("Failed to deserialize message.");
                 }
@@ -74,15 +75,19 @@ fn receive_server_message(socket: &UdpSocket) {
     }
 }
 
-
-fn process_game_message(game_message: GameMessage) {
+fn process_game_message(game_message: GameMessage)-> bool {
     match game_message.message_type {
         MessageType::GameUpdate => {
             println!("Received game update: {:?}", game_message.content);
         }
-        MessageType::Disconnect => handle_disconnect(game_message.content),
+        MessageType::Disconnect => {
+            handle_disconnect(game_message.content);
+            return true;
+        }
         MessageType::NewConnection => handle_new_connection(game_message.content),
         MessageType::PlayerAction => {}
         MessageType::ServerInfo => handle_server_info(game_message.content),
     }
+    false
 }
+

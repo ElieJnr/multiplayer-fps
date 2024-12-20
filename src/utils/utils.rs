@@ -2,7 +2,6 @@ use colored::{Color, Colorize};
 use std::io::{self, stdin, Write};
 use std::{thread, time::Duration};
 
-
 use super::logger::*;
 
 pub fn clear_screen() {
@@ -67,15 +66,35 @@ pub fn get_user_choice() -> Option<u32> {
 // ========================================== CLIENT ===========================================
 pub fn get_user_input() -> Option<(String, String)> {
     clear_screen();
-    
-    println!("{}","                                  ╔════════════════════════════════╗".green().bold());
-    println!("{}","                                  ║  WELCOME TO OUR PAYT-GAME FPS  ║".green().bold());
-    println!("{}","                                  ╚════════════════════════════════╝".green().bold());
+
+    println!(
+        "{}",
+        "                                  ╔════════════════════════════════╗"
+            .green()
+            .bold()
+    );
+    println!(
+        "{}",
+        "                                  ║  WELCOME TO OUR PAYT-GAME FPS  ║"
+            .green()
+            .bold()
+    );
+    println!(
+        "{}",
+        "                                  ╚════════════════════════════════╝"
+            .green()
+            .bold()
+    );
 
     let ip = read_input("Enter The Server IP Address: ", Color::Yellow)?;
     let name = read_input("Enter Your Name: ", Color::Yellow)?;
 
-    println!("{}","                                     ============================".green().bold());
+    println!(
+        "{}",
+        "                                     ============================"
+            .green()
+            .bold()
+    );
 
     Some((name, ip))
 }
