@@ -4,7 +4,10 @@ use std::{
 };
 
 use crate::{
-    client::graphics::start,
+    client::{
+        graphics::start,
+        player::{add_player, Player},
+    },
     common::protocol::*,
     server::udp::broadcast_message,
     utils::{logger::*, server_utils::get_server_address},
@@ -12,17 +15,15 @@ use crate::{
 
 pub fn handle_message(
     server_socket: &UdpSocket,
-    client_addresses: &mut HashMap<String, SocketAddr>,
+    players: &mut HashMap<String, Player>,
     message: GameMessage,
     src: SocketAddr,
 ) {
     match message.message_type {
-        MessageType::NewConnection => {
-            handle_new_connection(server_socket, client_addresses, message, src)
-        }
+        MessageType::NewConnection => handle_new_connection(server_socket, players, message, src),
         MessageType::PlayerAction => handle_player_action(message, src),
-        MessageType::GameUpdate => handle_game_update(server_socket, client_addresses, message),
-        MessageType::Disconnect => handle_disconnect(server_socket, client_addresses, message, src),
+        MessageType::GameUpdate => handle_game_update(server_socket, players, message),
+        MessageType::Disconnect => handle_disconnect(server_socket, players, message, src),
         _ => display_error(&format!(
             "Unhandled message type: {:?}",
             message.message_type
@@ -32,12 +33,11 @@ pub fn handle_message(
 
 fn handle_new_connection(
     server_socket: &UdpSocket,
-    client_addresses: &mut HashMap<String, SocketAddr>,
+    players: &mut HashMap<String, Player>,
     message: GameMessage,
     src: SocketAddr,
 ) {
-    client_addresses.insert(message.sender.clone(), src);
-    display_info(&format!("{} has joined", message.sender));
+    add_player(players, message.sender.clone(), src);
 
     let player_name = message.sender.clone();
 
@@ -60,41 +60,55 @@ fn handle_new_connection(
         display_warning("Server address is not set yet.");
     }
 
-    broadcast_message(server_socket, client_addresses, msg_json, Some(src));
+    broadcast_message(server_socket, &players, msg_json, Some(&src.to_string()));
 }
 
 fn handle_disconnect(
     server_socket: &UdpSocket,
-    client_addresses: &mut HashMap<String, SocketAddr>,
+    players: &mut HashMap<String, Player>,
     message: GameMessage,
     src: SocketAddr,
 ) {
-    let msg_json = match serialize_message(&message) {
+    let disconnect_msg = match serialize_message(&message) {
         Some(bytes) => bytes,
-        None => return,
+        None => {
+            display_error("Failed to serialize disconnect message.");
+            return;
+        }
     };
 
-    let msg = GameMessage {
+    let broadcast_msg = GameMessage {
         message_type: MessageType::ServerInfo,
         sender: "server".to_string(),
         content: MessageContent::ServerInfo {
-            server_status: format!("{} is disconnected", message.sender),
+            server_status: format!("{} has disconnected.", message.sender),
         },
     };
 
-    let info_msg = match serialize_message(&msg) {
+    let broadcast_bytes = match serialize_message(&broadcast_msg) {
         Some(bytes) => bytes,
-        None => return,
+        None => {
+            display_error("Failed to serialize broadcast message.");
+            return;
+        }
     };
 
-    if let Some(client_addr) = client_addresses.remove(&message.sender) {
-        if let Err(err) = server_socket.send_to(&msg_json, client_addr) {
-            display_error(&format!("Failed to send disconnect message to {}: {}", client_addr, err));
-        } else {
-            broadcast_message(server_socket, client_addresses, info_msg, Some(src));
+    if let Some(player) = players.remove(&message.sender) {
+        if let Err(err) = server_socket.send_to(&disconnect_msg, player.address) {
+            display_error(&format!(
+                "Failed to send disconnect message to {}: {}",
+                player.address, err
+            ));
         }
+
+        broadcast_message(server_socket, players, broadcast_bytes, Some(&src.to_string()));
+
+        display_info(&format!("Player {} has been disconnected.", message.sender));
     } else {
-        display_error(&format!("Failed to find address for {}", message.sender));
+        display_error(&format!(
+            "Player {} not found in the connected players list.",
+            message.sender
+        ));
     }
 }
 
@@ -104,7 +118,7 @@ fn handle_player_action(message: GameMessage, src: SocketAddr) {
 
 fn handle_game_update(
     server_socket: &UdpSocket,
-    client_addresses: &HashMap<String, SocketAddr>,
+    players: &mut HashMap<String, Player>,
     message: GameMessage,
 ) {
     let update_msg = GameMessage {
@@ -118,5 +132,5 @@ fn handle_game_update(
         None => return,
     };
 
-    broadcast_message(server_socket, client_addresses, msg_json, None);
+    broadcast_message(server_socket, &players, msg_json, None);
 }
