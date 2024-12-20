@@ -51,7 +51,7 @@ fn setup(mut commands: Commands) {
 }
 
 mod menu {
-    use crate::utils::{data_handling::serialize_message, model::{GameMessage, MessageContent, MessageType}};
+    use crate::common::protocol::*;
 
     use super::{GameState, NetworkConfig};
     use bevy::{prelude::*, ui::FocusPolicy};
@@ -226,7 +226,7 @@ mod menu {
                             message_type: MessageType::Disconnect,
                             sender: network_config.player_name.clone(),
                             content: MessageContent::Disconnect {
-                                reason: "Press quit".to_string(),
+                                reason: "You press quit".to_string(),
                             },
                         };
                         
