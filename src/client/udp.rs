@@ -1,5 +1,6 @@
 use std::net::UdpSocket;
 
+use crate::common::constant::*;
 use crate::common::protocol::*;
 use crate::utils::logger::*;
 use crate::utils::utils::*;
@@ -9,17 +10,21 @@ use super::handlers::*;
 pub fn client_udp() -> Option<()> {
     let (name, ip) = get_user_input()?;
     let socket = create_socket()?;
+
     connect_to_server(&socket, &ip)?;
     send_new_connection(&socket, &name)?;
     receive_server_message(&socket);
     Some(())
 }
 
-fn create_socket() -> Option<UdpSocket> {
+pub fn create_socket() -> Option<UdpSocket> {
     match UdpSocket::bind("0.0.0.0:0") {
-        Ok(socket) => Some(socket),
+        Ok(socket) => {
+            set_global_socket(socket.try_clone().ok()?);
+            Some(socket)
+        }
         Err(err) => {
-            display_error(&format!("Failed to bind client socket: {}", err));
+            eprintln!("Failed to bind socket: {}", err);
             None
         }
     }
@@ -27,7 +32,9 @@ fn create_socket() -> Option<UdpSocket> {
 
 fn connect_to_server(socket: &UdpSocket, ip: &str) -> Option<()> {
     if let Err(err) = socket.connect(ip) {
-        display_error(&format!("Failed to connect to server {}: {}", ip, err));
+        let reason = format!("Failed to connect to server {}: {}", ip, err);
+        send_disconnect_message(socket, "server", &reason);
+        display_error(&reason);
         None
     } else {
         display_info(&format!("Connected to server at {}", ip));

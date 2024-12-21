@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::utils::logger::*;
 
+use super::constant::get_server_address;
+
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct GameMessage {
@@ -60,9 +62,40 @@ pub fn receive_data_from_socket(socket: &UdpSocket, buf: &mut [u8]) -> Option<(V
             let data = buf[..size].to_vec();
             Some((data, Some(src))) 
         },
+        Err(ref err) if err.kind() == std::io::ErrorKind::WouldBlock => {
+            None
+        }
         Err(err) => {
             display_error(&format!("Failed to receive data: {}", err));
             None
         }
     }
 }
+
+pub fn send_disconnect_message(socket: &UdpSocket, player_name: &str, reason: &str) {
+    let disconnect_message = GameMessage {
+        message_type: MessageType::Disconnect,
+        sender: player_name.to_string(),
+        content: MessageContent::Disconnect {
+            reason: reason.to_string(),
+        },
+    };
+
+    match get_server_address() {
+        Some(server_addr) => {
+            if let Some(serialized_msg) = serialize_message(&disconnect_message) {
+                if let Err(err) = socket.send_to(&serialized_msg, server_addr) {
+                    display_error(&format!("Failed to send disconnect message: {}", err));
+                } else {
+                    display_info(&format!("{} is disconnected successfully.", player_name));
+                }
+            } else {
+                display_error("Failed to serialize disconnect message.");
+            }
+        }
+        None => {
+            display_error("Failed to retrieve server address.");
+        }
+    }
+}
+

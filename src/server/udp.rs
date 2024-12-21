@@ -1,16 +1,13 @@
 use crate::{
     client::{player::Player, udp::client_udp},
-    common::protocol::*,
+    common::{constant::PORT, protocol::*},
     utils::{logger::*, server_utils::*, utils::*},
 };
 use std::{
     collections::HashMap,
     net::UdpSocket,
 };
-
 use super::handlers::handle_message;
-
-const PORT: &str = "8080";
 
 pub fn run_socket() {
     let mut players: HashMap<String, Player> = HashMap::new();

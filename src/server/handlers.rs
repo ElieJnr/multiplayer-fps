@@ -4,13 +4,7 @@ use std::{
 };
 
 use crate::{
-    client::{
-        graphics::start,
-        player::{add_player, Player},
-    },
-    common::protocol::*,
-    server::udp::broadcast_message,
-    utils::{logger::*, server_utils::get_server_address},
+    client::player::{add_player, Player}, common::{constant::{get_global_socket, get_server_address}, protocol::*}, graphics::start::start, server::udp::broadcast_message, utils::logger::*
 };
 
 pub fn handle_message(
@@ -55,11 +49,14 @@ fn handle_new_connection(
     };
 
     if let Some(server_address) = get_server_address() {
-        start(player_name, server_address);
+        let client_socket = get_global_socket().unwrap_or_else(|| {
+            display_error("No global socket found");
+            UdpSocket::bind("0.0.0.0:0").expect("Failed to create a dummy socket")
+        });
+        start(player_name, server_address, client_socket);
     } else {
         display_warning("Server address is not set yet.");
     }
-
     broadcast_message(server_socket, &players, msg_json, Some(&src.to_string()));
 }
 
