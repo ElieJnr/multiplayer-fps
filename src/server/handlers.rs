@@ -50,7 +50,6 @@ fn handle_new_connection(
 
     if let Some(server_address) = get_server_address() {
         let client_socket = get_global_socket().unwrap_or_else(|| {
-            display_error("No global socket found");
             UdpSocket::bind("0.0.0.0:0").expect("Failed to create a dummy socket")
         });
         start(player_name, server_address, client_socket);

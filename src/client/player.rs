@@ -22,6 +22,7 @@ pub fn add_player(players: &mut HashMap<String, Player>, name: String, address: 
             },
         );
         display_info(&format!("{} has joined", name.clone()));
+        display_connected_players(players);
     }
 }
 
@@ -30,5 +31,19 @@ pub fn remove_player(players: &mut HashMap<String, Player>, name: &str) {
         display_info(&format!("Player '{}' has been removed.", name));
     } else {
         display_warning(&format!("Player '{}' not found.", name));
+    }
+}
+
+pub fn display_connected_players(players: &HashMap<String, Player>) {
+    if players.is_empty() {
+        display_info("No players connected.");
+    } else {
+        display_info("Connected players:");
+        for player in players.values() {
+            println!(
+                "Name: {}, Address: {}, Health: {}",
+                player.name, player.address, player.health
+            );
+        }
     }
 }

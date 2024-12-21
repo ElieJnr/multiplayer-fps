@@ -8,6 +8,8 @@ use crate::{
 use bevy::prelude::*;
 use std::net::UdpSocket;
 
+use super::map::MazePlugin;
+
 pub fn start(player_name: String, server_address: String, client_socket: UdpSocket) {
     App::new()
         .add_plugins(DefaultPlugins)
@@ -20,5 +22,6 @@ pub fn start(player_name: String, server_address: String, client_socket: UdpSock
         .init_state::<GameState>()
         .add_systems(Startup, setup)
         .add_plugins(menu_plugin)
+        .add_plugins(MazePlugin)
         .run();
 }

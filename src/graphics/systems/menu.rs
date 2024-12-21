@@ -7,7 +7,7 @@ use super::button::{spawn_menu_button, MenuButtonAction};
 
 pub const NORMAL_BUTTON_COLOR: Color = Color::srgb(0.8, 0.8, 0.8);
 pub const HOVERED_BUTTON_COLOR: Color = Color::srgb(0.6, 0.6, 0.6);
-pub const PRESSED_BUTTON_COLOR: Color = Color::srgb(0.5, 0.5, 0.5); 
+pub const PRESSED_BUTTON_COLOR: Color = Color::srgb(0.5, 0.5, 0.5);
 
 #[derive(Component)]
 struct OnMenuScreen;
@@ -23,7 +23,6 @@ pub fn menu_plugin(app: &mut App) {
         .add_systems(Update, button_interaction_system)
         .add_systems(Update, menu_action);
 }
-
 
 fn main_menu_setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     let icon = assets_server.load("game_icon.png");
@@ -76,7 +75,6 @@ fn main_menu_setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         });
 }
 
-
 fn option_menu_setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     commands.spawn((
         TextBundle::from_section(
@@ -100,10 +98,7 @@ fn option_menu_setup(mut commands: Commands, assets_server: Res<AssetServer>) {
 
 // Button interaction system to handle hover and press animations
 fn button_interaction_system(
-    mut query: Query<
-        (&Interaction, &mut BackgroundColor),
-        (Changed<Interaction>, With<Button>),
-    >,
+    mut query: Query<(&Interaction, &mut BackgroundColor), (Changed<Interaction>, With<Button>)>,
 ) {
     for (interaction, mut color) in &mut query {
         *color = match *interaction {
@@ -128,12 +123,16 @@ fn menu_action(
         if *interaction == Interaction::Pressed {
             match menu_button_action {
                 MenuButtonAction::Quit => {
-                    send_disconnect_message(&network_config.client_socket, &network_config.player_name, "You press quit");
+                    send_disconnect_message(
+                        &network_config.client_socket,
+                        &network_config.player_name,
+                        "You press quit",
+                    );
                     app_exit_events.send(AppExit::Success);
                 }
                 MenuButtonAction::Play => {
-                    game_state.set(GameState::Game);
-                    menu_state.set(MenuState::Disabled);
+                    game_state.set(GameState::Game); 
+                    menu_state.set(MenuState::Disabled); 
                 }
                 MenuButtonAction::Options => menu_state.set(MenuState::Options),
             }

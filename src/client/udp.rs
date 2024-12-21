@@ -42,28 +42,6 @@ fn connect_to_server(socket: &UdpSocket, ip: &str) -> Option<()> {
     }
 }
 
-fn send_new_connection(socket: &UdpSocket, name: &str) -> Option<()> {
-    let message = GameMessage {
-        message_type: MessageType::NewConnection,
-        sender: name.to_string(),
-        content: MessageContent::NewConnection {
-            name: name.to_string(),
-        },
-    };
-
-    let msg_bytes = match serialize_message(&message) {
-        Some(bytes) => bytes,
-        None => return None,
-    };
-
-    if let Err(err) = socket.send(&msg_bytes) {
-        display_error(&format!("Failed to send message: {}", err));
-        None
-    } else {
-        Some(())
-    }
-}
-
 fn receive_server_message(socket: &UdpSocket) {
     let mut buffer = [0; 1024];
     loop {
