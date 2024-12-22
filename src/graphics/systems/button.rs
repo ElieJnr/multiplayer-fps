@@ -1,10 +1,12 @@
 use bevy::prelude::*;
 
+use crate::graphics::resources::PlayerCountState;
+
 use super::menu::NORMAL_BUTTON_COLOR;
 
 #[derive(Component, Debug)]
 pub enum MenuButtonAction {
-    Play,
+    Play(bool),
     Options,
     Quit,
 }
@@ -12,7 +14,7 @@ pub enum MenuButtonAction {
 impl MenuButtonAction {
     pub fn from_label(label: &str) -> Self {
         match label {
-            "Play" => MenuButtonAction::Play,
+            "Play" => MenuButtonAction::Play(false),
             "Options" => MenuButtonAction::Options,
             "Quit" => MenuButtonAction::Quit,
             _ => panic!("Invalid button label"),
@@ -47,4 +49,29 @@ pub fn spawn_menu_button(parent: &mut ChildBuilder, label: &str, assets_server: 
                 },
             ));
         });
+}
+
+pub fn update_play_button(
+    player_count: Res<PlayerCountState>,
+    mut query: Query<(&mut MenuButtonAction, &Children), With<Button>>,
+    mut text_query: Query<&mut Text>,
+) {
+    for (mut action, children) in query.iter_mut() {
+        if let MenuButtonAction::Play(_) = *action {
+            // Update the button's action state
+            *action = MenuButtonAction::Play(player_count.has_enough_players);
+            
+            // Update the button's text
+            for &child in children.iter() {
+                if let Ok(mut text) = text_query.get_mut(child) {
+                    let label = if player_count.has_enough_players {
+                        "Play"
+                    } else {
+                        "Waiting..."
+                    };
+                    text.sections[0].value = label.to_string();
+                }
+            }
+        }
+    }
 }

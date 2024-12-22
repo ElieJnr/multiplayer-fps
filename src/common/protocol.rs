@@ -1,10 +1,25 @@
-use std::net::{SocketAddr, UdpSocket};
-
+use std::{net::{SocketAddr, UdpSocket}, sync::{Arc, Mutex}};
+use bevy::prelude::Resource;
 use serde::{Deserialize, Serialize};
-
 use crate::utils::logger::*;
 
-use super::constant::get_server_address;
+#[derive(Resource, Clone)]
+pub struct NetworkConfig {
+    pub player_name: String,
+    pub server_address: String,
+    pub client_socket: Arc<Mutex<UdpSocket>>,
+}
+
+
+impl NetworkConfig {
+    pub fn new(player_name: String, server_address: String, socket: UdpSocket) -> Self {
+        NetworkConfig {
+            player_name,
+            server_address,
+            client_socket: Arc::new(Mutex::new(socket)),
+        }
+    }
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct GameMessage {
@@ -20,6 +35,8 @@ pub enum MessageType {
     PlayerAction,
     ServerInfo,
     Disconnect,
+    WaitForPlayers,
+    StartGame
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -29,6 +46,8 @@ pub enum MessageContent {
     PlayerAction { action: String },
     ServerInfo { server_status: String },
     Disconnect { reason: String },
+    WaitForPlayers { msg: String },
+    StartGame { msg: String },
 }
 
 pub fn serialize_message(message: &GameMessage) -> Option<Vec<u8>> {
@@ -71,13 +90,8 @@ pub fn receive_data_from_socket(
     }
 }
 
-pub fn send_disconnect_message(socket: &UdpSocket, player_name: &str, reason: &str) {
-    let server_addr = match get_server_address() {
-        Some(addr) => addr,
-        None => return display_error("Failed to retrieve server address."),
-    };
-
-    let disconnect_message = GameMessage {
+pub fn send_disconnect_message(config: &NetworkConfig, player_name: &str, reason: &str) {
+        let disconnect_message = GameMessage {
         message_type: MessageType::Disconnect,
         sender: player_name.to_string(),
         content: MessageContent::Disconnect {
@@ -90,19 +104,20 @@ pub fn send_disconnect_message(socket: &UdpSocket, player_name: &str, reason: &s
         None => return display_error("Failed to serialize disconnect message."),
     };
 
-    if let Err(err) = socket.send_to(&serialized_msg, server_addr) {
+    let socket = config.client_socket.lock().unwrap(); 
+    if let Err(err) = socket.send_to(&serialized_msg, config.server_address.clone()) {
         display_error(&format!("Failed to send disconnect message: {}", err));
     } else {
         display_info(&format!("{} is disconnected successfully.", player_name));
     }
 }
 
-pub fn send_new_connection(socket: &UdpSocket, name: &str) -> Option<()> {
+pub fn send_new_connection(config: &NetworkConfig) -> Option<()> {
     let message = GameMessage {
         message_type: MessageType::NewConnection,
-        sender: name.to_string(),
+        sender: config.player_name.to_string(),
         content: MessageContent::NewConnection {
-            name: name.to_string(),
+            name: config.player_name.to_string(),
         },
     };
 
@@ -111,6 +126,7 @@ pub fn send_new_connection(socket: &UdpSocket, name: &str) -> Option<()> {
         None => return None,
     };
 
+    let socket = config.client_socket.lock().unwrap(); 
     if let Err(err) = socket.send(&msg_bytes) {
         display_error(&format!("Failed to send message: {}", err));
         None

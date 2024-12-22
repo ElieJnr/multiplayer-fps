@@ -1,6 +1,4 @@
 use std::net::{IpAddr, Ipv4Addr, UdpSocket};
-use crate::common::constant::set_server_address;
-
 
 pub fn get_local_ipv4() -> Option<Ipv4Addr> {
     let socket = UdpSocket::bind("0.0.0.0:0").ok()?;
@@ -14,10 +12,8 @@ pub fn get_local_ipv4() -> Option<Ipv4Addr> {
 }
 
 pub fn create_server_socket(ip: Ipv4Addr, port: &str) -> Option<UdpSocket> {
-    let address = format!("{}:{}", ip, port);
-    match UdpSocket::bind(&address) {
+    match UdpSocket::bind(&format!("{}:{}", ip, port)) {
         Ok(socket) => {
-            set_server_address(address);
             Some(socket)
         }
         Err(err) => {

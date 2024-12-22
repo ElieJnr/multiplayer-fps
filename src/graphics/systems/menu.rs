@@ -1,13 +1,14 @@
 use crate::common::protocol::*;
-use crate::graphics::network::NetworkConfig;
+use crate::graphics::resources::PlayerCountState;
 use crate::graphics::states::{GameState, MenuState};
 use bevy::prelude::*;
 
-use super::button::{spawn_menu_button, MenuButtonAction};
+use super::button::{spawn_menu_button, update_play_button, MenuButtonAction};
 
 pub const NORMAL_BUTTON_COLOR: Color = Color::srgb(0.8, 0.8, 0.8);
 pub const HOVERED_BUTTON_COLOR: Color = Color::srgb(0.6, 0.6, 0.6);
 pub const PRESSED_BUTTON_COLOR: Color = Color::srgb(0.5, 0.5, 0.5);
+pub const RED_BUTTON_COLOR: Color = Color::srgb(0.5, 0.1, 0.1);
 
 #[derive(Component)]
 struct OnMenuScreen;
@@ -17,11 +18,14 @@ struct OnOptionScreen;
 
 pub fn menu_plugin(app: &mut App) {
     app.init_state::<MenuState>()
+        .init_resource::<PlayerCountState>()
         .add_systems(OnEnter(GameState::Menu), main_menu_setup)
         .add_systems(OnExit(GameState::Menu), despawn_menu::<OnMenuScreen>)
         .add_systems(OnEnter(MenuState::Options), option_menu_setup)
-        .add_systems(Update, button_interaction_system)
-        .add_systems(Update, menu_action);
+        .add_systems(
+            Update,
+            (button_interaction_system, menu_action, update_play_button),
+        );
 }
 
 fn main_menu_setup(mut commands: Commands, assets_server: Res<AssetServer>) {
@@ -96,11 +100,18 @@ fn option_menu_setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     ));
 }
 
-// Button interaction system to handle hover and press animations
+// Modified button interaction system to handle disabled state
 fn button_interaction_system(
-    mut query: Query<(&Interaction, &mut BackgroundColor), (Changed<Interaction>, With<Button>)>,
+    mut query: Query<(&Interaction, &mut BackgroundColor, &MenuButtonAction), (Changed<Interaction>, With<Button>)>,
 ) {
-    for (interaction, mut color) in &mut query {
+    for (interaction, mut color, action) in &mut query {
+        if let MenuButtonAction::Play(has_enough_players) = action {
+            if !has_enough_players {
+                *color = RED_BUTTON_COLOR.into();
+                continue;
+            }
+        }
+
         *color = match *interaction {
             Interaction::Hovered => HOVERED_BUTTON_COLOR.into(),
             Interaction::Pressed => PRESSED_BUTTON_COLOR.into(),
@@ -108,6 +119,7 @@ fn button_interaction_system(
         };
     }
 }
+
 
 fn menu_action(
     interaction_query: Query<
@@ -124,15 +136,17 @@ fn menu_action(
             match menu_button_action {
                 MenuButtonAction::Quit => {
                     send_disconnect_message(
-                        &network_config.client_socket,
+                        &network_config,
                         &network_config.player_name,
                         "You press quit",
                     );
                     app_exit_events.send(AppExit::Success);
                 }
-                MenuButtonAction::Play => {
-                    game_state.set(GameState::Game); 
-                    menu_state.set(MenuState::Disabled); 
+                MenuButtonAction::Play(has_enough_players) => {
+                    if *has_enough_players {
+                        game_state.set(GameState::Game);
+                        menu_state.set(MenuState::Disabled);
+                    }
                 }
                 MenuButtonAction::Options => menu_state.set(MenuState::Options),
             }

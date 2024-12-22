@@ -1,6 +1,11 @@
 use std::{collections::HashMap, net::SocketAddr};
 
+use bevy::prelude::Resource;
+
 use crate::utils::logger::{display_info, display_warning};
+
+#[derive(Resource, Debug)]
+pub struct Players(pub HashMap<String, Player>);
 
 #[derive(Debug, Clone)]
 pub struct Player {

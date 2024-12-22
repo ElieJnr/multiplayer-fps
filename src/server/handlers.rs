@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    client::player::{add_player, Player}, common::{constant::{get_global_socket, get_server_address}, protocol::*}, graphics::start::start, server::udp::broadcast_message, utils::logger::*
+    client::player::{add_player, Player}, common::{constant::MIN_PLAYERS, protocol::*}, server::udp::broadcast_message, utils::logger::*
 };
 
 pub fn handle_message(
@@ -33,30 +33,59 @@ fn handle_new_connection(
 ) {
     add_player(players, message.sender.clone(), src);
 
-    let player_name = message.sender.clone();
+    send_new_connection_message(server_socket, players, &message.sender);
 
+    if players.len() < MIN_PLAYERS {
+        send_wait_for_players_message(server_socket, players);
+    } else {
+        start_game(server_socket, players);
+    }
+}
+
+fn send_new_connection_message(
+    server_socket: &UdpSocket,
+    players: &mut HashMap<String, Player>,
+    player_name: &str,
+) {
     let msg = GameMessage {
         message_type: MessageType::NewConnection,
         sender: "server".to_string(),
         content: MessageContent::NewConnection {
-            name: message.sender,
+            name: player_name.to_string(),
         },
     };
 
-    let msg_json = match serialize_message(&msg) {
-        Some(bytes) => bytes,
-        None => return,
+    if let Some(msg_json) = serialize_message(&msg) {
+        broadcast_message(server_socket, players, msg_json, None);
+    }
+}
+
+fn send_wait_for_players_message(server_socket: &UdpSocket, players: &mut HashMap<String, Player>) {
+    let msg = GameMessage {
+        message_type: MessageType::WaitForPlayers,
+        sender: "server".to_string(),
+        content: MessageContent::WaitForPlayers {
+            msg: "Please wait for other players...".to_string(),
+        },
     };
 
-    if let Some(server_address) = get_server_address() {
-        let client_socket = get_global_socket().unwrap_or_else(|| {
-            UdpSocket::bind("0.0.0.0:0").expect("Failed to create a dummy socket")
-        });
-        start(player_name, server_address, client_socket);
-    } else {
-        display_warning("Server address is not set yet.");
+    if let Some(msg_json) = serialize_message(&msg) {
+        broadcast_message(server_socket, players, msg_json, None);
     }
-    broadcast_message(server_socket, &players, msg_json, Some(&src.to_string()));
+}
+
+fn start_game(server_socket: &UdpSocket, players: &mut HashMap<String, Player>) {
+    let msg = GameMessage {
+        message_type: MessageType::StartGame,
+        sender: "server".to_string(),
+        content: MessageContent::StartGame {
+            msg: "Ready for the game".to_string(),
+        },
+    };
+
+    if let Some(msg_json) = serialize_message(&msg) {
+        broadcast_message(server_socket, players, msg_json, None);
+    }
 }
 
 fn handle_disconnect(
@@ -97,7 +126,12 @@ fn handle_disconnect(
             ));
         }
 
-        broadcast_message(server_socket, players, broadcast_bytes, Some(&src.to_string()));
+        broadcast_message(
+            server_socket,
+            players,
+            broadcast_bytes,
+            Some(&src.to_string()),
+        );
 
         display_info(&format!("Player {} has been disconnected.", message.sender));
     } else {
