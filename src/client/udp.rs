@@ -69,6 +69,7 @@ fn receive_server_message(config: &NetworkConfig, state:&mut PlayerCountState) {
 }
 
 fn process_game_message(game_message: GameMessage, config: &NetworkConfig, state:&mut PlayerCountState)-> bool {
+    display_info(&format!("CHECK {:?}", game_message.message_type));
     match game_message.message_type {
         MessageType::GameUpdate => {
             println!("Received game update: {:?}", game_message.content);
