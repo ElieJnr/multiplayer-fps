@@ -64,11 +64,12 @@ pub fn broadcast_message(
 ) {
     for player in players.values() {
         if exclude_name.map_or(true, |name| name != player.name) {
-            if let Err(err) = server_socket.send_to(&message, player.address) {
-                display_error(&format!(
+            match server_socket.send_to(&message, player.address) {
+                Ok(_) => display_info(&format!("Message sent to {}", player.name)),
+                Err(err) => display_error(&format!(
                     "Failed to send message to {}: {}",
                     player.name, err
-                ));
+                )),
             }
         }
     }

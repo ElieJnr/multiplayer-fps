@@ -66,6 +66,7 @@ fn send_new_connection_message(
         },
     };
 
+    display_info(&format!("PLAYERS {:?}", players));
     if let Some(msg_json) = serialize_message(&msg) {
         broadcast_message(server_socket, players, msg_json, None);
     }
