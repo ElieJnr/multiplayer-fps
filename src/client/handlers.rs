@@ -1,4 +1,4 @@
-use crate::common::constant::PLAYER_COUNT_STATE;
+use crate::graphics::resources::PlayerCountState;
 use crate::graphics::start::start;
 use crate::{common::protocol::*, utils::logger::*};
 pub fn handle_disconnect(content: MessageContent) {
@@ -26,15 +26,22 @@ pub fn handle_new_connection(content: MessageContent) {
 }
 
 static mut GAME_STARTED: bool = false;
-pub fn handle_waiting(content: MessageContent, config: &NetworkConfig) {
+pub fn handle_waiting(
+    content: MessageContent,
+    config: &NetworkConfig,
+    state: &mut PlayerCountState,
+) {
     if let MessageContent::WaitForPlayers { msg } = content {
-        if let Ok(mut state) = PLAYER_COUNT_STATE.lock() {
-            state.has_enough_players = false;
-        }
+        state.has_enough_players = false;
         display_info(&msg);
-        unsafe {
-            if !GAME_STARTED {
-                start(config.player_name.clone(), config.server_address.clone(), config.client_socket.clone());
+        if !unsafe { GAME_STARTED } {
+            start(
+                config.player_name.clone(),
+                config.server_address.clone(),
+                config.client_socket.clone(),
+                state.clone()
+            );
+            unsafe {
                 GAME_STARTED = true;
             }
         }
@@ -43,15 +50,19 @@ pub fn handle_waiting(content: MessageContent, config: &NetworkConfig) {
     }
 }
 
-pub fn handle_start(content: MessageContent, config: &NetworkConfig) {
+pub fn handle_start(content: MessageContent, config: &NetworkConfig, state: &mut PlayerCountState) {
     if let MessageContent::StartGame { msg } = content {
-        if let Ok(mut state) = PLAYER_COUNT_STATE.lock() {
-            state.has_enough_players = true;
-        }
+        state.has_enough_players = true;
         display_info(&msg);
-        unsafe {
-            if !GAME_STARTED {
-                start(config.player_name.clone(), config.server_address.clone(), config.client_socket.clone());
+        
+        if !unsafe { GAME_STARTED } {
+            start(
+                config.player_name.clone(),
+                config.server_address.clone(),
+                config.client_socket.clone(),
+                state.clone()
+            );
+            unsafe {
                 GAME_STARTED = true;
             }
         }

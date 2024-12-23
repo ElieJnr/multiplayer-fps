@@ -102,8 +102,7 @@ pub fn send_disconnect_message(config: &NetworkConfig, player_name: &str, reason
         Some(msg) => msg,
         None => return display_error("Failed to serialize disconnect message."),
     };
-    println!("1: send_disconnect_message {:?}", serialized_msg);
-    println!("2: send_disconnect_message {:?}", config.client_socket);
+    
     if let Err(err) = config.client_socket.send_to(&serialized_msg, config.server_address.clone()) {
         display_error(&format!("Failed to send disconnect message: {}", err));
     } else {

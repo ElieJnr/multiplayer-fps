@@ -4,7 +4,11 @@ use std::{
 };
 
 use crate::{
-    client::player::{add_player, Player}, common::{constant::MIN_PLAYERS, protocol::*}, server::udp::broadcast_message, utils::logger::*
+    client::player::{add_player, Player},
+    common::{constant::MIN_PLAYERS, protocol::*},
+    graphics::resources::PlayerCountState,
+    server::udp::broadcast_message,
+    utils::logger::*,
 };
 
 pub fn handle_message(
@@ -12,9 +16,12 @@ pub fn handle_message(
     players: &mut HashMap<String, Player>,
     message: GameMessage,
     src: SocketAddr,
+    state: &mut PlayerCountState,
 ) {
     match message.message_type {
-        MessageType::NewConnection => handle_new_connection(server_socket, players, message, src),
+        MessageType::NewConnection => {
+            handle_new_connection(server_socket, players, message, src, state)
+        }
         MessageType::PlayerAction => handle_player_action(message, src),
         MessageType::GameUpdate => handle_game_update(server_socket, players, message),
         MessageType::Disconnect => handle_disconnect(server_socket, players, message, src),
@@ -30,12 +37,16 @@ fn handle_new_connection(
     players: &mut HashMap<String, Player>,
     message: GameMessage,
     src: SocketAddr,
+    state: &mut PlayerCountState,
 ) {
     add_player(players, message.sender.clone(), src);
+    state.player_count = players.len();
+    
+    let has_enough = players.len() >= MIN_PLAYERS;
+    state.has_enough_players = has_enough;
 
     send_new_connection_message(server_socket, players, &message.sender);
-
-    if players.len() < MIN_PLAYERS {
+    if !has_enough {
         send_wait_for_players_message(server_socket, players);
     } else {
         start_game(server_socket, players);

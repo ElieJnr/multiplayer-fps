@@ -1,17 +1,18 @@
 use std::net::UdpSocket;
 use std::sync::Arc;
 use crate::common::protocol::*;
+use crate::graphics::resources::PlayerCountState;
 use crate::utils::logger::*;
 use crate::utils::utils::*;
 
 use super::handlers::*;
 
-pub fn client_udp() -> Option<NetworkConfig> {
+pub fn client_udp(state:&mut PlayerCountState) -> Option<NetworkConfig> {
     let network_config = initialize_network_config()?;
 
     connect_to_server(&network_config)?;
     send_new_connection(&network_config)?;
-    receive_server_message(&network_config);
+    receive_server_message(&network_config, state);
     Some(network_config)
 }
 
@@ -49,13 +50,13 @@ fn connect_to_server(config: &NetworkConfig) -> Option<()> {
     }
 }
 
-fn receive_server_message(config: &NetworkConfig) {
+fn receive_server_message(config: &NetworkConfig, state:&mut PlayerCountState) {
     let mut buffer = [0; 1024];
     loop {
         match receive_data_from_socket(&config.client_socket, &mut buffer) {
             Some((data, _)) => {
                 if let Some(game_message) = deserialize_message(&data) {
-                    if process_game_message(game_message, config) {
+                    if process_game_message(game_message, config, state) {
                         break;
                     }
                 } else {
@@ -67,7 +68,7 @@ fn receive_server_message(config: &NetworkConfig) {
     }
 }
 
-fn process_game_message(game_message: GameMessage, config: &NetworkConfig)-> bool {
+fn process_game_message(game_message: GameMessage, config: &NetworkConfig, state:&mut PlayerCountState)-> bool {
     match game_message.message_type {
         MessageType::GameUpdate => {
             println!("Received game update: {:?}", game_message.content);
@@ -79,8 +80,8 @@ fn process_game_message(game_message: GameMessage, config: &NetworkConfig)-> boo
         MessageType::NewConnection => handle_new_connection(game_message.content),
         MessageType::PlayerAction => {}
         MessageType::ServerInfo => handle_server_info(game_message.content),
-        MessageType::WaitForPlayers => handle_waiting(game_message.content, config),
-        MessageType::StartGame => handle_start(game_message.content, config),
+        MessageType::WaitForPlayers => handle_waiting(game_message.content, config, state),
+        MessageType::StartGame => handle_start(game_message.content, config, state),
     }
     false
 }

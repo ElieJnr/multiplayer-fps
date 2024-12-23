@@ -56,15 +56,14 @@ pub fn update_play_button(
     mut query: Query<(&mut MenuButtonAction, &Children), With<Button>>,
     mut text_query: Query<&mut Text>,
 ) {
+    let has_enough = player_count.has_enough_players;
     for (mut action, children) in query.iter_mut() {
         if let MenuButtonAction::Play(_) = *action {
-            // Update the button's action state
-            *action = MenuButtonAction::Play(player_count.has_enough_players);
-            
-            // Update the button's text
+            *action = MenuButtonAction::Play(has_enough);
+
             for &child in children.iter() {
                 if let Ok(mut text) = text_query.get_mut(child) {
-                    let label = if player_count.has_enough_players {
+                    let label = if has_enough {
                         "Play"
                     } else {
                         "Waiting..."
