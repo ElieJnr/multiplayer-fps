@@ -34,16 +34,14 @@ pub fn handle_waiting(
     if let MessageContent::WaitForPlayers { msg } = content {
         state.has_enough_players = false;
         display_info(&msg);
-        if !unsafe { GAME_STARTED } {
+        unsafe {
             start(
                 config.player_name.clone(),
                 config.server_address.clone(),
                 config.client_socket.clone(),
-                state.clone()
+                state.clone(),
             );
-            unsafe {
-                GAME_STARTED = true;
-            }
+            GAME_STARTED = true;
         }
     } else {
         display_error("Received invalid content type for WaitForPlayers");
@@ -54,17 +52,15 @@ pub fn handle_start(content: MessageContent, config: &NetworkConfig, state: &mut
     if let MessageContent::StartGame { msg } = content {
         state.has_enough_players = true;
         display_info(&msg);
-        
-        if !unsafe { GAME_STARTED } {
+
+        unsafe {
             start(
                 config.player_name.clone(),
                 config.server_address.clone(),
                 config.client_socket.clone(),
-                state.clone()
+                state.clone(),
             );
-            unsafe {
-                GAME_STARTED = true;
-            }
+            GAME_STARTED = true;
         }
     } else {
         display_error("Received invalid content type for StartGame");
