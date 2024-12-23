@@ -1,6 +1,5 @@
 use std::net::UdpSocket;
 use std::sync::Arc;
-use std::sync::Mutex;
 use crate::common::protocol::*;
 use crate::utils::logger::*;
 use crate::utils::utils::*;
@@ -19,11 +18,10 @@ pub fn client_udp() -> Option<NetworkConfig> {
 fn initialize_network_config() -> Option<NetworkConfig> {
     let (name, ip) = get_user_input()?;
     let socket = create_socket()?;
-    let socket = Arc::new(Mutex::new(socket));
     Some(NetworkConfig {
         player_name: name,
         server_address: ip,
-        client_socket: socket,
+        client_socket: Arc::new(socket),
     })
 }
 
@@ -40,8 +38,7 @@ pub fn create_socket() -> Option<UdpSocket> {
 }
 
 fn connect_to_server(config: &NetworkConfig) -> Option<()> {
-    let socket = config.client_socket.lock().unwrap(); 
-    if let Err(err) = socket.connect(&config.server_address) {
+    if let Err(err) = config.client_socket.connect(&config.server_address) {
         let reason = format!("Failed to connect to server {}: {}", config.server_address, err);
         send_disconnect_message(config, "server", &reason);
         display_error(&reason);
@@ -55,8 +52,7 @@ fn connect_to_server(config: &NetworkConfig) -> Option<()> {
 fn receive_server_message(config: &NetworkConfig) {
     let mut buffer = [0; 1024];
     loop {
-        let socket = config.client_socket.lock().unwrap(); 
-        match receive_data_from_socket(&socket, &mut buffer) {
+        match receive_data_from_socket(&config.client_socket, &mut buffer) {
             Some((data, _)) => {
                 if let Some(game_message) = deserialize_message(&data) {
                     if process_game_message(game_message, config) {

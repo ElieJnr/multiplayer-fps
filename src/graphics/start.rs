@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, net::UdpSocket, sync::Arc};
 
 use super::map::MazePlugin;
 use crate::{
@@ -12,11 +12,15 @@ use crate::{
 };
 use bevy::prelude::*;
 
-pub fn start(config: &NetworkConfig) {
+pub fn start(player_name: String, server_address: String, client_socket: Arc<UdpSocket>) {
     App::new()
         .add_plugins(DefaultPlugins)
         .insert_resource(Map::Map00)
-        .insert_resource(config.clone())
+        .insert_resource(NetworkConfig {
+            player_name,
+            server_address,
+            client_socket,
+        })
         .insert_resource(Players(HashMap::new()))
         .init_state::<GameState>()
         .add_systems(Startup, setup)

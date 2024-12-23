@@ -34,7 +34,7 @@ pub fn handle_waiting(content: MessageContent, config: &NetworkConfig) {
         display_info(&msg);
         unsafe {
             if !GAME_STARTED {
-                start(config);
+                start(config.player_name.clone(), config.server_address.clone(), config.client_socket.clone());
                 GAME_STARTED = true;
             }
         }
@@ -51,7 +51,7 @@ pub fn handle_start(content: MessageContent, config: &NetworkConfig) {
         display_info(&msg);
         unsafe {
             if !GAME_STARTED {
-                start(config);
+                start(config.player_name.clone(), config.server_address.clone(), config.client_socket.clone());
                 GAME_STARTED = true;
             }
         }

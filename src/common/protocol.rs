@@ -1,22 +1,21 @@
-use std::{net::{SocketAddr, UdpSocket}, sync::{Arc, Mutex}};
+use crate::utils::logger::*;
 use bevy::prelude::Resource;
 use serde::{Deserialize, Serialize};
-use crate::utils::logger::*;
+use std::{net::{SocketAddr, UdpSocket}, sync::Arc};
 
-#[derive(Resource, Clone)]
+#[derive(Resource, Debug)]
 pub struct NetworkConfig {
     pub player_name: String,
     pub server_address: String,
-    pub client_socket: Arc<Mutex<UdpSocket>>,
+    pub client_socket: Arc<UdpSocket>,
 }
-
 
 impl NetworkConfig {
     pub fn new(player_name: String, server_address: String, socket: UdpSocket) -> Self {
         NetworkConfig {
             player_name,
             server_address,
-            client_socket: Arc::new(Mutex::new(socket)),
+            client_socket: Arc::new(socket), 
         }
     }
 }
@@ -36,7 +35,7 @@ pub enum MessageType {
     ServerInfo,
     Disconnect,
     WaitForPlayers,
-    StartGame
+    StartGame,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -91,21 +90,21 @@ pub fn receive_data_from_socket(
 }
 
 pub fn send_disconnect_message(config: &NetworkConfig, player_name: &str, reason: &str) {
-        let disconnect_message = GameMessage {
+    let disconnect_message = GameMessage {
         message_type: MessageType::Disconnect,
         sender: player_name.to_string(),
         content: MessageContent::Disconnect {
             reason: reason.to_string(),
         },
     };
-
+    
     let serialized_msg = match serialize_message(&disconnect_message) {
         Some(msg) => msg,
         None => return display_error("Failed to serialize disconnect message."),
     };
-
-    let socket = config.client_socket.lock().unwrap(); 
-    if let Err(err) = socket.send_to(&serialized_msg, config.server_address.clone()) {
+    println!("1: send_disconnect_message {:?}", serialized_msg);
+    println!("2: send_disconnect_message {:?}", config.client_socket);
+    if let Err(err) = config.client_socket.send_to(&serialized_msg, config.server_address.clone()) {
         display_error(&format!("Failed to send disconnect message: {}", err));
     } else {
         display_info(&format!("{} is disconnected successfully.", player_name));
@@ -126,8 +125,7 @@ pub fn send_new_connection(config: &NetworkConfig) -> Option<()> {
         None => return None,
     };
 
-    let socket = config.client_socket.lock().unwrap(); 
-    if let Err(err) = socket.send(&msg_bytes) {
+    if let Err(err) = config.client_socket.send(&msg_bytes) {
         display_error(&format!("Failed to send message: {}", err));
         None
     } else {
