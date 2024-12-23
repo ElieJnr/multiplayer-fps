@@ -66,9 +66,8 @@ fn send_new_connection_message(
         },
     };
 
-    display_info(&format!("PLAYERS {:?}", players));
     if let Some(msg_json) = serialize_message(&msg) {
-        broadcast_message(server_socket, players, msg_json, None);
+        broadcast_message(server_socket, players, msg_json, None, true);
     }
 }
 
@@ -82,7 +81,7 @@ fn send_wait_for_players_message(server_socket: &UdpSocket, players: &mut HashMa
     };
 
     if let Some(msg_json) = serialize_message(&msg) {
-        broadcast_message(server_socket, players, msg_json, None);
+        broadcast_message(server_socket, players, msg_json, None, true);
     }
 }
 
@@ -96,7 +95,7 @@ fn start_game(server_socket: &UdpSocket, players: &mut HashMap<String, Player>) 
     };
 
     if let Some(msg_json) = serialize_message(&msg) {
-        broadcast_message(server_socket, players, msg_json, None);
+        broadcast_message(server_socket, players, msg_json, None, true);
     }
 }
 
@@ -143,6 +142,7 @@ fn handle_disconnect(
             players,
             broadcast_bytes,
             Some(&src.to_string()),
+            false, 
         );
 
         display_info(&format!("Player {} has been disconnected.", message.sender));
@@ -174,5 +174,5 @@ fn handle_game_update(
         None => return,
     };
 
-    broadcast_message(server_socket, &players, msg_json, None);
+    broadcast_message(server_socket, &players, msg_json, None, true);
 }

@@ -1,13 +1,13 @@
-use std::net::UdpSocket;
-use std::sync::Arc;
 use crate::common::protocol::*;
 use crate::graphics::resources::PlayerCountState;
 use crate::utils::logger::*;
 use crate::utils::utils::*;
+use std::net::UdpSocket;
+use std::sync::Arc;
 
 use super::handlers::*;
 
-pub fn client_udp(state:&mut PlayerCountState) -> Option<NetworkConfig> {
+pub fn client_udp(state: &mut PlayerCountState) -> Option<NetworkConfig> {
     let network_config = initialize_network_config()?;
 
     connect_to_server(&network_config)?;
@@ -28,9 +28,7 @@ fn initialize_network_config() -> Option<NetworkConfig> {
 
 pub fn create_socket() -> Option<UdpSocket> {
     match UdpSocket::bind("0.0.0.0:0") {
-        Ok(socket) => {
-            Some(socket)
-        }
+        Ok(socket) => Some(socket),
         Err(err) => {
             eprintln!("Failed to bind socket: {}", err);
             None
@@ -40,7 +38,10 @@ pub fn create_socket() -> Option<UdpSocket> {
 
 fn connect_to_server(config: &NetworkConfig) -> Option<()> {
     if let Err(err) = config.client_socket.connect(&config.server_address) {
-        let reason = format!("Failed to connect to server {}: {}", config.server_address, err);
+        let reason = format!(
+            "Failed to connect to server {}: {}",
+            config.server_address, err
+        );
         send_disconnect_message(config, "server", &reason);
         display_error(&reason);
         None
@@ -50,12 +51,13 @@ fn connect_to_server(config: &NetworkConfig) -> Option<()> {
     }
 }
 
-fn receive_server_message(config: &NetworkConfig, state:&mut PlayerCountState) {
+fn receive_server_message(config: &NetworkConfig, state: &mut PlayerCountState) {
     let mut buffer = [0; 1024];
     loop {
         match receive_data_from_socket(&config.client_socket, &mut buffer) {
             Some((data, _)) => {
                 if let Some(game_message) = deserialize_message(&data) {
+                    display_info(&format!("CHECK {:#?}", game_message));
                     if process_game_message(game_message, config, state) {
                         break;
                     }
@@ -68,8 +70,11 @@ fn receive_server_message(config: &NetworkConfig, state:&mut PlayerCountState) {
     }
 }
 
-fn process_game_message(game_message: GameMessage, config: &NetworkConfig, state:&mut PlayerCountState)-> bool {
-    display_info(&format!("CHECK {:?}", game_message.message_type));
+fn process_game_message(
+    game_message: GameMessage,
+    config: &NetworkConfig,
+    state: &mut PlayerCountState,
+) -> bool {
     match game_message.message_type {
         MessageType::GameUpdate => {
             println!("Received game update: {:?}", game_message.content);
@@ -86,4 +91,3 @@ fn process_game_message(game_message: GameMessage, config: &NetworkConfig, state
     }
     false
 }
-

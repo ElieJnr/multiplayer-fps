@@ -61,11 +61,12 @@ pub fn broadcast_message(
     players: &HashMap<String, Player>,
     message: Vec<u8>,
     exclude_name: Option<&str>,
+    is_broadcast: bool,
 ) {
     for player in players.values() {
-        if exclude_name.map_or(true, |name| name != player.name) {
+        if is_broadcast || exclude_name.map_or(true, |name| name != player.name) {
             match server_socket.send_to(&message, player.address) {
-                Ok(_) => display_info(&format!("Message sent to {}", player.name)),
+                Ok(_) => {},
                 Err(err) => display_error(&format!(
                     "Failed to send message to {}: {}",
                     player.name, err
@@ -74,3 +75,4 @@ pub fn broadcast_message(
         }
     }
 }
+
