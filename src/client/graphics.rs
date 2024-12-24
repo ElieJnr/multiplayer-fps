@@ -1,11 +1,19 @@
+use std::net::UdpSocket;
+
 use bevy::{
     app::{App, Startup},
     prelude::{AppExtStates, Camera2dBundle, Commands, Component, Resource, States},
     DefaultPlugins,
 };
 
-// Enum that will b used as a global state for the game
+#[derive(Resource)]
+struct NetworkConfig {
+    player_name: String,
+    server_address: String,
+    client_socket: UdpSocket,
+}
 
+// Enum that will b used as a global state for the game
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, States)]
 enum GameState {
     #[default]
@@ -22,22 +30,30 @@ enum Map {
     // Map02,
 }
 
-pub fn start() {
+pub fn start(player_name: String, server_address: String) {
     App::new()
         .add_plugins(DefaultPlugins)
         .insert_resource(Map::Map00)
+        .insert_resource(NetworkConfig {
+            player_name,
+            server_address,
+            client_socket: UdpSocket::bind("0.0.0.0:0").expect("Failed to create socket"),
+        })
         .init_state::<GameState>()
         .add_systems(Startup, setup)
         .add_plugins(menu::menu_plugin)
         .run();
 }
 
+
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 }
 
 mod menu {
-    use super::GameState;
+    use crate::utils::{data_handling::serialize_message, model::{GameMessage, MessageContent, MessageType}};
+
+    use super::{GameState, NetworkConfig};
     use bevy::{prelude::*, ui::FocusPolicy};
     // // Button colors
     const NORMAL_BUTTON_COLOR: Color = Color::srgb(0.8, 0.8, 0.8);
@@ -68,7 +84,7 @@ mod menu {
     #[derive(Component)]
     struct OnOptionScreen;
 
-    #[derive(Component)]
+    #[derive(Component, Debug)]
     enum MenuButtonAction {
         Play,
         Options,
@@ -199,11 +215,26 @@ mod menu {
         mut app_exit_events: EventWriter<AppExit>,
         mut menu_state: ResMut<NextState<MenuState>>,
         mut game_state: ResMut<NextState<GameState>>,
+        network_config: Res<NetworkConfig>,
     ) {
         for (interaction, menu_button_action) in &interaction_query {
             if *interaction == Interaction::Pressed {
                 match menu_button_action {
+                    
                     MenuButtonAction::Quit => {
+                        let msg = GameMessage {
+                            message_type: MessageType::Disconnect,
+                            sender: network_config.player_name.clone(),
+                            content: MessageContent::Disconnect {
+                                reason: "Press quit".to_string(),
+                            },
+                        };
+                        
+                        if let Some(serialized_msg) = serialize_message(&msg) {
+                            let _ = network_config
+                                .client_socket
+                                .send_to(&serialized_msg, &network_config.server_address);
+                        }
                         app_exit_events.send(AppExit::Success);
                     }
                     MenuButtonAction::Play => {
@@ -244,3 +275,4 @@ mod menu {
         }
     }
 }
+

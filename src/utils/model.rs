@@ -1,19 +1,26 @@
-use serde::{Deserialize,Serialize};
+use serde::{Deserialize, Serialize};
 
-// Structure représentant la nouvelle connexion
 #[derive(Debug, Deserialize, Serialize)]
-pub struct NewConnexion {
-    pub name: String,
+pub struct GameMessage {
+    pub message_type: MessageType,
+    pub sender: String,           
+    pub content: MessageContent,  
 }
 
-// Structure représentant le message à envoyer
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Message {
-    pub message_type: String,
-    pub message_content: AllOption,
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
+pub enum MessageType {
+    NewConnection,
+    GameUpdate,
+    PlayerAction,
+    ServerInfo,
+    Disconnect,
 }
-// Structure englobant l'option de message
-#[derive(Debug, Deserialize,Serialize)]
-pub struct AllOption {
-    pub new_connexion: NewConnexion,
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub enum MessageContent {
+    NewConnection { name: String },
+    GameUpdate { position: (f32, f32), score: u32 },
+    PlayerAction { action: String },
+    ServerInfo { server_status: String },
+    Disconnect { reason: String },
 }

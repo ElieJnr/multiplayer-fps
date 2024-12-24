@@ -2371,6 +2371,7 @@ name = "multiplayer_fps"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "lazy_static",
  "serde",
  "serde_json",
 ]
