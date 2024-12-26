@@ -56,34 +56,27 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
     let map: Value = serde_json::from_str(map_data).unwrap();
     let maze = map["maze-1"].as_array().unwrap();
 
-    let floor_texture = asset_server.load("sand.png");
-    let wall_texture = asset_server.load("wall_2.png");
-    let sky_texture = asset_server.load("cloud_2.png");
-    let arch_texture = asset_server.load("wall.png");
+    let floor_texture = asset_server.load("textures/floor_sand.png");
+    // let floor_desert_texture = asset_server.load("textures/floor_sand.png");
+    // let floor_street_texture = asset_server.load("textures/floor_street.png");
+    let wall_texture = asset_server.load("textures/wall_2.png");
+    let sky_texture = asset_server.load("textures/cloud_2.png");
+    let arch_texture = asset_server.load("textures/wall.png");
     let house_1_textures = (
-        asset_server.load("house_1_front.png"),
-        asset_server.load("house_1_back.png"),
-        asset_server.load("house_1_left.png"),
-        asset_server.load("house_1_right.png"),
+        asset_server.load("textures/house_1_front.png"),
+        asset_server.load("textures/house_1_back.png"),
+        asset_server.load("textures/house_1_left.png"),
+        asset_server.load("textures/house_1_right.png"),
     );
-    let house_2_textures = (
-        asset_server.load("house_2_back.png"),
-        asset_server.load("house_2.png"),
-        asset_server.load("house_2_left.png"),
-        asset_server.load("house_2_right.png"),
-    );
-    let house_3_textures = (
-        asset_server.load("house_3_front.png"),
-        asset_server.load("house_3_back.png"),
-        asset_server.load("house_3_left.png"),
-        asset_server.load("house_3_right.png"),
-    );
-    let house_4_textures = (
-        asset_server.load("house_4_back.png"),
-        asset_server.load("house_4.png"),
-        asset_server.load("house_4_left.png"),
-        asset_server.load("house_4_right.png"),
-    );
+    let house_2_textures = (asset_server.load("textures/house_2_back.png"), asset_server.load("textures/house_2.png"), asset_server.load("textures/house_2_left.png"), asset_server.load("textures/house_2_right.png"));
+    let house_3_textures = (asset_server.load("textures/house_3_front.png"), asset_server.load("textures/house_3_back.png"), asset_server.load("textures/house_3_left.png"), asset_server.load("textures/house_3_right.png"));
+    let house_4_textures = (asset_server.load("textures/house_4_back.png"), asset_server.load("textures/house_4.png"), asset_server.load("textures/house_4_left.png"), asset_server.load("textures/house_4_right.png"));
+    // let house_5_textures = (
+    //     asset_server.load("textures/house_5_front.png"),
+    //     asset_server.load("textures/house_5_back.png"),
+    //     asset_server.load("textures/house_5_left.png"),
+    //     asset_server.load("textures/house_5_right.png"),
+    // );
 
 
     let height = maze.len() as f32;
@@ -95,7 +88,6 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
     create_lights(&mut commands, width, height);
     create_camera(&mut commands, Vec3::new(26.5, 1.0, 10.45), Vec3::ZERO, width, height);
 
-    // create_house(&mut commands, &mut meshes, &mut materials, asset_server);
 
     let arch_material = materials.add(StandardMaterial {
         base_color_texture: Some(arch_texture),
@@ -120,42 +112,15 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
             match cell.as_i64().unwrap() {
                 2 => { // Arch
                     let arch = commands.spawn(SpatialBundle::default()).insert(Arch).id();
-                    create_arch(
-                        &mut commands,
-                        &mut meshes,
-                        &mut materials,
-                        arch_material.clone(),
-                        arch,
-                        0.7,
-                        2.0,
-                        0.5,
-                        1.0,
-                        i as f32,
-                        j as f32
-                    );
+                    create_arch(&mut commands, &mut meshes, &mut materials, arch_material.clone(), arch, 0.7, 2.0, 0.5, 1.0, i as f32, j as f32);
                 }
+
                 3 => { // Tree
-                    create_procedural_tree(
-                        &mut commands,
-                        &mut meshes,
-                        branch_material.clone(),
-                        leaf_material.clone(),
-                        &params,
-                        Vec3::new(j as f32, 0.0, i as f32),
-                    );
+                    create_procedural_tree(&mut commands, &mut meshes, branch_material.clone(), leaf_material.clone(), &params, Vec3::new(j as f32, 0.0, i as f32));
                 }
 
                 4 => { // House
-                    create_house(
-                        &mut commands,
-                        &mut meshes,
-                        &mut materials,
-                        house_1_textures.clone(),
-                        house_2_textures.clone(),
-                        house_3_textures.clone(),
-                        house_4_textures.clone(),
-                        Vec3::new(j as f32, 0.0, i as f32),
-                    );
+                    create_house(&mut commands, &mut meshes, &mut materials, house_1_textures.clone(), house_2_textures.clone(), house_3_textures.clone(), house_4_textures.clone(),house_4_textures.clone(), Vec3::new(j as f32, 0.0, i as f32));
                 }
                 _ => {}
             }
@@ -416,7 +381,7 @@ fn create_arch(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, _mate
     }
 }
 
-fn create_house(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, house_1_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_2_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_3_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_4_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), position: Vec3) {
+fn create_house(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, house_1_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_2_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_3_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_4_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_5_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), position: Vec3) {
     println!("{}", position);
 
     let wall_size = Vec3::new(3.0, 2.5, 0.1);
