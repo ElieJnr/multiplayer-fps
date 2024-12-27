@@ -375,7 +375,6 @@ fn create_arch(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, mater
 
 // permet de créer une maison en utilisant 4 facades de mur
 fn create_house(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, house_1_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_2_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_3_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_4_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_5_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_6_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), position: Vec3) {
-    // println!("{}", position);
 
     let wall_size = Vec3::new(3.0, 2.5, 0.1);
 
