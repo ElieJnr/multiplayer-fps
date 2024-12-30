@@ -1,6 +1,9 @@
 use std::{collections::HashMap, net::UdpSocket, sync::Arc};
 
-use super::{map::MazePlugin, resources::PlayerCountState};
+use super::{
+    map::MazePlugin,
+    resources::{PlayerCountState, SoundPlugin},
+};
 use crate::{
     client::player::*,
     common::protocol::NetworkConfig,
@@ -12,7 +15,12 @@ use crate::{
 };
 use bevy::prelude::*;
 
-pub fn start(player_name: String, server_address: String, client_socket: Arc<UdpSocket>, player_count_state: PlayerCountState ) {
+pub fn start(
+    player_name: String,
+    server_address: String,
+    client_socket: Arc<UdpSocket>,
+    player_count_state: PlayerCountState,
+) {
     App::new()
         .add_plugins(DefaultPlugins)
         .insert_resource(Map::Map00)
@@ -27,5 +35,6 @@ pub fn start(player_name: String, server_address: String, client_socket: Arc<Udp
         .add_systems(Startup, setup)
         .add_plugins(menu_plugin)
         .add_plugins(MazePlugin)
+        .add_plugins(SoundPlugin)
         .run();
 }
