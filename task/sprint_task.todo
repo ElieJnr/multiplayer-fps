@@ -59,7 +59,7 @@
      ☐ Implémenter le mouvement du joueur dans le labyrinthe avec une vue dynamique.  
      ☐ Synchroniser le mouvement avec la position dans la mini-carte.  
     
-  6. `Dev 6 : Interface Améliorée`  
+  6. `Dev 6 : Interface Améliorée`
      ☐ Ajouter une fonctionnalité pour zoomer et dézoomer sur la mini-carte.  
      ☐ Créer une barre d’état affichant des informations comme la position actuelle et l’objectif.  
     

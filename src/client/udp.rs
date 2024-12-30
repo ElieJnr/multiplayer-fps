@@ -1,78 +1,93 @@
-use serde_json;
-use std::{io::stdin, net::UdpSocket};
-use std::io::{self,Write};
-use crate::utils::model::{AllOption,Message,NewConnexion};
+use crate::common::protocol::*;
+use crate::graphics::resources::PlayerCountState;
+use crate::utils::logger::*;
+use crate::utils::utils::*;
+use std::net::UdpSocket;
+use std::sync::Arc;
 
-pub fn client_udp() -> Option<()> {
-    let mut name = String::new();
-    let mut ip = String::new();
+use super::handlers::*;
 
-    // Demander l'adresse IP et le pseudo
-    print!("Enter The Server IP Address: ");
-    io::stdout().flush().unwrap();
-    stdin().read_line(&mut ip).expect("failed to read the IP");
-    print!("Enter Your Name: ");
-    io::stdout().flush().unwrap();
-    stdin().read_line(&mut name).expect("failed to read the name");
+pub fn client_udp(state: &mut PlayerCountState) -> Option<NetworkConfig> {
+    let network_config = initialize_network_config()?;
 
-    // Trim les espaces superflus
-    ip = ip.trim().to_string();
-    name = name.trim().to_string();
+    connect_to_server(&network_config)?;
+    send_new_connection(&network_config)?;
+    receive_server_message(&network_config, state);
+    Some(network_config)
+}
 
-    // Création d'une socket UDP
-    let socket = match UdpSocket::bind("0.0.0.0:0") {
-        Ok(socket) => socket,
+fn initialize_network_config() -> Option<NetworkConfig> {
+    let (name, ip) = get_user_input()?;
+    let socket = create_socket()?;
+    Some(NetworkConfig {
+        player_name: name,
+        server_address: ip,
+        client_socket: Arc::new(socket),
+    })
+}
+
+pub fn create_socket() -> Option<UdpSocket> {
+    match UdpSocket::bind("0.0.0.0:0") {
+        Ok(socket) => Some(socket),
         Err(err) => {
-            eprintln!("Failed to bind client socket: {}", err);
-            return None;
+            eprintln!("Failed to bind socket: {}", err);
+            None
         }
-    };
-
-    // Connexion au serveur
-    if let Err(err) = socket.connect(&ip) {
-        eprintln!("Failed to connect to server {}: {}", ip, err);
-        return None;
     }
+}
 
-    println!("Connected to server at {}", ip);
-
-    // Créer une nouvelle connexion
-    let new_connexion = NewConnexion { name };
-
-    // Créer le message avec les données de la connexion
-    let msg = Message {
-        message_type: "newconnection".to_string(),
-        message_content: AllOption { new_connexion },
-    };
-
-    // Sérialiser le message en JSON
-    let msg_json = match serde_json::to_string(&msg) {
-        Ok(json) => json,
-        Err(err) => {
-            eprintln!("Failed to serialize message: {}", err);
-            return None;
-        }
-    };
-
-    // Convertir le JSON en bytes
-    let msg_bytes = msg_json.as_bytes();
-
-    // Envoi du message sérialisé au serveur
-    if let Err(err) = socket.send(msg_bytes) {
-        eprintln!("Failed to send message: {}", err);
-        return None;
+fn connect_to_server(config: &NetworkConfig) -> Option<()> {
+    if let Err(err) = config.client_socket.connect(&config.server_address) {
+        let reason = format!(
+            "Failed to connect to server {}: {}",
+            config.server_address, err
+        );
+        send_disconnect_message(config, "server", &reason);
+        display_error(&reason);
+        None
+    } else {
+        display_info(&format!("Connected to server at {}", config.server_address));
+        Some(())
     }
+}
 
-    // Boucle principale pour recevoir la réponse du serveur
-    let mut buffer = [0; 1024]; // tampon pour recevoir les messages
-
+fn receive_server_message(config: &NetworkConfig, state: &mut PlayerCountState) {
+    let mut buffer = [0; 1024];
     loop {
-        match socket.recv(&mut buffer) {
-            Ok(size) => {
-                let response = String::from_utf8_lossy(&buffer[..size]);
-                println!("From server: {}", response);
+        match receive_data_from_socket(&config.client_socket, &mut buffer) {
+            Some((data, _)) => {
+                if let Some(game_message) = deserialize_message(&data) {
+                    display_info(&format!("CHECK {:#?}", game_message));
+                    if process_game_message(game_message, config, state) {
+                        break;
+                    }
+                } else {
+                    display_error("Failed to deserialize message.");
+                }
             }
-            Err(err) => eprintln!("Failed to receive response: {}", err),
+            None => display_error("Failed to receive data."),
         }
     }
+}
+
+fn process_game_message(
+    game_message: GameMessage,
+    config: &NetworkConfig,
+    state: &mut PlayerCountState,
+) -> bool {
+    match game_message.message_type {
+        MessageType::GameUpdate => {
+            println!("Received game update: {:?}", game_message.content);
+        }
+        MessageType::Disconnect => {
+            handle_disconnect(game_message.content);
+            return true;
+        }
+        MessageType::NewConnection => handle_new_connection(game_message.content),
+        MessageType::PlayerAction => {}
+        MessageType::ServerInfo => handle_server_info(game_message.content),
+        MessageType::WaitForPlayers => handle_waiting(game_message.content, config, state),
+        MessageType::StartGame => handle_start(game_message.content, config, state),
+    }
+    false
 }

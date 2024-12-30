@@ -1,16 +1,9 @@
-use bevy::app::Update;
-use bevy::math::Vec3;
-use bevy::prelude::App;
-use bevy::prelude::AssetServer;
-use bevy::prelude::Camera2dBundle;
-use bevy::prelude::Commands;
-use bevy::prelude::Plugin;
-use bevy::prelude::Res;
-use bevy::prelude::Startup;
-use bevy::prelude::Transform;
-use bevy::sprite::SpriteBundle;
-use serde::Deserialize;
 use std::fs;
+
+use bevy::{app::{App, Plugin}, asset::AssetServer, math::Vec3, prelude::{ Commands, DespawnRecursiveExt, Entity, OnEnter, OnExit, Query, Res, Transform, With}, sprite::{Sprite, SpriteBundle}};
+use serde::Deserialize;
+
+use super::states::GameState;
 
 const TILE_SIZE: f32 = 15.0;
 const TEXTURE_SIZE: f32 = 114.0;
@@ -25,8 +18,8 @@ pub struct MazePlugin;
 
 impl Plugin for MazePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_maze);
-        app.add_systems(Update, display_minimap);
+        app.add_systems(OnEnter(GameState::Game), display_minimap)
+           .add_systems(OnExit(GameState::Game), cleanup_maze);
     }
 }
 
@@ -72,9 +65,8 @@ fn display_minimap(mut commands: Commands, asset_server: Res<AssetServer>) {
     }
 }
 
-fn setup_maze(mut commands: Commands) {
-    commands.spawn(Camera2dBundle {
-        transform: Transform::from_xyz(0.0, 0.0, 0.0),
-        ..Default::default()
-    });
+fn cleanup_maze(mut commands: Commands, query: Query<Entity, With<Sprite>>) {
+    for entity in &query {
+        commands.entity(entity).despawn_recursive();
+    }
 }

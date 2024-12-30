@@ -1,107 +1,76 @@
-use crate::client::udp::client_udp;
-use crate::utils::model::Message;
-use serde_json;
-use std::{
-    collections::HashMap,
-    io::{stdin, stdout, Write},
-    net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket},
+use super::handlers::handle_message;
+use crate::{
+    client::{player::Player, udp::client_udp},
+    common::{constant::*, protocol::*},
+    graphics::resources::PlayerCountState,
+    utils::{logger::*, server_utils::*, utils::*},
 };
-
-fn get_local_ipv4() -> Option<Ipv4Addr> {
-    let socket = UdpSocket::bind("0.0.0.0:0").ok()?;
-    socket.connect("8.8.8.8:80").ok()?;
-    if let Ok(local_addr) = socket.local_addr() {
-        if let IpAddr::V4(ipv4) = local_addr.ip() {
-            return Some(ipv4);
-        }
-    }
-    None
-}
-
-fn create_server_socket(ip: Ipv4Addr) -> Option<UdpSocket> {
-    match UdpSocket::bind(format!("{}:{}", ip.to_string(), "8080")) {
-        Ok(socket) => Some(socket),
-        Err(err) => {
-            eprintln!("Failed to bind socket: {}", err);
-            None
-        }
-    }
-}
+use std::{collections::HashMap, net::UdpSocket};
 
 pub fn run_socket() {
-    let mut choice = String::new();
-    let client_addresses = HashMap::new();
-    println!("Your choice please: \n1-Server \n2-Client");
+    let mut state = PlayerCountState::default();
+    let mut players: HashMap<String, Player> = HashMap::new();
 
-    let _ = stdout().flush();
-    stdin()
-        .read_line(&mut choice)
-        .expect("not a correct number");
-
-    let choice_int = match choice.trim().parse::<u32>() {
-        Ok(choice_int) => choice_int,
-        Err(e) => {
-            eprintln!("{}", e);
-            return;
-        }
-    };
-
-    match choice_int {
-        1 => match get_local_ipv4() {
-            Some(ip) => {
-                if let Some(socket) = create_server_socket(ip) {
-                    println!("Server is running on {}:8080", ip);
-                    server(socket, client_addresses);
-                }
-            }
-            None => eprintln!("Unable to determine local IP address."),
-        },
-        2 => {
-            if client_udp().is_none() {
-                eprintln!("Failed to create client socket");
-            }
-        }
-        _ => eprintln!("make a choice between 1 and 2"),
+    match get_user_choice() {
+        Some(1) => handle_server_mode(&mut players, &mut state),
+        Some(2) => handle_client_mode(&mut state),
+        Some(_) | None => display_error("Invalid choice. Please choose 1 (Server) or 2 (Client)."),
     }
 }
 
-pub fn server(server_socket: UdpSocket, mut client_addresses: HashMap<String, SocketAddr>) {
+fn handle_server_mode(players: &mut HashMap<String, Player>, state: &mut PlayerCountState) {
+    match get_local_ipv4() {
+        Some(ip) => {
+            if let Some(socket) = create_server_socket(ip, PORT) {
+                display_info(&format!("Server is running on {}:{}", ip, PORT));
+                server(socket, players, state);
+            } else {
+                display_error("Failed to create server socket.");
+            }
+        }
+        None => display_error("Unable to determine local IP address."),
+    }
+}
+
+fn handle_client_mode(state: &mut PlayerCountState) {
+    if client_udp(state).is_none() {
+        display_error("Failed to create client socket.");
+    }
+}
+
+pub fn server(
+    server_socket: UdpSocket,
+    players: &mut HashMap<String, Player>,
+    state: &mut PlayerCountState,
+) {
     let mut buf = [0; 1024];
     loop {
-        let (size, src) = match server_socket.recv_from(&mut buf) {
-            Ok((size, src)) => (size, src),
-            Err(err) => {
-                eprintln!("Failed to receive data: {}", err);
-                continue;
-            }
-        };
+        match receive_data_from_socket(&server_socket, &mut buf) {
+            Some((data, Some(src))) => match deserialize_message(&data) {
+                Some(message) => handle_message(&server_socket, players, message, src, state),
+                None => display_error("Erreur lors de la désérialisation"),
+            },
+            Some((_, None)) => display_error("Failed to receive source address"),
+            None => display_error("Failed to receive data"),
+        }
+    }
+}
 
-        //
-
-        // let message = match String::from_utf8_lossy(&buf[..size]);
-        let message: Message = match serde_json::from_slice(&buf[..size]) {
-            Ok(m) => m,
-            Err(e) => {
-                eprintln!("Erreur lors de la désérialisation: {}", e);
-                continue;
-            }
-        };
-
-        if message.message_type == "newconnection" {
-            client_addresses.insert(message.message_content.new_connexion.name.clone(), src);
-            println!("{} est connecté",message.message_content.new_connexion.name);
-
-            // Broadcast to all other clients
-            for (_, client_src) in &client_addresses {
-                if *client_src != src {
-                    let msg = format!(
-                        "{} est connecté",
-                        &message.message_content.new_connexion.name
-                    );
-                    if let Err(err) = server_socket.send_to(msg.as_bytes(), client_src) {
-                        eprintln!("Failed to send data to {}: {}", client_src, err);
-                    }
-                }
+pub fn broadcast_message(
+    server_socket: &UdpSocket,
+    players: &HashMap<String, Player>,
+    message: Vec<u8>,
+    exclude_name: Option<&str>,
+    is_broadcast: bool,
+) {
+    for player in players.values() {
+        if is_broadcast || exclude_name.map_or(true, |name| name != player.name) {
+            match server_socket.send_to(&message, player.address) {
+                Ok(_) => {},
+                Err(err) => display_error(&format!(
+                    "Failed to send message to {}: {}",
+                    player.name, err
+                )),
             }
         }
     }
