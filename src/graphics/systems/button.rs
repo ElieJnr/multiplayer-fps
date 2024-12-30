@@ -1,4 +1,7 @@
+use std::time::Duration;
+
 use bevy::prelude::*;
+use bevy_tweening::{lens::TransformScaleLens, Animator, EaseFunction, Tween};
 
 use crate::graphics::resources::PlayerCountState;
 
@@ -48,7 +51,15 @@ pub fn spawn_menu_button(parent: &mut ChildBuilder, label: &str, assets_server: 
                     color: Color::BLACK,
                 },
             ));
-        });
+        })
+        .insert(Animator::new(Tween::new(
+            EaseFunction::BounceInOut,
+            Duration::from_millis(300),
+            TransformScaleLens {
+                start: Vec3::new(1.0, 1.0, 1.0),
+                end: Vec3::new(1.2, 1.2, 1.0),
+            },
+        )));
 }
 
 pub fn update_play_button(
@@ -63,11 +74,7 @@ pub fn update_play_button(
 
             for &child in children.iter() {
                 if let Ok(mut text) = text_query.get_mut(child) {
-                    let label = if has_enough {
-                        "Play"
-                    } else {
-                        "Waiting..."
-                    };
+                    let label = if has_enough { "Play" } else { "Waiting..." };
                     text.sections[0].value = label.to_string();
                 }
             }

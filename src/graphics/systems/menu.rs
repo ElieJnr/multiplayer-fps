@@ -2,6 +2,8 @@ use crate::common::protocol::*;
 use crate::graphics::resources::PlayerCountState;
 use crate::graphics::states::{GameState, MenuState};
 use bevy::prelude::*;
+use bevy_tweening::{lens::*, Animator, EaseFunction, Tween};
+use std::time::Duration;
 
 use super::button::{spawn_menu_button, update_play_button, MenuButtonAction};
 
@@ -16,6 +18,17 @@ struct OnMenuScreen;
 #[derive(Component)]
 struct OnOptionScreen;
 
+#[derive(Component)]
+struct FadeTimer(Timer);
+
+fn fade_in_system(time: Res<Time>, mut query: Query<(&mut BackgroundColor, &mut FadeTimer)>) {
+    for (mut color, mut timer) in query.iter_mut() {
+        timer.0.tick(time.delta());
+        let alpha = (timer.0.elapsed_secs() / timer.0.duration().as_secs_f32()).clamp(0.0, 1.0);
+        let _ = color.0.set(Box::new(alpha));
+    }
+}
+
 pub fn menu_plugin(app: &mut App) {
     app.init_state::<MenuState>()
         .init_resource::<PlayerCountState>()
@@ -24,7 +37,12 @@ pub fn menu_plugin(app: &mut App) {
         .add_systems(OnEnter(MenuState::Options), option_menu_setup)
         .add_systems(
             Update,
-            (button_interaction_system, menu_action, update_play_button),
+            (
+                fade_in_system,
+                button_interaction_system,
+                menu_action,
+                update_play_button,
+            ),
         );
 }
 
@@ -42,9 +60,11 @@ fn main_menu_setup(mut commands: Commands, assets_server: Res<AssetServer>) {
                     flex_direction: FlexDirection::Row,
                     ..Default::default()
                 },
+                background_color: Color::srgba(1.0, 1.0, 1.0, 0.0).into(), 
                 ..Default::default()
             },
             OnMenuScreen,
+            FadeTimer(Timer::from_seconds(1.5, TimerMode::Once)),
         ))
         .with_children(|parent| {
             parent.spawn(ImageBundle {
@@ -59,17 +79,27 @@ fn main_menu_setup(mut commands: Commands, assets_server: Res<AssetServer>) {
                 ..Default::default()
             });
             parent
-                .spawn(NodeBundle {
-                    style: Style {
-                        width: Val::Px(500.0),
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        flex_direction: FlexDirection::Column,
+                .spawn((
+                    NodeBundle {
+                        style: Style {
+                            width: Val::Px(500.0),
+                            justify_content: JustifyContent::Center,
+                            align_items: AlignItems::Center,
+                            flex_direction: FlexDirection::Column,
+                            ..default()
+                        },
+                        background_color: Color::NONE.into(),
                         ..default()
                     },
-                    background_color: Color::NONE.into(),
-                    ..default()
-                })
+                    Animator::new(Tween::new(
+                        EaseFunction::QuadraticInOut,
+                        Duration::from_secs(1),
+                        UiBackgroundColorLens {
+                            start: Color::NONE,
+                            end: Color::WHITE,
+                        },
+                    )),
+                ))
                 .with_children(|parent| {
                     // Add buttons
                     spawn_menu_button(parent, "Play", &assets_server);
@@ -102,9 +132,17 @@ fn option_menu_setup(mut commands: Commands, assets_server: Res<AssetServer>) {
 
 // Modified button interaction system to handle disabled state
 fn button_interaction_system(
-    mut query: Query<(&Interaction, &mut BackgroundColor, &MenuButtonAction), (Changed<Interaction>, With<Button>)>,
+    mut query: Query<
+        (
+            &Interaction,
+            &mut BackgroundColor,
+            &MenuButtonAction,
+            &mut Transform,
+        ),
+        (Changed<Interaction>, With<Button>),
+    >,
 ) {
-    for (interaction, mut color, action) in &mut query {
+    for (interaction, mut color, action, mut transform) in &mut query {
         if let MenuButtonAction::Play(has_enough_players) = action {
             if !has_enough_players {
                 *color = RED_BUTTON_COLOR.into();
@@ -113,13 +151,21 @@ fn button_interaction_system(
         }
 
         *color = match *interaction {
-            Interaction::Hovered => HOVERED_BUTTON_COLOR.into(),
-            Interaction::Pressed => PRESSED_BUTTON_COLOR.into(),
-            Interaction::None => NORMAL_BUTTON_COLOR.into(),
+            Interaction::Hovered => {
+                transform.scale = Vec3::new(1.2, 1.2, 1.0);
+                HOVERED_BUTTON_COLOR.into()
+            }
+            Interaction::Pressed => {
+                transform.scale = Vec3::new(0.9, 0.9, 1.0);
+                PRESSED_BUTTON_COLOR.into()
+            }
+            Interaction::None => {
+                transform.scale = Vec3::new(1.0, 1.0, 1.0);
+                NORMAL_BUTTON_COLOR.into()
+            }
         };
     }
 }
-
 
 fn menu_action(
     interaction_query: Query<
