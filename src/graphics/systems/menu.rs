@@ -47,7 +47,7 @@ pub fn menu_plugin(app: &mut App) {
 }
 
 fn main_menu_setup(mut commands: Commands, assets_server: Res<AssetServer>) {
-    let icon = assets_server.load("game_icon.png");
+    let icon = assets_server.load("textures/game_icon.png");
     commands
         .spawn((
             NodeBundle {
