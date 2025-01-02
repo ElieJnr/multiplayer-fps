@@ -43,6 +43,8 @@ struct HouseTextures {
     house_4: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),
     house_5: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),
     house_6: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),
+    house_7: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),
+    house_8: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),
 }
 
 impl Default for TreeParams {
@@ -89,7 +91,7 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
                 1 => create_walls(&mut commands, &mut meshes, &mut materials, textures.wall_texture.clone(), i, j),
                 2 => { let arch = commands.spawn(SpatialBundle::default()).insert(Arch).id(); create_arch(&mut commands, &mut meshes, &mut materials, textures.arch_texture.clone(), arch, 0.7, 2.0, 0.5, 1.0, i as f32, j as f32); }
                 3 => create_procedural_tree(&mut commands, &mut meshes, &mut materials, &params, Vec3::new(j as f32, 0.0, i as f32)),
-                4 => create_house(&mut commands, &mut meshes, &mut materials, textures.house_textures.house_1.clone(), textures.house_textures.house_2.clone(),textures.house_textures.house_3.clone(), textures.house_textures.house_4.clone(), textures.house_textures.house_5.clone(), textures.house_textures.house_6.clone(), Vec3::new(j as f32, 0.0, i as f32)),
+                4 => create_house(&mut commands, &mut meshes, &mut materials, textures.house_textures.house_1.clone(), textures.house_textures.house_2.clone(),textures.house_textures.house_3.clone(), textures.house_textures.house_4.clone(), textures.house_textures.house_5.clone(), textures.house_textures.house_6.clone(), textures.house_textures.house_7.clone(), textures.house_textures.house_8.clone() , Vec3::new(j as f32, 0.0, i as f32)),
                 _ => {}
             }
         }
@@ -320,11 +322,11 @@ fn camera_controller(time: Res<Time>, keyboard_input: ResMut<'_, ButtonInput<Key
 // permet de créer un arc en utilisant des piliers et un arc supérieur
 fn create_arch(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, arch_texture: Handle<Image>, arch: Entity, pillar_width: f32, pillar_height: f32, arch_depth: f32, arch_radius: f32, i: f32, j: f32) {
     
-    // println!("i{} j{}", i, j);
+    println!("i{} j{}", i, j);
 
-    if i == 27.0 && j == 21.0 {
+    if i == 29.0 && j == 22.0 {
         commands.entity(arch).insert(Transform::from_xyz(j-0.26, 0.0, i+0.5).with_rotation(Quat::from_rotation_y(PI / 2.0)));
-    } else  if i == 28.0 && j == 21.0  {
+    } else  if i == 30.0 && j == 22.0  {
         commands.entity(arch).insert(Transform::from_xyz(j+0.26, 0.0, i - 0.5).with_rotation(Quat::from_rotation_y(PI / 2.0)));
     } else if i == 19.0 && j == 35.0 {
         commands.entity(arch).insert(Transform::from_xyz(j-0.5, 0.0, i + 0.28).with_rotation(Quat::from_rotation_y(PI * 2.0)));
@@ -374,21 +376,27 @@ fn create_arch(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, mater
 }
 
 // permet de créer une maison en utilisant 4 facades de mur
-fn create_house(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, house_1_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_2_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_3_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_4_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_5_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_6_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), position: Vec3) {
+fn create_house(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, house_1_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_2_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_3_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_4_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_5_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_6_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),house_7_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),house_8_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), position: Vec3) {
+
+    println!("{}", position);
 
     let wall_size = Vec3::new(3.0, 2.5, 0.1);
 
-    let (front_texture, back_texture, left_texture, right_texture) = if position.x == 7.0 && position.z == 27.0 {
+    let (front_texture, back_texture, left_texture, right_texture) = if position.x == 7.0 && position.z == 29.0 {
         house_2_textures
     } else if position.x == 9.0 && position.z == 34.0  || position.x == 12.0 && position.z == 34.0 || position.x == 2.0 && position.z == 16.0 || position.x == 7.0 && position.z == 16.0 {
         house_3_textures
-    } else if position.x == 4.0 && position.z == 32.0  {
+    } else if position.x == 4.0 && position.z == 34.0  {
         house_4_textures
-    } else if position.x == 2.0 && position.z == 2.0 ||  position.x == 16.0 && position.z == 8.0 ||  position.x == 19.0 && position.z == 2.0 ||  position.x == 10.0 && position.z == 8.0 {
+    } else if position.x == 2.0 && position.z == 2.0 ||  position.x == 17.0 && position.z == 8.0 ||  position.x == 20.0 && position.z == 2.0 ||  position.x == 10.0 && position.z == 8.0 {
         house_5_textures
     } else if position.x == 4.0 && position.z == 12.0 {
         house_6_textures
-    }   else {
+    }  else if position.x == 9.0 && position.z == 36.0 {
+        house_8_textures
+    } else if position.x == 12.0 && position.z == 36.0 {
+        house_7_textures
+    }  else {
         house_1_textures
     };
 
@@ -486,6 +494,18 @@ fn load_textures(asset_server: &Res<AssetServer>) -> Textures {
                 asset_server.load("textures/house_5_front.png"),
                 asset_server.load("textures/house_5_left.png"),
                 asset_server.load("textures/house_5_right.png"),
+            ),
+            house_7: (
+                asset_server.load("textures/house_7.png"),
+                asset_server.load("textures/house_7_front.png"),
+                asset_server.load("textures/house_7.png"),
+                asset_server.load("textures/house_7.png"),
+            ),
+            house_8: (
+                asset_server.load("textures/house_7.png"),
+                asset_server.load("textures/house_8_front.png"),
+                asset_server.load("textures/house_7.png"),
+                asset_server.load("textures/house_7.png"),
             ),
         },
     }
