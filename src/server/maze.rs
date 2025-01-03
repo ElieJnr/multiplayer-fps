@@ -15,6 +15,11 @@ struct Arch;
 #[derive(Component)]
 struct PlayerCamera;
 
+#[derive(Default, Resource)]
+struct CameraState {
+    is_top_view: bool,
+}
+
 struct Branch(Transform, Option<usize>, bool);
 
 #[derive(Debug, Resource)]
@@ -32,6 +37,7 @@ struct Textures {
     wall_texture: Handle<Image>,
     arch_texture: Handle<Image>,
     floor_texture: Handle<Image>,
+    wall_desert_texture: Handle<Image>,
     sky_texture: Handle<Image>,
     house_textures: HouseTextures,
 }
@@ -78,7 +84,7 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
     let height = maze.len() as f32;
     let width = maze[0].as_array().unwrap().len() as f32;
     let textures = load_textures(&asset_server);
-    
+    commands.insert_resource(CameraState::default());
     create_sky(&mut commands, &mut meshes, &mut materials, textures.sky_texture);
     create_surface(&mut commands, &mut meshes, &mut materials, textures.floor_texture, width, height);
     create_lights(&mut commands, width, height);
@@ -92,6 +98,7 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
                 2 => { let arch = commands.spawn(SpatialBundle::default()).insert(Arch).id(); create_arch(&mut commands, &mut meshes, &mut materials, textures.arch_texture.clone(), arch, 0.7, 2.0, 0.5, 1.0, i as f32, j as f32); }
                 3 => create_procedural_tree(&mut commands, &mut meshes, &mut materials, &params, Vec3::new(j as f32, 0.0, i as f32)),
                 4 => create_house(&mut commands, &mut meshes, &mut materials, textures.house_textures.house_1.clone(), textures.house_textures.house_2.clone(),textures.house_textures.house_3.clone(), textures.house_textures.house_4.clone(), textures.house_textures.house_5.clone(), textures.house_textures.house_6.clone(), textures.house_textures.house_7.clone(), textures.house_textures.house_8.clone() , Vec3::new(j as f32, 0.0, i as f32)),
+                5 => create_walls(&mut commands, &mut meshes, &mut materials, textures.wall_desert_texture.clone() , i, j),
                 _ => {}
             }
         }
@@ -294,29 +301,44 @@ fn rotate_sky(time: Res<Time>, mut query: Query<&mut Transform, With<Sky>>) {
 }
 
 // permet de controller la caméra en utilisant les touches du clavier
-fn camera_controller(time: Res<Time>, keyboard_input: ResMut<'_, ButtonInput<KeyCode>>, mut query: Query<&mut Transform, With<PlayerCamera>>) {
+fn camera_controller(time: Res<Time>, keyboard_input: ResMut<'_, ButtonInput<KeyCode>>, mut query: Query<&mut Transform, With<PlayerCamera>>, mut camera_state: ResMut<CameraState>) {
     let mut camera_transform = query.single_mut();
     
     let speed = 5.0;
     let rotation_speed = 2.0;
     let ground_level = 1.0; 
 
-    if keyboard_input.pressed(KeyCode::ArrowUp) {
-        let forward = camera_transform.forward();
-        camera_transform.translation += forward * speed * time.delta_seconds();
-    }
-    if keyboard_input.pressed(KeyCode::ArrowDown) {
-        let forward = camera_transform.forward();
-        camera_transform.translation -= forward * speed * time.delta_seconds();
-    }
-    if keyboard_input.pressed(KeyCode::ArrowLeft) {
-        camera_transform.rotate_y(rotation_speed * time.delta_seconds());
-    }
-    if keyboard_input.pressed(KeyCode::ArrowRight) {
-        camera_transform.rotate_y(-rotation_speed * time.delta_seconds());
+    if keyboard_input.just_pressed(KeyCode::KeyV) {
+        camera_state.is_top_view = !camera_state.is_top_view;
+        if camera_state.is_top_view {
+            // vue de haut
+            camera_transform.translation = Vec3::new(camera_transform.translation.x, 50.0, camera_transform.translation.z);
+            camera_transform.rotation = Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2);
+        } else {
+            // vue FPS
+            camera_transform.translation.y = ground_level;
+            camera_transform.rotation = Quat::IDENTITY;
+        }
     }
 
-    camera_transform.translation.y = ground_level;
+    if !camera_state.is_top_view {
+        if keyboard_input.pressed(KeyCode::ArrowUp) {
+            let forward = camera_transform.forward();
+            camera_transform.translation += forward * speed * time.delta_seconds();
+        }
+        if keyboard_input.pressed(KeyCode::ArrowDown) {
+            let forward = camera_transform.forward();
+            camera_transform.translation -= forward * speed * time.delta_seconds();
+        }
+        if keyboard_input.pressed(KeyCode::ArrowLeft) {
+            camera_transform.rotate_y(rotation_speed * time.delta_seconds());
+        }
+        if keyboard_input.pressed(KeyCode::ArrowRight) {
+            camera_transform.rotate_y(-rotation_speed * time.delta_seconds());
+        }
+
+        camera_transform.translation.y = ground_level;
+    }
 }
 
 // permet de créer un arc en utilisant des piliers et un arc supérieur
@@ -384,7 +406,7 @@ fn create_house(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, mate
 
     let (front_texture, back_texture, left_texture, right_texture) = if position.x == 7.0 && position.z == 29.0 {
         house_2_textures
-    } else if position.x == 9.0 && position.z == 34.0  || position.x == 12.0 && position.z == 34.0 || position.x == 2.0 && position.z == 16.0 || position.x == 7.0 && position.z == 16.0 {
+    } else if  position.x == 2.0 && position.z == 16.0 || position.x == 7.0 && position.z == 16.0 {
         house_3_textures
     } else if position.x == 4.0 && position.z == 34.0  {
         house_4_textures
@@ -402,7 +424,7 @@ fn create_house(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, mate
 
 
     let house = commands.spawn(SpatialBundle {
-        transform: Transform::from_translation(position),
+        transform: Transform::from_translation(Vec3::new(position.x, wall_size.y / 8.6 , position.z)),
         ..default()
     }).id();
 
@@ -457,6 +479,7 @@ fn load_textures(asset_server: &Res<AssetServer>) -> Textures {
         wall_texture: asset_server.load("textures/wall_2.png"),
         arch_texture: asset_server.load("textures/wall.png"),
         floor_texture: asset_server.load("textures/floor_sand.png"),
+        wall_desert_texture: asset_server.load("textures/wall_desert.png"),
         sky_texture: asset_server.load("textures/cloud_2.png"),
         house_textures: HouseTextures {
             house_1: (
