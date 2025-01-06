@@ -57,7 +57,7 @@ fn receive_server_message(config: &NetworkConfig, state: &mut PlayerCountState) 
         match receive_data_from_socket(&config.client_socket, &mut buffer) {
             Some((data, _)) => {
                 if let Some(game_message) = deserialize_message(&data) {
-                    display_info(&format!("CHECK {:#?}", game_message));
+                    // display_info(&format!("CHECK {:#?}", game_message));
                     if process_game_message(game_message, config, state) {
                         break;
                     }

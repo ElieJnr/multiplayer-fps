@@ -3,7 +3,7 @@ use std::{collections::HashMap, net::UdpSocket, sync::Arc};
 use super::{map::MazePlugin, resources::PlayerCountState};
 use crate::{
     client::player::*,
-    common::protocol::NetworkConfig,
+    common::{protocol::NetworkConfig, sync::NetworkPlugin},
     graphics::{
         resources::Map,
         states::GameState,
@@ -27,5 +27,6 @@ pub fn start(player_name: String, server_address: String, client_socket: Arc<Udp
         .add_systems(Startup, setup)
         .add_plugins(menu_plugin)
         .add_plugins(MazePlugin)
+        .add_plugins(NetworkPlugin) 
         .run();
 }
