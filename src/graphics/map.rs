@@ -1,7 +1,18 @@
 use std::fs;
 
-use bevy::{app::{App, Plugin}, asset::AssetServer, math::Vec3, prelude::{ Commands, DespawnRecursiveExt, Entity, OnEnter, OnExit, Query, Res, Transform, With}, sprite::{Sprite, SpriteBundle}};
+use bevy::{
+    app::{App, Plugin, Update},
+    asset::AssetServer,
+    math::Vec3,
+    prelude::{
+        Commands, DespawnRecursiveExt, Entity, IntoSystemConfigs, OnEnter, OnExit, Query, Res,
+        Transform, With,
+    },
+    sprite::{Sprite, SpriteBundle},
+};
 use serde::Deserialize;
+
+use crate::server::maze::{camera_controller, maze_setup, rotate_sky, CameraState, TreeParams};
 
 use super::states::GameState;
 
@@ -18,13 +29,23 @@ pub struct MazePlugin;
 
 impl Plugin for MazePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::Game), display_minimap)
-           .add_systems(OnExit(GameState::Game), cleanup_maze);
+        app.init_resource::<TreeParams>()
+            .init_resource::<CameraState>()
+            .add_systems(OnEnter(GameState::Game), maze_setup)
+            .add_systems(Update, (camera_controller, rotate_sky).chain())
+            .add_systems(OnExit(GameState::Game), cleanup_maze);
     }
 }
 
+// pub fn setup_maze() {
+//     App::new()
+//         .add_plugins(DefaultPlugins)
+//         .add_systems(Startup, maze_setup)
+//         .run();
+// }
+
 // his function generates a graphical minimap based on JSON data for a maze, with specific textures for the wall, floor and player.
-fn display_minimap(mut commands: Commands, asset_server: Res<AssetServer>) {
+pub fn display_minimap(mut commands: Commands, asset_server: Res<AssetServer>) {
     let file_content = fs::read_to_string("src/utils/maps.json").expect("Unable to read file");
     let maze: Maze = serde_json::from_str(&file_content).expect("Unable to parse JSON");
 
