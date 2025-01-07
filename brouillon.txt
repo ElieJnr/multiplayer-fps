@@ -21,11 +21,6 @@ struct ValidPositions {
 }
 
 #[derive(Default, Resource)]
-struct ObstaclePositions {
-    positions: Vec<Vec<bool>>,
-}
-
-#[derive(Default, Resource)]
 struct CameraState {
     is_top_view: bool,
 }
@@ -87,7 +82,13 @@ pub fn setup_maze() {
 }
 
 // permet d'appeler les fonctions pour la creation de la scène
-fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>, asset_server: Res<AssetServer>, params: Res<TreeParams>) {
+fn setup(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    asset_server: Res<AssetServer>,
+    params: Res<TreeParams>,
+) {
     let map_data = include_str!("../maze.json");
     let map: Value = serde_json::from_str(map_data).unwrap();
     let maze = map["maze-1"].as_array().unwrap();
@@ -97,42 +98,25 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
     commands.insert_resource(CameraState::default());
 
     let mut valid_positions = vec![vec![false; width]; height];
-    let mut obstacle_positions = vec![vec![false; width]; height];
     for (i, row) in maze.iter().enumerate() {
         let row = row.as_array().unwrap();
         for (j, cell) in row.iter().enumerate() {
             match cell.as_i64().unwrap() {
-                0 => valid_positions[i][j] = true,
-                1 => {
-                    obstacle_positions[i][j] = true;
-                    create_walls(&mut commands, &mut meshes, &mut materials, textures.wall_texture.clone(), i, j);
-                }
+                0  => valid_positions[i][j] = true,
+                1 => create_walls(&mut commands, &mut meshes, &mut materials, textures.wall_texture.clone(), i, j),
                 2 => {
                     valid_positions[i][j] = true;
                     let arch = commands.spawn(SpatialBundle::default()).insert(Arch).id();
                     create_arch(&mut commands, &mut meshes, &mut materials, textures.arch_texture.clone(), arch, 0.7, 2.0, 0.5, 1.0, i as f32, j as f32);
                 }
-                3 => {
-                    obstacle_positions[i][j] = true;
-                    create_procedural_tree(&mut commands, &mut meshes, &mut materials, &params, Vec3::new(j as f32, 0.0, i as f32));
-                }
-                4 => {
-                    obstacle_positions[i][j] = true;
-                    create_house(&mut commands, &mut meshes, &mut materials, textures.house_textures.house_1.clone(), textures.house_textures.house_2.clone(), textures.house_textures.house_3.clone(), textures.house_textures.house_4.clone(), textures.house_textures.house_5.clone(), textures.house_textures.house_6.clone(), textures.house_textures.house_7.clone(), textures.house_textures.house_8.clone(), Vec3::new(j as f32, 0.0, i as f32));
-                }
-                5 => {
-                    obstacle_positions[i][j] = true;
-                    create_walls(&mut commands, &mut meshes, &mut materials, textures.wall_desert_texture.clone(), i, j);
-                }
-                9 => {
-                    obstacle_positions[i][j] = true;
-                }
+                3 => create_procedural_tree(&mut commands, &mut meshes, &mut materials, &params, Vec3::new(j as f32, 0.0, i as f32)),
+                4 => create_house(&mut commands, &mut meshes, &mut materials, textures.house_textures.house_1.clone(), textures.house_textures.house_2.clone(), textures.house_textures.house_3.clone(), textures.house_textures.house_4.clone(), textures.house_textures.house_5.clone(), textures.house_textures.house_6.clone(), textures.house_textures.house_7.clone(), textures.house_textures.house_8.clone(), Vec3::new(j as f32, 0.0, i as f32)),
+                5 => create_walls(&mut commands, &mut meshes, &mut materials, textures.wall_desert_texture.clone(), i, j),
                 _ => {}
             }
         }
     }
     commands.insert_resource(ValidPositions { positions: valid_positions });
-    commands.insert_resource(ObstaclePositions { positions: obstacle_positions });
 
     create_sky(&mut commands, &mut meshes, &mut materials, textures.sky_texture);
     create_surface(&mut commands, &mut meshes, &mut materials, textures.floor_texture, width as f32, height as f32);
@@ -336,7 +320,7 @@ fn rotate_sky(time: Res<Time>, mut query: Query<&mut Transform, With<Sky>>) {
 }
 
 // permet de controller la caméra en utilisant les touches du clavier
-fn camera_controller(time: Res<Time>, keyboard_input: ResMut<'_, ButtonInput<KeyCode>>, mut query: Query<&mut Transform, With<PlayerCamera>>, mut camera_state: ResMut<CameraState>, valid_positions: Res<ValidPositions>, obstacle_positions: Res<ObstaclePositions>) {
+fn camera_controller(time: Res<Time>, keyboard_input: ResMut<'_, ButtonInput<KeyCode>>, mut query: Query<&mut Transform, With<PlayerCamera>>, mut camera_state: ResMut<CameraState>, valid_positions: Res<ValidPositions>) {
     let mut camera_transform = query.single_mut();
 
     let speed = 5.0;
@@ -377,9 +361,8 @@ fn camera_controller(time: Res<Time>, keyboard_input: ResMut<'_, ButtonInput<Key
         let new_x = new_translation.x.round() as usize;
         let new_z = new_translation.z.round() as usize;
 
-        // Vérifiez si la nouvelle position est valide et n'est pas un obstacle avant de mettre à jour la position de la caméra
-        if valid_positions.positions.get(new_z).and_then(|row| row.get(new_x)).copied().unwrap_or(false) &&
-           !obstacle_positions.positions.get(new_z).and_then(|row| row.get(new_x)).copied().unwrap_or(false) {
+        // Vérifiez si la nouvelle position est valide avant de mettre à jour la position de la caméra
+        if valid_positions.positions.get(new_z).and_then(|row| row.get(new_x)).copied().unwrap_or(false) {
             camera_transform.translation = new_translation;
         }
 
@@ -390,7 +373,7 @@ fn camera_controller(time: Res<Time>, keyboard_input: ResMut<'_, ButtonInput<Key
 // permet de créer un arc en utilisant des piliers et un arc supérieur
 fn create_arch(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, arch_texture: Handle<Image>, arch: Entity, pillar_width: f32, pillar_height: f32, arch_depth: f32, arch_radius: f32, i: f32, j: f32) {
     
-    // println!("i{} j{}", i, j);
+    println!("i{} j{}", i, j);
 
     if i == 29.0 && j == 22.0 {
         commands.entity(arch).insert(Transform::from_xyz(j-0.26, 0.0, i+0.5).with_rotation(Quat::from_rotation_y(PI / 2.0)));
@@ -446,7 +429,7 @@ fn create_arch(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, mater
 // permet de créer une maison en utilisant 4 facades de mur
 fn create_house(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, house_1_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_2_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_3_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_4_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_5_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), house_6_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),house_7_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),house_8_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>), position: Vec3) {
 
-    // println!("{}", position);
+    println!("{}", position);
 
     let wall_size = Vec3::new(3.0, 2.5, 0.1);
 
