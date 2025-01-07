@@ -1,7 +1,7 @@
 use std::fs;
 
 use bevy::{
-    app::{App, Plugin, Update},
+    app::{App, Plugin, Startup, Update},
     asset::AssetServer,
     math::Vec3,
     prelude::{
@@ -33,7 +33,9 @@ impl Plugin for MazePlugin {
             .init_resource::<CameraState>()
             .add_systems(OnEnter(GameState::Game), maze_setup)
             .add_systems(Update, (camera_controller, rotate_sky).chain())
-            .add_systems(OnExit(GameState::Game), cleanup_maze);
+            .add_systems(OnExit(GameState::Game), cleanup_maze)
+            .add_systems(Startup, display_minimap);
+        
     }
 }
 
@@ -45,30 +47,24 @@ impl Plugin for MazePlugin {
 // }
 
 // his function generates a graphical minimap based on JSON data for a maze, with specific textures for the wall, floor and player.
-pub fn display_minimap(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn display_minimap(mut commands: Commands, asset_server: Res<AssetServer>) {
     let file_content = fs::read_to_string("src/utils/maps.json").expect("Unable to read file");
     let maze: Maze = serde_json::from_str(&file_content).expect("Unable to parse JSON");
-
+    // println!("maze {:?}", maze);
     let height = maze.maze_1.len();
     let width = maze.maze_1[0].len();
-
     let wall_texture = asset_server.load("white_maze.png");
     let floor_texture = asset_server.load("black_maze.png");
-    let player_position = asset_server.load("player.png");
-
-    let x_offset = width as f32 * TILE_SIZE + 33.0;
-    let y_offset = height as f32 - 200.0;
-
+    // let player_position = asset_server.load("player.png");
+    let x_offset = width as f32 * TILE_SIZE / 2.0 + 100.;
+    let y_offset = height as f32 * TILE_SIZE / 2.0 - 200.0;
     for y in 0..height {
         for x in 0..width {
-            let texture = if maze.maze_1[y][x] == 1 {
-                wall_texture.clone()
-            } else if maze.maze_1[y][x] == 2 {
-                player_position.clone()
-            } else {
+            let texture = if maze.maze_1[y][x] == 2 || maze.maze_1[y][x] == 0  {
                 floor_texture.clone()
+            } else {
+                wall_texture.clone()
             };
-
             commands.spawn(SpriteBundle {
                 texture,
                 transform: Transform {

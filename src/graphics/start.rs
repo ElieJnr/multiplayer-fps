@@ -1,13 +1,13 @@
 use std::{collections::HashMap, net::UdpSocket, sync::Arc};
 
-use super::{map::MazePlugin, resources::PlayerCountState};
+use super::{map::MazePlugin, resources::PlayerCountState, systems::setup::minimap_setup};
 use crate::{
     client::player::*,
     common::{protocol::NetworkConfig, sync::NetworkPlugin},
     graphics::{
         resources::Map,
         states::GameState,
-        systems::{menu::menu_plugin, setup::setup},
+        systems::menu::menu_plugin,
     },
 };
 use bevy::prelude::*;
@@ -40,7 +40,7 @@ pub fn start(
        .insert_resource(player_count_state)
        .init_state::<GameState>();
 
-    app.add_systems(Startup, setup)
+    app.add_systems(Startup, minimap_setup)
        .add_plugins(menu_plugin)
        .add_plugins(MazePlugin)
        .add_plugins(NetworkPlugin);

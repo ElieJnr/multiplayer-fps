@@ -10,6 +10,9 @@ pub struct ProceduralTree;
 pub struct Sky;
 
 #[derive(Component)]
+pub struct MinimapCamera;
+
+#[derive(Component)]
 pub struct Arch;
 
 #[derive(Component)]
