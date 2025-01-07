@@ -20,17 +20,16 @@ pub fn start(
 ) {
     let mut app = App::new();
     
-    // Configuration minimale pour les fenêtres
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
             title: format!("Game - {}", player_name),
-            resolution: (800., 600.).into(),
+            resolution: (1200., 1000.).into(),
+            // mode: bevy::window::WindowMode::BorderlessFullscreen,
             ..default()
         }),
         ..default()
     }));
 
-    // Configurations des ressources
     app.insert_resource(Map::Map00)
        .insert_resource(NetworkConfig {
            player_name,
@@ -41,26 +40,10 @@ pub fn start(
        .insert_resource(player_count_state)
        .init_state::<GameState>();
 
-    // Systèmes principaux
     app.add_systems(Startup, setup)
        .add_plugins(menu_plugin)
        .add_plugins(MazePlugin)
        .add_plugins(NetworkPlugin);
-
-    // Configuration des performances
-    /* app.insert_resource(bevy::winit::WinitSettings {
-        focused_mode: UpdateMode::Reactive { 
-            wait: (), 
-            react_to_device_events: (), 
-            react_to_user_events: (), 
-            react_to_window_events: () 
-        },
-        unfocused_mode: UpdateMode::ReactiveLowPower {
-            wait: (), 
-        },
-        ..default()
-    }); */
-
 
     app.run();
 }
