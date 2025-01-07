@@ -6,6 +6,8 @@ use bevy::{
     DefaultPlugins,
 };
 
+use super::map::MazePlugin;
+
 #[derive(Resource)]
 struct NetworkConfig {
     player_name: String,
@@ -42,6 +44,7 @@ pub fn start(player_name: String, server_address: String) {
         .init_state::<GameState>()
         .add_systems(Startup, setup)
         .add_plugins(menu::menu_plugin)
+        .add_plugins(MazePlugin)
         .run();
 }
 

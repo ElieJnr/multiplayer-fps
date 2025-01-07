@@ -3,11 +3,16 @@ use serde_json::Value;
 use std::f32::consts::PI;
 use bevy::math::primitives::{Sphere, Cylinder};
 
+use crate::client::map::MazePlugin;
+
 #[derive(Component)]
 struct ProceduralTree;
 
 #[derive(Component)]
 struct Sky;
+
+#[derive(Component)]
+pub struct MinimapCamera;
 
 #[derive(Component)]
 struct Arch;
@@ -70,6 +75,7 @@ impl Default for TreeParams {
 pub fn setup_maze() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugins(MazePlugin)
         .init_resource::<TreeParams>()
         .add_systems(Startup, setup)
         .add_systems(Update, (rotate_sky, camera_controller).chain())
@@ -252,11 +258,16 @@ fn create_camera(commands: &mut Commands, _position: Vec3, _target: Vec3, width:
         Camera3dBundle {
             transform: Transform::from_xyz(width / 2.0, 1.0, height - 2.0)
                 .looking_at(Vec3::new(width / 2.0, 1.7, 0.0), Vec3::Y),
-            ..default()
+            camera: Camera {
+                order: 0, // Lower order ensures this renders first
+                ..Default::default()
+            },
+            ..Default::default()
         },
-        PlayerCamera
+        PlayerCamera,
     ));
 }
+
 
 // permet de créer les lumières en les positionnant au centre de la scène
 fn create_lights(commands: &mut Commands, width: f32, height: f32) {
