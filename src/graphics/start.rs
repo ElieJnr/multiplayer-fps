@@ -4,13 +4,9 @@ use super::{map::MazePlugin, resources::PlayerCountState, systems::setup::minima
 use crate::{
     client::player::*,
     common::{protocol::NetworkConfig, sync::NetworkPlugin},
-    graphics::{
-        resources::Map,
-        states::GameState,
-        systems::menu::menu_plugin,
-    },
+    graphics::{resources::Map, states::GameState, systems::menu::menu_plugin},
 };
-use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*};
+use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*, render::settings::WgpuSettings};
 
 pub fn start(
     player_name: String,
@@ -19,7 +15,7 @@ pub fn start(
     player_count_state: PlayerCountState,
 ) {
     let mut app = App::new();
-    
+
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
             title: format!("Game - {}", player_name),
@@ -31,20 +27,39 @@ pub fn start(
     }));
 
     app.insert_resource(Map::Map00)
-       .insert_resource(NetworkConfig {
-           player_name,
-           server_address,
-           client_socket,
-       })
-       .insert_resource(Players(HashMap::new()))
-       .insert_resource(player_count_state)
-       .init_state::<GameState>();
+        .insert_resource(NetworkConfig {
+            player_name,
+            server_address,
+            client_socket,
+        })
+        .insert_resource(Players(HashMap::new()))
+        .insert_resource(player_count_state)
+        .insert_resource(MyWgpuSettings::new())
+        .init_state::<GameState>();
 
     app.add_systems(Startup, minimap_setup)
-       .add_plugins(menu_plugin)
-       .add_plugins(MazePlugin)
-       .add_plugins(FrameTimeDiagnosticsPlugin)
-       .add_plugins(NetworkPlugin);
+        .add_plugins(menu_plugin)
+        .add_plugins(MazePlugin)
+        .add_plugins(FrameTimeDiagnosticsPlugin)
+        .add_plugins(NetworkPlugin);
 
     app.run();
+}
+
+
+
+#[derive(Resource)]
+pub struct MyWgpuSettings(WgpuSettings);
+
+impl MyWgpuSettings {
+    fn new() -> Self {
+        MyWgpuSettings(WgpuSettings {
+            power_preference: bevy::render::settings::PowerPreference::HighPerformance,
+            ..default()
+        })
+    }
+
+    pub fn get_settings(&self) -> &WgpuSettings {
+        &self.0
+    }
 }
