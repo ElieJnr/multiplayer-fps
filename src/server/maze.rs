@@ -70,15 +70,6 @@ impl Default for TreeParams {
     }
 }
 
-/* pub fn setup_maze() {
-    App::new()
-        .add_plugins(DefaultPlugins)
-        .init_resource::<TreeParams>()
-        .add_systems(Startup, setup)
-        .add_systems(Update, (rotate_sky, camera_controller).chain())
-        .run();
-}
- */
 // permet d'appeler les fonctions pour la creation de la scène
 pub fn maze_setup(
     mut commands: Commands,
@@ -455,10 +446,7 @@ pub fn camera_controller(
 
             camera_transform.translation.y = ground_level;
         }
-    } else {
-        // Handle the  where no camera entity is found (optional logging or default behavior)
-        eprintln!("No PlayerCamera entity found!");
-    }
+    } 
 }
 
 // permet de créer un arc en utilisant des piliers et un arc supérieur

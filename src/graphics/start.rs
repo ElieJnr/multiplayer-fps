@@ -10,7 +10,7 @@ use crate::{
         systems::menu::menu_plugin,
     },
 };
-use bevy::prelude::*;
+use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*};
 
 pub fn start(
     player_name: String,
@@ -43,6 +43,7 @@ pub fn start(
     app.add_systems(Startup, minimap_setup)
        .add_plugins(menu_plugin)
        .add_plugins(MazePlugin)
+       .add_plugins(FrameTimeDiagnosticsPlugin)
        .add_plugins(NetworkPlugin);
 
     app.run();

@@ -14,7 +14,7 @@ use serde::Deserialize;
 
 use crate::server::maze::{camera_controller, maze_setup, rotate_sky, CameraState, TreeParams};
 
-use super::states::GameState;
+use super::{show_fps::{setup_fps_ui, update_fps_ui}, states::GameState};
 
 const TILE_SIZE: f32 = 15.0;
 const TEXTURE_SIZE: f32 = 114.0;
@@ -34,17 +34,12 @@ impl Plugin for MazePlugin {
             .add_systems(OnEnter(GameState::Game), maze_setup)
             .add_systems(Update, (camera_controller, rotate_sky).chain())
             .add_systems(OnExit(GameState::Game), cleanup_maze)
-            .add_systems(Startup, display_minimap);
+            .add_systems(Startup, (display_minimap, setup_fps_ui))
+            .add_systems(Update, update_fps_ui);
         
     }
 }
 
-// pub fn setup_maze() {
-//     App::new()
-//         .add_plugins(DefaultPlugins)
-//         .add_systems(Startup, maze_setup)
-//         .run();
-// }
 
 // his function generates a graphical minimap based on JSON data for a maze, with specific textures for the wall, floor and player.
 fn display_minimap(mut commands: Commands, asset_server: Res<AssetServer>) {
