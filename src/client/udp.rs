@@ -53,11 +53,15 @@ fn connect_to_server(config: &NetworkConfig) -> Option<()> {
 
 fn receive_server_message(config: &NetworkConfig, state: &mut PlayerCountState) {
     let mut buffer = [0; 1024];
+    let mut error_count = 0;
+
     loop {
         match receive_data_from_socket(&config.client_socket, &mut buffer) {
             Some((data, _)) => {
                 if let Some(game_message) = deserialize_message(&data) {
                     // display_info(&format!("CHECK {:#?}", game_message));
+                    error_count = 0;
+
                     if process_game_message(game_message, config, state) {
                         break;
                     }
@@ -65,7 +69,17 @@ fn receive_server_message(config: &NetworkConfig, state: &mut PlayerCountState) 
                     display_error("Failed to deserialize message.");
                 }
             }
-            None => display_error("Failed to receive data."),
+            None => {
+                display_error("Failed to receive data.");
+                error_count += 1;
+            }
+        }
+        if error_count >= 5 {
+            display_warning("Too many errors. Disconnecting the player.");
+            handle_disconnect(MessageContent::Disconnect {
+                reason: "Failed to receive data".to_string(),
+            });
+            break;
         }
     }
 }

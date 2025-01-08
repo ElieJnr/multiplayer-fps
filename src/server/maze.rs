@@ -3,6 +3,8 @@ use bevy::prelude::*;
 use serde_json::Value;
 use std::f32::consts::PI;
 
+use crate::graphics::map::MazeState;
+
 #[derive(Component)]
 pub struct ProceduralTree;
 
@@ -77,6 +79,7 @@ pub fn maze_setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
     params: Res<TreeParams>,
+    mut maze_state: ResMut<MazeState>
 ) {
     let map_data = include_str!("../maze.json");
     let map: Value = serde_json::from_str(map_data).unwrap();
@@ -169,6 +172,7 @@ pub fn maze_setup(
             }
         }
     }
+    maze_state.is_ready = true;
 }
 
 // permet de créer un arbre procedural en utilisant les paramètres spécifiés
