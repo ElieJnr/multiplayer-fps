@@ -443,7 +443,6 @@ pub fn camera_controller(
             if keyboard_input.pressed(KeyCode::ArrowRight) {
                 camera_transform.rotate_y(-rotation_speed * time.delta_seconds());
             }
-
             camera_transform.translation.y = ground_level;
         }
     } 
