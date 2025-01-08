@@ -4,11 +4,9 @@ use bevy::{
     time::Timer,
 };
 
-// Composant marqueur pour identifier le texte des FPS
 #[derive(Component)]
 pub struct FpsText;
 
-// Resource pour le timer de mise à jour des FPS
 #[derive(Resource)]
 pub struct FpsUpdateTimer {
     timer: Timer,
@@ -17,15 +15,12 @@ pub struct FpsUpdateTimer {
 impl Default for FpsUpdateTimer {
     fn default() -> Self {
         Self {
-            // Met à jour toutes les 0.5 secondes
             timer: Timer::from_seconds(0.5, TimerMode::Repeating),
         }
     }
 }
 
-/// Système pour configurer l'UI des FPS
 pub fn setup_fps_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
-    // Initialiser le timer
     commands.insert_resource(FpsUpdateTimer::default());
 
     commands
@@ -54,17 +49,14 @@ pub fn setup_fps_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
         });
 }
 
-/// Système pour mettre à jour l'UI des FPS
 pub fn update_fps_ui(
     time: Res<Time>,
     mut timer: ResMut<FpsUpdateTimer>,
     diagnostics: Res<DiagnosticsStore>,
     mut query: Query<&mut Text, With<FpsText>>,
 ) {
-    // Mise à jour du timer
     timer.timer.tick(time.delta());
 
-    // Ne met à jour que lorsque le timer a fini
     if timer.timer.just_finished() {
         if let Some(fps) = diagnostics
             .get(&FrameTimeDiagnosticsPlugin::FPS)
