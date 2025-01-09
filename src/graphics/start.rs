@@ -3,17 +3,13 @@ use std::{collections::HashMap, net::UdpSocket, sync::Arc};
 use super::{
     map::MazePlugin,
     resources::{PlayerCountState, SoundPlugin},
-};
+ systems::setup::minimap_setup};
 use crate::{
     client::player::*,
-    common::protocol::NetworkConfig,
-    graphics::{
-        resources::Map,
-        states::GameState,
-        systems::{menu::menu_plugin, setup::setup},
-    },
+    common::{protocol::NetworkConfig, sync::NetworkPlugin},
+    graphics::{resources::Map, states::GameState, systems::menu::menu_plugin},
 };
-use bevy::prelude::*;
+use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*, render::settings::WgpuSettings};
 
 pub fn start(
     player_name: String,
@@ -21,9 +17,19 @@ pub fn start(
     client_socket: Arc<UdpSocket>,
     player_count_state: PlayerCountState,
 ) {
-    App::new()
-        .add_plugins(DefaultPlugins)
-        .insert_resource(Map::Map00)
+    let mut app = App::new();
+
+    app.add_plugins(DefaultPlugins.set(WindowPlugin {
+        primary_window: Some(Window {
+            title: format!("Game - {}", player_name),
+            resolution: (1200., 1000.).into(),
+            // mode: bevy::window::WindowMode::BorderlessFullscreen,
+            ..default()
+        }),
+        ..default()
+    }));
+
+    app.insert_resource(Map::Map00)
         .insert_resource(NetworkConfig {
             player_name,
             server_address,
@@ -31,10 +37,33 @@ pub fn start(
         })
         .insert_resource(Players(HashMap::new()))
         .insert_resource(player_count_state)
-        .init_state::<GameState>()
-        .add_systems(Startup, setup)
+        .insert_resource(MyWgpuSettings::new())
+        .init_state::<GameState>();
+
+    app.add_systems(Startup, minimap_setup)
         .add_plugins(menu_plugin)
         .add_plugins(MazePlugin)
         .add_plugins(SoundPlugin)
-        .run();
+        .add_plugins(FrameTimeDiagnosticsPlugin)
+        .add_plugins(NetworkPlugin);
+
+    app.run();
+}
+
+
+
+#[derive(Resource)]
+pub struct MyWgpuSettings(WgpuSettings);
+
+impl MyWgpuSettings {
+    fn new() -> Self {
+        MyWgpuSettings(WgpuSettings {
+            power_preference: bevy::render::settings::PowerPreference::HighPerformance,
+            ..default()
+        })
+    }
+
+    pub fn get_settings(&self) -> &WgpuSettings {
+        &self.0
+    }
 }

@@ -2399,6 +2399,7 @@ dependencies = [
  "bevy",
  "bevy_tweening",
  "colored",
+ "lazy_static",
  "serde",
  "serde_json",
 ]
