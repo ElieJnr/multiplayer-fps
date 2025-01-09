@@ -9,4 +9,4 @@ merge:
 	git checkout $(TO) && git merge $(FROM)
 
 speed:
-	cargo run --release
+	clear && cargo run --release
