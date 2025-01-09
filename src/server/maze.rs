@@ -42,7 +42,7 @@ struct Textures {
     wall_texture: Handle<Image>,
     arch_texture: Handle<Image>,
     floor_texture: Handle<Image>,
-    wall_desert_texture: Handle<Image>,
+    // wall_desert_texture: Handle<Image>,
     sky_texture: Handle<Image>,
     house_textures: HouseTextures,
 }
@@ -56,6 +56,17 @@ struct HouseTextures {
     house_6: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),
     house_7: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),
     house_8: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),
+}
+
+struct HouseMaterials {
+    house_1: (Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>),
+    house_2: (Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>),
+    house_3: (Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>),
+    house_4: (Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>),
+    house_5: (Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>),
+    house_6: (Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>),
+    house_7: (Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>),
+    house_8: (Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>),
 }
 
 impl Default for TreeParams {
@@ -73,14 +84,7 @@ impl Default for TreeParams {
 }
 
 // permet d'appeler les fonctions pour la creation de la scène
-pub fn maze_setup(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    asset_server: Res<AssetServer>,
-    params: Res<TreeParams>,
-    mut maze_state: ResMut<MazeState>
-) {
+pub fn maze_setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>, asset_server: Res<AssetServer>, params: Res<TreeParams>, mut maze_state: ResMut<MazeState>) {
     let map_data = include_str!("../maze.json");
     let map: Value = serde_json::from_str(map_data).unwrap();
     let maze = map["maze-1"].as_array().unwrap();
@@ -88,86 +92,24 @@ pub fn maze_setup(
     let width = maze[0].as_array().unwrap().len() as f32;
     let textures = load_textures(&asset_server);
     commands.insert_resource(CameraState::default());
-    create_sky(
-        &mut commands,
-        &mut meshes,
-        &mut materials,
-        textures.sky_texture,
-    );
-    create_surface(
-        &mut commands,
-        &mut meshes,
-        &mut materials,
-        textures.floor_texture,
-        width,
-        height,
-    );
+    let (mesh_face, house_materials, branch_material, leaf_material, branch_mesh, leaf_mesh, wall_material, wall_mesh, floor_mesh, floor_material, arch_mesh, sup_arch_mesh, arch_material) = initialize_materials(&mut meshes, &mut materials, &textures, &*params, width, height);
+    create_surface(&mut commands, floor_mesh, floor_material, width, height);
+    create_sky(&mut commands, &mut meshes, &mut materials, textures.sky_texture);
     create_lights(&mut commands, width, height);
-    create_camera(
-        &mut commands,
-        Vec3::new(26.5, 1.0, 10.45),
-        Vec3::ZERO,
-        width,
-        height,
-    );
+    create_camera(&mut commands, Vec3::new(26.5, 1.0, 10.45), Vec3::ZERO, width, height);
 
     for (i, row) in maze.iter().enumerate() {
         let row = row.as_array().unwrap();
         for (j, cell) in row.iter().enumerate() {
             match cell.as_i64().unwrap() {
-                1 => create_walls(
-                    &mut commands,
-                    &mut meshes,
-                    &mut materials,
-                    textures.wall_texture.clone(),
-                    i,
-                    j,
-                ),
+                1 => create_walls(&mut commands, wall_mesh.clone(), wall_material.clone(), i, j),
                 2 => {
                     let arch = commands.spawn(SpatialBundle::default()).insert(Arch).id();
-                    create_arch(
-                        &mut commands,
-                        &mut meshes,
-                        &mut materials,
-                        textures.arch_texture.clone(),
-                        arch,
-                        0.7,
-                        2.0,
-                        0.5,
-                        1.0,
-                        i as f32,
-                        j as f32,
-                    );
+                    create_arch(&mut commands, &mut meshes, arch_mesh.clone(), sup_arch_mesh.clone(), arch_material.clone(), arch,  2.0,  1.0, i as f32, j as f32);
                 }
-                3 => create_procedural_tree(
-                    &mut commands,
-                    &mut meshes,
-                    &mut materials,
-                    &params,
-                    Vec3::new(j as f32, 0.0, i as f32),
-                ),
-                4 => create_house(
-                    &mut commands,
-                    &mut meshes,
-                    &mut materials,
-                    textures.house_textures.house_1.clone(),
-                    textures.house_textures.house_2.clone(),
-                    textures.house_textures.house_3.clone(),
-                    textures.house_textures.house_4.clone(),
-                    textures.house_textures.house_5.clone(),
-                    textures.house_textures.house_6.clone(),
-                    textures.house_textures.house_7.clone(),
-                    textures.house_textures.house_8.clone(),
-                    Vec3::new(j as f32, 0.0, i as f32),
-                ),
-                5 => create_walls(
-                    &mut commands,
-                    &mut meshes,
-                    &mut materials,
-                    textures.wall_desert_texture.clone(),
-                    i,
-                    j,
-                ),
+                3 => create_procedural_tree(&mut commands, &mut meshes, &mut materials, &params, Vec3::new(j as f32, 0.0, i as f32), branch_material.clone(), leaf_material.clone(), branch_mesh.clone(),leaf_mesh.clone()),
+                4 => create_house(&mut commands, mesh_face.clone(), &house_materials, Vec3::new(j as f32, 0.0, i as f32)),
+                5 => create_walls(&mut commands, wall_mesh.clone(), wall_material.clone(), i, j),
                 _ => {}
             }
         }
@@ -176,35 +118,10 @@ pub fn maze_setup(
 }
 
 // permet de créer un arbre procedural en utilisant les paramètres spécifiés
-fn create_procedural_tree(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<StandardMaterial>>,
-    params: &TreeParams,
-    position: Vec3,
+fn create_procedural_tree(commands: &mut Commands, _meshes: &mut ResMut<Assets<Mesh>>, _materials: &mut ResMut<Assets<StandardMaterial>>, params: &TreeParams, position: Vec3, branch_material: Handle<StandardMaterial>, leaf_material: Handle<StandardMaterial>, branch_mesh: Handle<Mesh>, leaf_mesh: Handle<Mesh>,
 ) {
     let tree = generate_tree(params);
     let mut entity_parent_indices: Vec<(Entity, Option<usize>)> = Vec::new();
-
-    let branch_material = materials.add(StandardMaterial {
-        base_color: Color::srgb(0.8, 0.7, 0.6),
-        ..default()
-    });
-
-    let leaf_material = materials.add(StandardMaterial {
-        base_color: Color::srgb(0.3, 0.8, 0.3),
-        ..default()
-    });
-
-    // Création des meshs réutilisables
-    let branch_mesh = meshes.add(Cylinder {
-        radius: params.base_radius,
-        half_height: 0.5,
-    });
-
-    let leaf_mesh = meshes.add(Sphere {
-        radius: params.leaf_radius,
-    });
 
     // Créer l'entité racine de l'arbre avec la position spécifiée
     let root = commands
@@ -305,40 +222,20 @@ fn generate_leaves(parent_idx: usize, all: &mut Vec<Branch>) {
 }
 
 // permet de créer le sol en utilisant une taille de 0.1 et une texture de sol
-fn create_surface(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<StandardMaterial>>,
-    floor_texture: Handle<Image>,
-    width: f32,
-    height: f32,
-) {
+fn create_surface(commands: &mut Commands, floor_mesh: Handle<Mesh>, floor_material: Handle<StandardMaterial>, width: f32, height: f32) {
     commands.spawn(PbrBundle {
-        mesh: meshes.add(Mesh::from(Cuboid::new(width, 0.1, height))),
-        material: materials.add(StandardMaterial {
-            base_color_texture: Some(floor_texture),
-            ..default()
-        }),
+        mesh: floor_mesh.clone(),
+        material: floor_material.clone(),
         transform: Transform::from_xyz(width / 2.0, 0.0, height / 2.0),
         ..default()
     });
 }
 
 // permet de créer les murs en utilisant une taille de 1.0, une largeur de 2.0 et une hauteur de 1.0 tous en les positionnant correctement aux coordonnées i et j
-fn create_walls(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<StandardMaterial>>,
-    wall_texture: Handle<Image>,
-    i: usize,
-    j: usize,
-) {
+fn create_walls(commands: &mut Commands, wall_mesh: Handle<Mesh>, wall_material: Handle<StandardMaterial>, i: usize, j: usize) {
     commands.spawn(PbrBundle {
-        mesh: meshes.add(Mesh::from(Cuboid::new(1.0, 2.0, 1.0))),
-        material: materials.add(StandardMaterial {
-            base_color_texture: Some(wall_texture.clone()),
-            ..default()
-        }),
+        mesh: wall_mesh.clone(),
+        material: wall_material.clone(),
         transform: Transform::from_xyz(j as f32, 1.0, i as f32),
         ..default()
     });
@@ -373,12 +270,7 @@ fn create_lights(commands: &mut Commands, width: f32, height: f32) {
 }
 
 // permet de creer le ciel en utilisant une sphere de rayon 500.0 et en lui appliquant une texture de ciel
-fn create_sky(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<StandardMaterial>>,
-    sky_texture: Handle<Image>,
-) {
+fn create_sky(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, sky_texture: Handle<Image>) {
     commands.spawn((
         PbrBundle {
             mesh: meshes.add(Mesh::from(Sphere { radius: 500.0 })),
@@ -396,18 +288,14 @@ fn create_sky(
 
 // permet de faire tourner le ciel
 pub fn rotate_sky(time: Res<Time>, mut query: Query<&mut Transform, With<Sky>>) {
+    let rotation = Quat::from_rotation_y(time.elapsed_seconds() * 0.05);
     for mut transform in &mut query {
-        transform.rotation = Quat::from_rotation_y(time.elapsed_seconds() * 0.05);
+        transform.rotation = rotation;
     }
 }
 
 // permet de controller la caméra en utilisant les touches du clavier
-pub fn camera_controller(
-    time: Res<Time>,
-    keyboard_input: ResMut<'_, ButtonInput<KeyCode>>,
-    mut query: Query<&mut Transform, With<PlayerCamera>>,
-    mut camera_state: ResMut<CameraState>,
-) {
+pub fn camera_controller(time: Res<Time>, keyboard_input: ResMut<'_, ButtonInput<KeyCode>>, mut query: Query<&mut Transform, With<PlayerCamera>>, mut camera_state: ResMut<CameraState>) {
     // let mut camera_transform = query.single_mut();
 
     if let Ok(mut camera_transform) = query.get_single_mut() {
@@ -453,20 +341,7 @@ pub fn camera_controller(
 }
 
 // permet de créer un arc en utilisant des piliers et un arc supérieur
-fn create_arch(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<StandardMaterial>>,
-    arch_texture: Handle<Image>,
-    arch: Entity,
-    pillar_width: f32,
-    pillar_height: f32,
-    arch_depth: f32,
-    arch_radius: f32,
-    i: f32,
-    j: f32,
-) {
-    println!("i{} j{}", i, j);
+fn create_arch(commands: &mut Commands, _meshes: &mut ResMut<Assets<Mesh>>, arch_mesh: Handle<Mesh>, sup_arch_mesh: Handle<Mesh>, arch_material: Handle<StandardMaterial>, arch: Entity, pillar_height: f32, arch_radius: f32, i: f32, j: f32) {
 
     if i == 29.0 && j == 22.0 {
         commands.entity(arch).insert(
@@ -490,17 +365,12 @@ fn create_arch(
         );
     }
 
-    let arch_material = materials.add(StandardMaterial {
-        base_color_texture: Some(arch_texture),
-        perceptual_roughness: 0.5,
-        ..default()
-    });
 
     // Piliers
     for x in [-arch_radius, arch_radius] {
         commands
             .spawn(PbrBundle {
-                mesh: meshes.add(Cuboid::new(pillar_width, pillar_height, arch_depth)),
+                mesh: arch_mesh.clone(),
                 material: arch_material.clone(),
                 transform: Transform::from_xyz(x, pillar_height / 2.0, 0.0),
                 ..default()
@@ -517,7 +387,7 @@ fn create_arch(
 
         commands
             .spawn(PbrBundle {
-                mesh: meshes.add(Cuboid::new(0.5, 0.5, arch_depth)),
+                mesh: sup_arch_mesh.clone(),
                 material: arch_material.clone(),
                 transform: Transform::from_xyz(x, y, 0.0)
                     .with_rotation(Quat::from_rotation_z(angle)),
@@ -528,46 +398,29 @@ fn create_arch(
 }
 
 // permet de créer une maison en utilisant 4 facades de mur
-fn create_house(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<StandardMaterial>>,
-    house_1_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),
-    house_2_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),
-    house_3_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),
-    house_4_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),
-    house_5_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),
-    house_6_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),
-    house_7_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),
-    house_8_textures: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),
-    position: Vec3,
-) {
-    println!("{}", position);
-
+fn create_house(commands: &mut Commands, meshes: Handle<Mesh>, house_materials: &HouseMaterials, position: Vec3) {
     let wall_size = Vec3::new(3.0, 2.5, 0.1);
 
-    let (front_texture, back_texture, left_texture, right_texture) = if position.x == 7.0
-        && position.z == 29.0
-    {
-        house_2_textures
+    let (front_material, back_material, left_material, right_material) = if position.x == 7.0 && position.z == 29.0 {
+        house_materials.house_2.clone()
     } else if position.x == 2.0 && position.z == 16.0 || position.x == 7.0 && position.z == 16.0 {
-        house_3_textures
+        house_materials.house_3.clone()
     } else if position.x == 4.0 && position.z == 34.0 {
-        house_4_textures
+        house_materials.house_4.clone()
     } else if position.x == 2.0 && position.z == 2.0
         || position.x == 17.0 && position.z == 8.0
         || position.x == 20.0 && position.z == 2.0
         || position.x == 10.0 && position.z == 8.0
     {
-        house_5_textures
+        house_materials.house_5.clone()
     } else if position.x == 4.0 && position.z == 12.0 {
-        house_6_textures
+        house_materials.house_6.clone()
     } else if position.x == 9.0 && position.z == 36.0 {
-        house_8_textures
+        house_materials.house_8.clone()
     } else if position.x == 12.0 && position.z == 36.0 {
-        house_7_textures
+        house_materials.house_7.clone()
     } else {
-        house_1_textures
+        house_materials.house_1.clone()
     };
 
     let house = commands
@@ -584,15 +437,8 @@ fn create_house(
     // Front face
     commands
         .spawn(PbrBundle {
-            mesh: meshes.add(Mesh::from(Cuboid::new(
-                wall_size.x,
-                wall_size.y,
-                wall_size.z,
-            ))),
-            material: materials.add(StandardMaterial {
-                base_color_texture: Some(front_texture),
-                ..default()
-            }),
+            mesh: meshes.clone(),
+            material: front_material,
             transform: Transform::from_xyz(0.0, 1.0, 1.5),
             ..default()
         })
@@ -601,15 +447,8 @@ fn create_house(
     // Back face
     commands
         .spawn(PbrBundle {
-            mesh: meshes.add(Mesh::from(Cuboid::new(
-                wall_size.x,
-                wall_size.y,
-                wall_size.z,
-            ))),
-            material: materials.add(StandardMaterial {
-                base_color_texture: Some(back_texture),
-                ..default()
-            }),
+            mesh: meshes.clone(),
+            material: back_material,
             transform: Transform::from_xyz(0.0, 1.0, -1.5),
             ..default()
         })
@@ -618,15 +457,8 @@ fn create_house(
     // Left face
     commands
         .spawn(PbrBundle {
-            mesh: meshes.add(Mesh::from(Cuboid::new(
-                wall_size.x,
-                wall_size.y,
-                wall_size.z,
-            ))),
-            material: materials.add(StandardMaterial {
-                base_color_texture: Some(left_texture),
-                ..default()
-            }),
+            mesh: meshes.clone(),
+            material: left_material,
             transform: Transform::from_xyz(-1.5, 1.0, 0.0)
                 .with_rotation(Quat::from_rotation_y(std::f32::consts::FRAC_PI_2)),
             ..default()
@@ -636,15 +468,8 @@ fn create_house(
     // Right face
     commands
         .spawn(PbrBundle {
-            mesh: meshes.add(Mesh::from(Cuboid::new(
-                wall_size.x,
-                wall_size.y,
-                wall_size.z,
-            ))),
-            material: materials.add(StandardMaterial {
-                base_color_texture: Some(right_texture),
-                ..default()
-            }),
+            mesh: meshes.clone(),
+            material: right_material,
             transform: Transform::from_xyz(1.5, 1.0, 0.0)
                 .with_rotation(Quat::from_rotation_y(-std::f32::consts::FRAC_PI_2)),
             ..default()
@@ -658,7 +483,7 @@ fn load_textures(asset_server: &Res<AssetServer>) -> Textures {
         wall_texture: asset_server.load("textures/wall_2.png"),
         arch_texture: asset_server.load("textures/wall.png"),
         floor_texture: asset_server.load("textures/floor_sand.png"),
-        wall_desert_texture: asset_server.load("textures/wall_desert.png"),
+        // wall_desert_texture: asset_server.load("textures/wall_desert.png"),
         sky_texture: asset_server.load("textures/cloud_2.png"),
         house_textures: HouseTextures {
             house_1: (
@@ -712,3 +537,223 @@ fn load_textures(asset_server: &Res<AssetServer>) -> Textures {
         },
     }
 }
+
+fn initialize_materials(meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, textures: &Textures, params: &TreeParams, width: f32, height: f32) -> (Handle<Mesh>, HouseMaterials, Handle<StandardMaterial>,
+        Handle<StandardMaterial>,
+        Handle<Mesh>,
+        Handle<Mesh>,
+        Handle<StandardMaterial>,
+        Handle<Mesh>,
+        Handle<Mesh>,
+        Handle<StandardMaterial>,
+        Handle<Mesh>,
+        Handle<Mesh>,
+        Handle<StandardMaterial>,
+    ) {
+        // house materials
+        let wall_size = Vec3::new(3.0, 2.5, 0.1);
+        let mesh_face = meshes.add(Mesh::from(Cuboid::new(wall_size.x, wall_size.y, wall_size.z)));
+        let house_materials = HouseMaterials {
+            house_1: (
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_1.0.clone()),
+                    ..default()
+                }),
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_1.1.clone()),
+                    ..default()
+                }),
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_1.2.clone()),
+                    ..default()
+                }),
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_1.3.clone()),
+                    ..default()
+                }),
+            ),
+            house_2: (
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_2.0.clone()),
+                    ..default()
+                }),
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_2.1.clone()),
+                    ..default()
+                }),
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_2.2.clone()),
+                    ..default()
+                }),
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_2.3.clone()),
+                    ..default()
+                }),
+            ),
+            house_3: (
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_3.0.clone()),
+                    ..default()
+                }),
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_3.1.clone()),
+                    ..default()
+                }),
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_3.2.clone()),
+                    ..default()
+                }),
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_3.3.clone()),
+                    ..default()
+                }),
+            ),
+            house_4: (
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_4.0.clone()),
+                    ..default()
+                }),
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_4.1.clone()),
+                    ..default()
+                }),
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_4.2.clone()),
+                    ..default()
+                }),
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_4.3.clone()),
+                    ..default()
+                }),
+            ),
+            house_5: (
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_5.0.clone()),
+                    ..default()
+                }),
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_5.1.clone()),
+                    ..default()
+                }),
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_5.2.clone()),
+                    ..default()
+                }),
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_5.3.clone()),
+                    ..default()
+                }),
+            ),
+            house_6: (
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_6.0.clone()),
+                    ..default()
+                }),
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_6.1.clone()),
+                    ..default()
+                }),
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_6.2.clone()),
+                    ..default()
+                }),
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_6.3.clone()),
+                    ..default()
+                }),
+            ),
+            house_7: (
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_7.0.clone()),
+                    ..default()
+                }),
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_7.1.clone()),
+                    ..default()
+                }),
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_7.2.clone()),
+                    ..default()
+                }),
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_7.3.clone()),
+                    ..default()
+                }),
+            ),
+            house_8: (
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_8.0.clone()),
+                    ..default()
+                }),
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_8.1.clone()),
+                    ..default()
+                }),
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_8.2.clone()),
+                    ..default()
+                }),
+                materials.add(StandardMaterial {
+                    base_color_texture: Some(textures.house_textures.house_8.3.clone()),
+                    ..default()
+                }),
+            ),
+        };
+
+        let branch_material = materials.add(StandardMaterial {
+            base_color: Color::srgb(0.8, 0.7, 0.6),
+            ..default()
+        });
+
+        let leaf_material = materials.add(StandardMaterial {
+            base_color: Color::srgb(0.3, 0.8, 0.3),
+            ..default()
+        });
+
+        let branch_mesh = meshes.add(Cylinder {
+            radius: params.base_radius,
+            half_height: 0.5,
+        });
+
+        let leaf_mesh = meshes.add(Sphere {
+            radius: params.leaf_radius,
+        });
+
+        // wall materials
+        let wall_mesh = meshes.add(Mesh::from(Cuboid::new(1.0, 2.0, 1.0)));
+        let wall_material = materials.add(StandardMaterial {
+            base_color_texture: Some(textures.wall_texture.clone()),
+            ..default()
+        });
+
+        // surface materials
+        let floor_mesh = meshes.add(Mesh::from(Cuboid::new(width, 0.1, height)));
+        let floor_material = materials.add(StandardMaterial {
+            base_color_texture: Some(textures.floor_texture.clone()),
+            ..default()
+        });
+
+        // arch materials
+        let arch_mesh = meshes.add(Mesh::from(Cuboid::new(0.7, 2.0, 0.5)));
+        let sup_arch_mesh = meshes.add(Mesh::from(Cuboid::new(0.5, 0.5, 0.5)));
+        let arch_material = materials.add(StandardMaterial {
+            base_color_texture: Some(textures.arch_texture.clone()),
+            ..default()
+        });
+
+        (
+            mesh_face,
+            house_materials,
+            branch_material,
+            leaf_material,
+            branch_mesh,
+            leaf_mesh,
+            wall_material,
+            wall_mesh,
+            floor_mesh,
+            floor_material,
+            arch_mesh,
+            sup_arch_mesh,
+            arch_material,
+        )
+    }
