@@ -1,11 +1,12 @@
 use bevy::prelude::*;
+use bevy::input::mouse::MouseMotion;
 use super::models::*;
 use bevy::math::primitives::Cylinder;
 
 #[derive(Resource)]
 pub struct PlayerMovement {
     pub speed: f32,
-    pub rotation_speed: f32,
+    pub mouse_sensitivity: f32,
     pub ground_level: f32,
 }
 
@@ -13,7 +14,7 @@ impl Default for PlayerMovement {
     fn default() -> Self {
         Self {
             speed: 5.0,
-            rotation_speed: 2.0,
+            mouse_sensitivity: 0.003, // Ajustez cette valeur selon vos besoins
             ground_level: 1.0,
         }
     }
@@ -50,25 +51,28 @@ pub fn create_player(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>,
 pub fn player_movement(
     time: Res<Time>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut motion_evr: EventReader<MouseMotion>,
     mut query: Query<&mut Transform, With<Player>>,
-    movement: Res<PlayerMovement>,
+    movement: Res<PlayerMovement>
 ) {
+    let mut mouse_delta = Vec2::ZERO;
+    for event in motion_evr.read() {
+        mouse_delta += event.delta;
+    }
+    
     for mut transform in query.iter_mut() {
+        // Avancer uniquement avec ArrowUp
         if keyboard_input.pressed(KeyCode::ArrowUp) {
             let forward = transform.forward();
             transform.translation -= forward * movement.speed * time.delta_seconds();
         }
-        if keyboard_input.pressed(KeyCode::ArrowDown) {
-            let forward = transform.forward();
-            transform.translation += forward * movement.speed * time.delta_seconds();
+        
+        // Rotation avec la souris
+        if mouse_delta.length_squared() > 0.0 {
+            transform.rotate_y(-mouse_delta.x * movement.mouse_sensitivity);
         }
-        if keyboard_input.pressed(KeyCode::ArrowLeft) {
-            transform.rotate_y(movement.rotation_speed * time.delta_seconds());
-        }
-        if keyboard_input.pressed(KeyCode::ArrowRight) {
-            transform.rotate_y(-movement.rotation_speed * time.delta_seconds());
-        }
-        transform.translation.y = movement.ground_level; 
+        
+        transform.translation.y = movement.ground_level;
     }
 }
 
@@ -76,18 +80,16 @@ pub fn camera_view_toggle(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut _player_query: Query<&mut Transform, With<Player>>,
     mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<Player>)>,
-    mut camera_state: ResMut<CameraState>,
+    mut camera_state: ResMut<CameraState>
 ) {
     if keyboard_input.just_pressed(KeyCode::KeyV) {
         camera_state.is_top_view = !camera_state.is_top_view;
         
         if let Ok(mut camera_transform) = camera_query.get_single_mut() {
             if camera_state.is_top_view {
-                // Top view
                 camera_transform.translation = Vec3::new(0.0, 50.0, 0.0);
                 camera_transform.rotation = Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2);
             } else {
-                // FPS view
                 camera_transform.translation = Vec3::new(0.0, 0.5, 0.0); 
                 camera_transform.rotation = Quat::IDENTITY;
                 camera_transform.look_at(Vec3::new(0.0, 0.5, 0.1), Vec3::Y); 
