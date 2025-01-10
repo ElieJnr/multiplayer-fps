@@ -47,7 +47,7 @@ pub fn start(
     app.add_systems(Startup, minimap_setup)
         .add_plugins(menu_plugin)
         .add_plugins(MazePlugin)
-        .add_plugins(SoundPlugin)
+        // .add_plugins(SoundPlugin)
         .add_plugins(FrameTimeDiagnosticsPlugin)
         .add_plugins(NetworkPlugin)
         .add_plugins(WaittingRoomPlugin);

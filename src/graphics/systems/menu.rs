@@ -140,7 +140,7 @@ fn button_interaction_system(
         (Changed<Interaction>, With<Button>),
     >,
 ) {
-    for (interaction, mut color, action) in &mut query {
+    for (interaction, mut color,mut  transform) in &mut query {
 
         *color = match *interaction {
             Interaction::Hovered => {

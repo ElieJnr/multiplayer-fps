@@ -60,27 +60,3 @@ pub fn spawn_menu_button(parent: &mut ChildBuilder, label: &str, assets_server: 
             },
         )));
 }
-
-pub fn update_play_button(
-    player_count: Res<PlayerCountState>,
-    mut query: Query<(&mut MenuButtonAction, &Children), With<Button>>,
-    mut text_query: Query<&mut Text>,
-) {
-    let has_enough = player_count.has_enough_players;
-    for (mut action, children) in query.iter_mut() {
-        if let MenuButtonAction::Play(_) = *action {
-            *action = MenuButtonAction::Play(has_enough);
-
-            for &child in children.iter() {
-                if let Ok(mut text) = text_query.get_mut(child) {
-                    let label = if has_enough {
-                        "Play"
-                    } else {
-                        "Waiting..."
-                    };
-                    text.sections[0].value = label.to_string();
-                }
-            }
-        }
-    }
-}
