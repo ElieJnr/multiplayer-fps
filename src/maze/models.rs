@@ -15,6 +15,9 @@ pub struct Arch;
 #[derive(Component)]
 pub struct PlayerCamera;
 
+#[derive(Component)]
+pub struct Player;
+
 #[derive(Default, Resource)]
 pub struct CameraState {
     pub is_top_view: bool,

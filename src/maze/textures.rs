@@ -180,52 +180,6 @@ pub fn rotate_sky(time: Res<Time>, mut query: Query<&mut Transform, With<Sky>>) 
     }
 }
 
-// permet de controller la caméra en utilisant les touches du clavier
-pub fn camera_controller(time: Res<Time>, keyboard_input: ResMut<'_, ButtonInput<KeyCode>>, mut query: Query<&mut Transform, With<PlayerCamera>>, mut camera_state: ResMut<CameraState>) {
-    // let mut camera_transform = query.single_mut();
-
-    if let Ok(mut camera_transform) = query.get_single_mut() {
-        let speed = 5.0;
-        let rotation_speed = 2.0;
-        let ground_level = 1.0;
-
-        if keyboard_input.just_pressed(KeyCode::KeyV) {
-            camera_state.is_top_view = !camera_state.is_top_view;
-            if camera_state.is_top_view {
-                // vue de haut
-                camera_transform.translation = Vec3::new(
-                    camera_transform.translation.x,
-                    50.0,
-                    camera_transform.translation.z,
-                );
-                camera_transform.rotation = Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2);
-            } else {
-                // vue FPS
-                camera_transform.translation.y = ground_level;
-                camera_transform.rotation = Quat::IDENTITY;
-            }
-        }
-
-        if !camera_state.is_top_view {
-            if keyboard_input.pressed(KeyCode::ArrowUp) {
-                let forward = camera_transform.forward();
-                camera_transform.translation += forward * speed * time.delta_seconds();
-            }
-            if keyboard_input.pressed(KeyCode::ArrowDown) {
-                let forward = camera_transform.forward();
-                camera_transform.translation -= forward * speed * time.delta_seconds();
-            }
-            if keyboard_input.pressed(KeyCode::ArrowLeft) {
-                camera_transform.rotate_y(rotation_speed * time.delta_seconds());
-            }
-            if keyboard_input.pressed(KeyCode::ArrowRight) {
-                camera_transform.rotate_y(-rotation_speed * time.delta_seconds());
-            }
-            camera_transform.translation.y = ground_level;
-        }
-    } 
-}
-
 // permet de créer un arc en utilisant des piliers et un arc supérieur
 pub fn create_arch(commands: &mut Commands, _meshes: &mut ResMut<Assets<Mesh>>, arch_mesh: Handle<Mesh>, sup_arch_mesh: Handle<Mesh>, arch_material: Handle<StandardMaterial>, arch: Entity, pillar_height: f32, arch_radius: f32, i: f32, j: f32) {
 

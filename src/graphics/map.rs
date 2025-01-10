@@ -10,8 +10,9 @@ use bevy::{
     sprite::{Sprite, SpriteBundle}, window::{PrimaryWindow, Window, WindowResized},
 };
 use serde::Deserialize;
-use crate::maze::textures::{camera_controller, rotate_sky};
+use crate::maze::{player_simulation::{camera_view_toggle, player_movement, PlayerMovement}, textures::rotate_sky};
 use crate::maze::maze::maze_setup;
+// use crate::maze::player_simulation::camera_controller;
 use crate::maze::models::{CameraState, TreeParams};
 
 use super::{show_fps::{setup_fps_ui, update_fps_ui}, states::GameState};
@@ -32,9 +33,14 @@ impl Plugin for MazePlugin {
         app.init_resource::<TreeParams>()
             .init_resource::<CameraState>()
             .init_resource::<MazeState>()
+            .init_resource::<PlayerMovement>()
             .add_systems(OnEnter(GameState::Game), maze_setup) 
             .add_systems(OnEnter(GameState::Game), display_minimap.after(maze_setup))
-            .add_systems(Update, (camera_controller, rotate_sky).chain())
+            .add_systems(Update, (
+                player_movement,
+                camera_view_toggle,
+                rotate_sky
+            ).chain())
             .add_systems(OnExit(GameState::Game), cleanup_maze)
             .add_systems(Startup, setup_fps_ui)
             .add_systems(Update, (update_fps_ui, update_minimap));
