@@ -20,16 +20,16 @@
      ✔ Ajouter une interface en ligne de commande pour demander l’IP et le nom d’utilisateur. @done(24-12-18 12:12)
     
   3. `Dev 3 : Documentation et Protocoles`  @jgoudj
-     ☐ Définir le format des messages échangés entre client et serveur (ex. JSON ou binaire).  
+     ✔ Définir le format des messages échangés entre client et serveur (ex. JSON ou binaire). @done(25-01-10 13:54)
      ☐ Documenter les étapes pour configurer et exécuter le serveur et le client sur une machine.  
     
   4. `Dev 4 : Design et UX`  @aliouniang
-     ☐ Travailler sur la conception de l'interface utilisateur pour le client.  
-     ☐ Créer des wireframes pour l’interface du jeu et les menus.  
+     ✔ Travailler sur la conception de l'interface utilisateur pour le client. @done(25-01-10 13:54)
+     ✔ Créer des wireframes pour l’interface du jeu et les menus. @done(25-01-10 13:54)
     
   5. `Dev 4 : Conception de la Mini-carte` @babacar
-     ☐ Concevoir une mini-carte statique qui affiche une vue de base d’un labyrinthe.  
-     ☐ Intégrer une position fixe pour le joueur en tant que preuve de concept.  
+     ✔ Concevoir une mini-carte statique qui affiche une vue de base d’un labyrinthe. @done(25-01-10 13:54)
+     ✔ Intégrer une position fixe pour le joueur en tant que preuve de concept. @done(25-01-10 13:54)
     
   6. `Dev 6 : Éléments de Base et Synchronisation`  @kendi
      ✔ Mettre en place une synchronisation basique entre plusieurs clients connectés. @done(24-12-18 12:12)
@@ -40,19 +40,19 @@
   ## `Sprint 2 : Graphiques et Interfaces (Semaine 2)`
     
   1. `Dev 1 : Serveur`  
-     ☐ Ajouter des fonctions pour envoyer la structure du labyrinthe au client.  
+     ✔ Ajouter des fonctions pour envoyer la structure du labyrinthe au client. @done(25-01-10 13:54)
      ☐ Implémenter la logique pour transmettre la position initiale des joueurs.  
     
   2. `Dev 2 : Client : Labyrinthe et Position`  
-     ☐ Créer une interface graphique basique utilisant une bibliothèque graphique (ex. SDL, SFML).  
-     ☐ Afficher le labyrinthe reçu depuis le serveur.  
+     ✔ Créer une interface graphique basique utilisant une bibliothèque graphique (ex. SDL, SFML). @done(25-01-10 13:54)
+     ✔ Afficher le labyrinthe reçu depuis le serveur. @done(25-01-10 13:55)
     
   3. `Dev 3 Affichage des FPS`  
-     ☐ Intégrer un compteur FPS dans l’interface graphique.  
+     ✔ Intégrer un compteur FPS dans l’interface graphique. @done(25-01-10 13:55)
      ☐ Assurer une mise à jour fluide et précise.  
     
   4. `Dev 4 : Améliorations Visuelles`  
-     ☐ Concevoir un système de transitions visuelles pour l'interface.  
+     ✔ Concevoir un système de transitions visuelles pour l'interface. @done(25-01-10 13:55)
      ☐ Ajouter des effets visuels comme des animations de menus et des transitions entre les écrans.  
     
   5 `.Dev 5 : Animation des Mouvements`  
@@ -121,3 +121,24 @@
     
   ---
  
+
+  //================================================================================================
+
+
+  task/sprint_task.todo
+
+ ## tsk1: 
+  ☐ synchronisation debut de jeu pour tous les players @lino
+  ☐ Initialisation de la position des joueurs et placement du player puis des ennemis (serveur) @Ousmasene et @emalo 
+  ☐ deplacement du joueur avec les touches du clavier et de la camera avec la souris (client)  @babacar 
+  ☐ Synchroniser le mouvement avec la position dans la mini-carte (client) @jgoudj
+  ☐ Synchroniser ces actions entre le client et le serveur. (position du joueur, vie, ...) @kendi
+  ☐ Assurer que chaque joueur voit les mouvements des autres en temps réel (client et serveur)
+
+  ## tsk2:
+  ☐ Collision  (client)
+  ☐ update de la position du joueur (client)
+  ☐ placement crosshair (client)
+  ☐ Tir et impact (client)
+  ☐ Créer une barre d’état affichant des informations comme le nombre de vie (client)
+  ☐ Image lorsque tu perds la Game et image lorsque tu gagnes la game (client et serveur pour synchroniser avec les autres joueurs)

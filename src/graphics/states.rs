@@ -4,6 +4,8 @@ use bevy::prelude::*;
 pub enum GameState {
     #[default]
     Menu,
+    Waitting,
+    Transition,
     Game,
 }
 

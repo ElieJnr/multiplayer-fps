@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use bevy_tweening::{lens::*, Animator, EaseFunction, Tween};
 use std::time::Duration;
 
-use super::button::{spawn_menu_button, update_play_button, MenuButtonAction};
+use super::button::{spawn_menu_button, MenuButtonAction};
 
 pub const NORMAL_BUTTON_COLOR: Color = Color::srgb(0.8, 0.8, 0.8);
 pub const HOVERED_BUTTON_COLOR: Color = Color::srgb(0.6, 0.6, 0.6);
@@ -41,7 +41,6 @@ pub fn menu_plugin(app: &mut App) {
                 fade_in_system,
                 button_interaction_system,
                 menu_action,
-                update_play_button,
             ),
         );
 }
@@ -136,19 +135,12 @@ fn button_interaction_system(
         (
             &Interaction,
             &mut BackgroundColor,
-            &MenuButtonAction,
             &mut Transform,
         ),
         (Changed<Interaction>, With<Button>),
     >,
 ) {
-    for (interaction, mut color, action, mut transform) in &mut query {
-        if let MenuButtonAction::Play(has_enough_players) = action {
-            if !has_enough_players {
-                *color = RED_BUTTON_COLOR.into();
-                continue;
-            }
-        }
+    for (interaction, mut color, action) in &mut query {
 
         *color = match *interaction {
             Interaction::Hovered => {
@@ -176,6 +168,7 @@ fn menu_action(
     mut menu_state: ResMut<NextState<MenuState>>,
     mut game_state: ResMut<NextState<GameState>>,
     network_config: Res<NetworkConfig>,
+
 ) {
     for (interaction, menu_button_action) in &interaction_query {
         if *interaction == Interaction::Pressed {
@@ -188,11 +181,10 @@ fn menu_action(
                     );
                     app_exit_events.send(AppExit::Success);
                 }
-                MenuButtonAction::Play(has_enough_players) => {
-                    if *has_enough_players {
-                        game_state.set(GameState::Game);
-                        menu_state.set(MenuState::Disabled);
-                    }
+                MenuButtonAction::Play => {
+                    game_state.set(GameState::Waitting);
+                    
+                    menu_state.set(MenuState::Disabled);
                 }
                 MenuButtonAction::Options => menu_state.set(MenuState::Options),
             }
@@ -200,8 +192,9 @@ fn menu_action(
     }
 }
 
+
 // Generic system that takes a Component as parameter, and will despawn all entities with that component
-fn despawn_menu<T: Component>(to_despawn: Query<Entity, With<T>>, mut commands: Commands) {
+pub fn despawn_menu<T: Component>(to_despawn: Query<Entity, With<T>>, mut commands: Commands) {
     for entity in &to_despawn {
         commands.entity(entity).despawn_recursive();
     }

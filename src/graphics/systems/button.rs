@@ -3,13 +3,12 @@ use std::time::Duration;
 use bevy::prelude::*;
 use bevy_tweening::{lens::TransformScaleLens, Animator, EaseFunction, Tween};
 
-use crate::graphics::resources::PlayerCountState;
 
 use super::menu::NORMAL_BUTTON_COLOR;
 
 #[derive(Component, Debug)]
 pub enum MenuButtonAction {
-    Play(bool),
+    Play,
     Options,
     Quit,
 }
@@ -17,7 +16,7 @@ pub enum MenuButtonAction {
 impl MenuButtonAction {
     pub fn from_label(label: &str) -> Self {
         match label {
-            "Play" => MenuButtonAction::Play(false),
+            "Play" => MenuButtonAction::Play,
             "Options" => MenuButtonAction::Options,
             "Quit" => MenuButtonAction::Quit,
             _ => panic!("Invalid button label"),
@@ -74,7 +73,11 @@ pub fn update_play_button(
 
             for &child in children.iter() {
                 if let Ok(mut text) = text_query.get_mut(child) {
-                    let label = if has_enough { "Play" } else { "Waiting..." };
+                    let label = if has_enough {
+                        "Play"
+                    } else {
+                        "Waiting..."
+                    };
                     text.sections[0].value = label.to_string();
                 }
             }

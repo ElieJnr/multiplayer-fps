@@ -1,9 +1,13 @@
 use std::{collections::HashMap, net::UdpSocket, sync::Arc};
 
 use super::{
+    
     map::MazePlugin,
+   
     resources::{PlayerCountState, SoundPlugin},
- systems::setup::minimap_setup};
+
+    systems::{setup::minimap_setup, waitting_page::WaittingRoomPlugin},
+};
 use crate::{
     client::player::*,
     common::{protocol::NetworkConfig, sync::NetworkPlugin},
@@ -45,12 +49,11 @@ pub fn start(
         .add_plugins(MazePlugin)
         .add_plugins(SoundPlugin)
         .add_plugins(FrameTimeDiagnosticsPlugin)
-        .add_plugins(NetworkPlugin);
+        .add_plugins(NetworkPlugin)
+        .add_plugins(WaittingRoomPlugin);
 
     app.run();
 }
-
-
 
 #[derive(Resource)]
 pub struct MyWgpuSettings(WgpuSettings);
