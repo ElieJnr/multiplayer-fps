@@ -5,8 +5,6 @@ use std::f32::consts::PI;
 
 use crate::graphics::map::MazeState;
 
-// use crate::client::map::MazePlugin;
-
 #[derive(Component)]
 pub struct ProceduralTree;
 
