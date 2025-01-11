@@ -1,125 +1,11 @@
-use bevy::math::primitives::{Cylinder, Sphere};
 use bevy::prelude::*;
-use serde_json::Value;
+use super::models::*;
+use bevy::math::primitives::{Cylinder, Sphere};
 use std::f32::consts::PI;
 
-use crate::graphics::map::MazeState;
-
-#[derive(Component)]
-pub struct ProceduralTree;
-
-#[derive(Component)]
-pub struct Sky;
-
-#[derive(Component)]
-pub struct MinimapCamera;
-
-#[derive(Component)]
-pub struct Arch;
-
-#[derive(Component)]
-pub struct PlayerCamera;
-
-#[derive(Default, Resource)]
-pub struct CameraState {
-    is_top_view: bool,
-}
-
-pub struct Branch(Transform, Option<usize>, bool);
-
-#[derive(Debug, Resource)]
-pub struct TreeParams {
-    children: u8,
-    levels: u8,
-    child_translation_factor: f32,
-    angle_from_parent_branch: f32,
-    child_scale: f32,
-    base_radius: f32,
-    leaf_radius: f32,
-}
-
-struct Textures {
-    wall_texture: Handle<Image>,
-    arch_texture: Handle<Image>,
-    floor_texture: Handle<Image>,
-    // wall_desert_texture: Handle<Image>,
-    sky_texture: Handle<Image>,
-    house_textures: HouseTextures,
-}
-
-struct HouseTextures {
-    house_1: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),
-    house_2: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),
-    house_3: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),
-    house_4: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),
-    house_5: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),
-    house_6: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),
-    house_7: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),
-    house_8: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),
-}
-
-struct HouseMaterials {
-    house_1: (Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>),
-    house_2: (Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>),
-    house_3: (Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>),
-    house_4: (Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>),
-    house_5: (Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>),
-    house_6: (Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>),
-    house_7: (Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>),
-    house_8: (Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>),
-}
-
-impl Default for TreeParams {
-    fn default() -> Self {
-        Self {
-            children: 3,
-            levels: 5,
-            child_translation_factor: 1.0,
-            angle_from_parent_branch: 0.45,
-            child_scale: 0.72,
-            base_radius: 0.1,
-            leaf_radius: 0.4,
-        }
-    }
-}
-
-// permet d'appeler les fonctions pour la creation de la scène
-pub fn maze_setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>, asset_server: Res<AssetServer>, params: Res<TreeParams>, mut maze_state: ResMut<MazeState>) {
-    let map_data = include_str!("../maze.json");
-    let map: Value = serde_json::from_str(map_data).unwrap();
-    let maze = map["maze-1"].as_array().unwrap();
-    let height = maze.len() as f32;
-    let width = maze[0].as_array().unwrap().len() as f32;
-    let textures = load_textures(&asset_server);
-    commands.insert_resource(CameraState::default());
-    let (mesh_face, house_materials, branch_material, leaf_material, branch_mesh, leaf_mesh, wall_material, wall_mesh, floor_mesh, floor_material, arch_mesh, sup_arch_mesh, arch_material) = initialize_materials(&mut meshes, &mut materials, &textures, &*params, width, height);
-    create_surface(&mut commands, floor_mesh, floor_material, width, height);
-    create_sky(&mut commands, &mut meshes, &mut materials, textures.sky_texture);
-    create_lights(&mut commands, width, height);
-    create_camera(&mut commands, Vec3::new(26.5, 1.0, 10.45), Vec3::ZERO, width, height);
-
-    for (i, row) in maze.iter().enumerate() {
-        let row = row.as_array().unwrap();
-        for (j, cell) in row.iter().enumerate() {
-            match cell.as_i64().unwrap() {
-                1 => create_walls(&mut commands, wall_mesh.clone(), wall_material.clone(), i, j),
-                2 => {
-                    let arch = commands.spawn(SpatialBundle::default()).insert(Arch).id();
-                    create_arch(&mut commands, &mut meshes, arch_mesh.clone(), sup_arch_mesh.clone(), arch_material.clone(), arch,  2.0,  1.0, i as f32, j as f32);
-                }
-                3 => create_procedural_tree(&mut commands, &mut meshes, &mut materials, &params, Vec3::new(j as f32, 0.0, i as f32), branch_material.clone(), leaf_material.clone(), branch_mesh.clone(),leaf_mesh.clone()),
-                4 => create_house(&mut commands, mesh_face.clone(), &house_materials, Vec3::new(j as f32, 0.0, i as f32)),
-                5 => create_walls(&mut commands, wall_mesh.clone(), wall_material.clone(), i, j),
-                _ => {}
-            }
-        }
-    }
-    maze_state.is_ready = true;
-}
 
 // permet de créer un arbre procedural en utilisant les paramètres spécifiés
-fn create_procedural_tree(commands: &mut Commands, _meshes: &mut ResMut<Assets<Mesh>>, _materials: &mut ResMut<Assets<StandardMaterial>>, params: &TreeParams, position: Vec3, branch_material: Handle<StandardMaterial>, leaf_material: Handle<StandardMaterial>, branch_mesh: Handle<Mesh>, leaf_mesh: Handle<Mesh>,
-) {
+pub fn create_procedural_tree(commands: &mut Commands, _meshes: &mut ResMut<Assets<Mesh>>, _materials: &mut ResMut<Assets<StandardMaterial>>, params: &TreeParams, position: Vec3, branch_material: Handle<StandardMaterial>, leaf_material: Handle<StandardMaterial>, branch_mesh: Handle<Mesh>, leaf_mesh: Handle<Mesh>) {
     let tree = generate_tree(params);
     let mut entity_parent_indices: Vec<(Entity, Option<usize>)> = Vec::new();
 
@@ -172,7 +58,7 @@ fn create_procedural_tree(commands: &mut Commands, _meshes: &mut ResMut<Assets<M
 }
 
 // permet de générer l'arbre
-fn generate_tree(params: &TreeParams) -> Vec<Branch> {
+pub fn generate_tree(params: &TreeParams) -> Vec<Branch> {
     let base = Transform::default();
     let mut ret: Vec<Branch> = Vec::new();
     ret.push(Branch(base, None, false));
@@ -181,7 +67,7 @@ fn generate_tree(params: &TreeParams) -> Vec<Branch> {
 }
 
 // permet de générer les branches
-fn generate_branches(params: &TreeParams, level: u8, parent_idx: usize, all: &mut Vec<Branch>) {
+pub fn generate_branches(params: &TreeParams, level: u8, parent_idx: usize, all: &mut Vec<Branch>) {
     for i in 0..params.children {
         let angle_from_root_branch = params.angle_from_parent_branch;
         let child_gap_f32 = f32::from(i) / f32::from(params.children);
@@ -215,14 +101,14 @@ fn generate_branches(params: &TreeParams, level: u8, parent_idx: usize, all: &mu
 }
 
 // permet de générer les feuilles
-fn generate_leaves(parent_idx: usize, all: &mut Vec<Branch>) {
+pub fn generate_leaves(parent_idx: usize, all: &mut Vec<Branch>) {
     let mut child_transform = Transform::IDENTITY;
     child_transform = child_transform.with_translation(*child_transform.local_y());
     all.push(Branch(child_transform, Some(parent_idx), true));
 }
 
 // permet de créer le sol en utilisant une taille de 0.1 et une texture de sol
-fn create_surface(commands: &mut Commands, floor_mesh: Handle<Mesh>, floor_material: Handle<StandardMaterial>, width: f32, height: f32) {
+pub fn create_surface(commands: &mut Commands, floor_mesh: Handle<Mesh>, floor_material: Handle<StandardMaterial>, width: f32, height: f32) {
     commands.spawn(PbrBundle {
         mesh: floor_mesh.clone(),
         material: floor_material.clone(),
@@ -232,7 +118,7 @@ fn create_surface(commands: &mut Commands, floor_mesh: Handle<Mesh>, floor_mater
 }
 
 // permet de créer les murs en utilisant une taille de 1.0, une largeur de 2.0 et une hauteur de 1.0 tous en les positionnant correctement aux coordonnées i et j
-fn create_walls(commands: &mut Commands, wall_mesh: Handle<Mesh>, wall_material: Handle<StandardMaterial>, i: usize, j: usize) {
+pub fn create_walls(commands: &mut Commands, wall_mesh: Handle<Mesh>, wall_material: Handle<StandardMaterial>, i: usize, j: usize) {
     commands.spawn(PbrBundle {
         mesh: wall_mesh.clone(),
         material: wall_material.clone(),
@@ -242,7 +128,7 @@ fn create_walls(commands: &mut Commands, wall_mesh: Handle<Mesh>, wall_material:
 }
 
 // permet de créer la caméra en la positionnant à la position donnée et en la regardant vers la cible donnée
-fn create_camera(commands: &mut Commands, _position: Vec3, _target: Vec3, width: f32, height: f32) {
+pub fn create_camera(commands: &mut Commands, _position: Vec3, _target: Vec3, width: f32, height: f32) {
     commands.spawn((
         Camera3dBundle {
             transform: Transform::from_xyz(width / 2.0, 1.0, height - 2.0)
@@ -254,7 +140,7 @@ fn create_camera(commands: &mut Commands, _position: Vec3, _target: Vec3, width:
 }
 
 // permet de créer les lumières en les positionnant au centre de la scène
-fn create_lights(commands: &mut Commands, width: f32, height: f32) {
+pub fn create_lights(commands: &mut Commands, width: f32, height: f32) {
     commands.spawn(PointLightBundle {
         point_light: PointLight {
             shadows_enabled: true,
@@ -270,7 +156,7 @@ fn create_lights(commands: &mut Commands, width: f32, height: f32) {
 }
 
 // permet de creer le ciel en utilisant une sphere de rayon 500.0 et en lui appliquant une texture de ciel
-fn create_sky(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, sky_texture: Handle<Image>) {
+pub fn create_sky(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, sky_texture: Handle<Image>) {
     commands.spawn((
         PbrBundle {
             mesh: meshes.add(Mesh::from(Sphere { radius: 500.0 })),
@@ -294,54 +180,8 @@ pub fn rotate_sky(time: Res<Time>, mut query: Query<&mut Transform, With<Sky>>) 
     }
 }
 
-// permet de controller la caméra en utilisant les touches du clavier
-pub fn camera_controller(time: Res<Time>, keyboard_input: ResMut<'_, ButtonInput<KeyCode>>, mut query: Query<&mut Transform, With<PlayerCamera>>, mut camera_state: ResMut<CameraState>) {
-    // let mut camera_transform = query.single_mut();
-
-    if let Ok(mut camera_transform) = query.get_single_mut() {
-        let speed = 5.0;
-        let rotation_speed = 2.0;
-        let ground_level = 1.0;
-
-        if keyboard_input.just_pressed(KeyCode::KeyV) {
-            camera_state.is_top_view = !camera_state.is_top_view;
-            if camera_state.is_top_view {
-                // vue de haut
-                camera_transform.translation = Vec3::new(
-                    camera_transform.translation.x,
-                    50.0,
-                    camera_transform.translation.z,
-                );
-                camera_transform.rotation = Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2);
-            } else {
-                // vue FPS
-                camera_transform.translation.y = ground_level;
-                camera_transform.rotation = Quat::IDENTITY;
-            }
-        }
-
-        if !camera_state.is_top_view {
-            if keyboard_input.pressed(KeyCode::ArrowUp) {
-                let forward = camera_transform.forward();
-                camera_transform.translation += forward * speed * time.delta_seconds();
-            }
-            if keyboard_input.pressed(KeyCode::ArrowDown) {
-                let forward = camera_transform.forward();
-                camera_transform.translation -= forward * speed * time.delta_seconds();
-            }
-            if keyboard_input.pressed(KeyCode::ArrowLeft) {
-                camera_transform.rotate_y(rotation_speed * time.delta_seconds());
-            }
-            if keyboard_input.pressed(KeyCode::ArrowRight) {
-                camera_transform.rotate_y(-rotation_speed * time.delta_seconds());
-            }
-            camera_transform.translation.y = ground_level;
-        }
-    } 
-}
-
 // permet de créer un arc en utilisant des piliers et un arc supérieur
-fn create_arch(commands: &mut Commands, _meshes: &mut ResMut<Assets<Mesh>>, arch_mesh: Handle<Mesh>, sup_arch_mesh: Handle<Mesh>, arch_material: Handle<StandardMaterial>, arch: Entity, pillar_height: f32, arch_radius: f32, i: f32, j: f32) {
+pub fn create_arch(commands: &mut Commands, _meshes: &mut ResMut<Assets<Mesh>>, arch_mesh: Handle<Mesh>, sup_arch_mesh: Handle<Mesh>, arch_material: Handle<StandardMaterial>, arch: Entity, pillar_height: f32, arch_radius: f32, i: f32, j: f32) {
 
     if i == 29.0 && j == 22.0 {
         commands.entity(arch).insert(
@@ -398,7 +238,7 @@ fn create_arch(commands: &mut Commands, _meshes: &mut ResMut<Assets<Mesh>>, arch
 }
 
 // permet de créer une maison en utilisant 4 facades de mur
-fn create_house(commands: &mut Commands, meshes: Handle<Mesh>, house_materials: &HouseMaterials, position: Vec3) {
+pub fn create_house(commands: &mut Commands, meshes: Handle<Mesh>, house_materials: &HouseMaterials, position: Vec3) {
     let wall_size = Vec3::new(3.0, 2.5, 0.1);
 
     let (front_material, back_material, left_material, right_material) = if position.x == 7.0 && position.z == 29.0 {
@@ -478,7 +318,7 @@ fn create_house(commands: &mut Commands, meshes: Handle<Mesh>, house_materials: 
 }
 
 // permet de charger les textures
-fn load_textures(asset_server: &Res<AssetServer>) -> Textures {
+pub fn load_textures(asset_server: &Res<AssetServer>) -> Textures {
     Textures {
         wall_texture: asset_server.load("textures/wall_2.png"),
         arch_texture: asset_server.load("textures/wall.png"),
@@ -538,18 +378,7 @@ fn load_textures(asset_server: &Res<AssetServer>) -> Textures {
     }
 }
 
-fn initialize_materials(meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, textures: &Textures, params: &TreeParams, width: f32, height: f32) -> (Handle<Mesh>, HouseMaterials, Handle<StandardMaterial>,
-        Handle<StandardMaterial>,
-        Handle<Mesh>,
-        Handle<Mesh>,
-        Handle<StandardMaterial>,
-        Handle<Mesh>,
-        Handle<Mesh>,
-        Handle<StandardMaterial>,
-        Handle<Mesh>,
-        Handle<Mesh>,
-        Handle<StandardMaterial>,
-    ) {
+pub fn initialize_materials(meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, textures: &Textures, params: &TreeParams, width: f32, height: f32) -> (Handle<Mesh>, HouseMaterials, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<Mesh>, Handle<Mesh>, Handle<StandardMaterial>, Handle<Mesh>, Handle<Mesh>, Handle<StandardMaterial>, Handle<Mesh>, Handle<Mesh>, Handle<StandardMaterial>) {
         // house materials
         let wall_size = Vec3::new(3.0, 2.5, 0.1);
         let mesh_face = meshes.add(Mesh::from(Cuboid::new(wall_size.x, wall_size.y, wall_size.z)));
