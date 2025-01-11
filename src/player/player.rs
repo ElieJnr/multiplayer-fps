@@ -4,12 +4,12 @@ use std::{collections::HashMap, time::Duration};
 
 pub struct PlayerBuild;
 
-impl PlayerBuild {
-    pub fn build(app: App) {
-        app.add_systems(Startup, (setup_player, preload_player_assets))
-            .add_systems(Update, (setup_player_animation, handle_keyboard_animation))
-    }
-}
+// impl PlayerBuild {
+//     pub fn build(app: App) {
+//         app.add_systems(Startup, (setup_player, preload_player_assets))
+//             .add_systems(Update, (setup_player_animation, handle_keyboard_animation))
+//     }
+// }
 
 // fn main() {
 //     App::new()
@@ -32,7 +32,40 @@ impl Default for AnimationState {
     }
 }
 
+#[derive(Resource)]
+pub struct PreloadedPlayerAnimations {
+    pub model: Handle<Scene>,
+    pub animations: HashMap<String, Handle<AnimationClip>>,
+}
 
+#[derive(Resource)]
+pub struct PlayerAnimations {
+    pub player_entity: Entity,
+    pub animation_player_entity: Option<Entity>,
+    pub animations: HashMap<String, AnimationNodeIndex>,
+    pub graph: Handle<AnimationGraph>,
+}
+
+#[derive(Component)]
+pub struct Player;
+
+// pub enum Animation {
+//     Idle,
+//     Run,
+//     BackwardRun,
+//     Shoot,
+//     Reload
+// }
+
+// pub struct AnimationStr{
+
+// }
+
+// impl Animation{
+//     fn create_animation()->Self{
+
+//     }
+// }
 
 pub fn setup_player(
     mut commands: Commands,
@@ -64,7 +97,7 @@ pub fn setup_player(
     });
 }
 
-fn handle_keyboard_animation(
+pub fn handle_keyboard_animation(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut query: Query<(Entity, &mut AnimationState)>,
     animations: ResMut<PlayerAnimations>,

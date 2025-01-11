@@ -5,7 +5,7 @@ use crate::{
     client::player::*,
     common::{protocol::NetworkConfig, sync::NetworkPlugin},
     graphics::{resources::Map, states::GameState, systems::menu::menu_plugin},
-    player::player::{preload_player_assets, setup_player},
+    player::player::{handle_keyboard_animation, preload_player_assets, setup_player, setup_player_animation},
 };
 use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*, render::settings::WgpuSettings};
 
@@ -47,7 +47,6 @@ pub fn start(
     .add_plugins(FrameTimeDiagnosticsPlugin)
     .add_plugins(NetworkPlugin);
     app.add_systems(Update, (setup_player_animation, handle_keyboard_animation))
-        .app
         .run();
 }
 
