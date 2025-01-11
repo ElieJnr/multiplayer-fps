@@ -1,2 +1,2 @@
 pub mod player;
-pub mod player_struct;
+pub mod model;

@@ -5,6 +5,7 @@ use crate::{
     client::player::*,
     common::{protocol::NetworkConfig, sync::NetworkPlugin},
     graphics::{resources::Map, states::GameState, systems::menu::menu_plugin},
+    player::player::{preload_player_assets, setup_player},
 };
 use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*, render::settings::WgpuSettings};
 
@@ -37,16 +38,18 @@ pub fn start(
         .insert_resource(MyWgpuSettings::new())
         .init_state::<GameState>();
 
-    app.add_systems(Startup, minimap_setup)
-        .add_plugins(menu_plugin)
-        .add_plugins(MazePlugin)
-        .add_plugins(FrameTimeDiagnosticsPlugin)
-        .add_plugins(NetworkPlugin);
-
-    app.run();
+    app.add_systems(
+        Startup,
+        (minimap_setup, setup_player, preload_player_assets),
+    )
+    .add_plugins(menu_plugin)
+    .add_plugins(MazePlugin)
+    .add_plugins(FrameTimeDiagnosticsPlugin)
+    .add_plugins(NetworkPlugin);
+    app.add_systems(Update, (setup_player_animation, handle_keyboard_animation))
+        .app
+        .run();
 }
-
-
 
 #[derive(Resource)]
 pub struct MyWgpuSettings(WgpuSettings);

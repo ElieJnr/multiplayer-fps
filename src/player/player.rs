@@ -6,7 +6,7 @@ pub struct PlayerBuild;
 
 impl PlayerBuild {
     pub fn build(app: App) {
-        app.add_systems(Startup, (setup, preload_player_assets))
+        app.add_systems(Startup, (setup_player, preload_player_assets))
             .add_systems(Update, (setup_player_animation, handle_keyboard_animation))
     }
 }
@@ -32,24 +32,9 @@ impl Default for AnimationState {
     }
 }
 
-#[derive(Resource)]
-pub struct PreloadedPlayerAnimations {
-    pub model: Handle<Scene>,
-    pub animations: HashMap<String, Handle<AnimationClip>>,
-}
 
-#[derive(Resource)]
-pub struct PlayerAnimations {
-    pub player_entity: Entity,
-    pub animation_player_entity: Option<Entity>,
-    pub animations: HashMap<String, AnimationNodeIndex>,
-    pub graph: Handle<AnimationGraph>,
-}
 
-#[derive(Component)]
-pub struct Player;
-
-fn setup(
+pub fn setup_player(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
