@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use serde::Deserialize;
 
 #[derive(Component)]
 pub struct ProceduralTree;
@@ -22,6 +23,20 @@ pub struct Player;
 pub struct CameraState {
     pub is_top_view: bool,
 }
+
+#[derive(Deserialize)]
+pub struct Maze {
+    #[serde(rename = "maze-1")]
+    pub maze_1: Vec<Vec<u8>>,
+}
+
+#[derive(Resource, Default)]
+pub struct MazeState {
+    pub is_ready: bool,
+}
+
+#[derive(Component)]
+pub struct MinimapPlayer;
 
 pub struct Branch(pub Transform, pub Option<usize>, pub bool);
 

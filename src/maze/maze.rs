@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use super::minimap::MazeState;
 use super::textures::*;
 use super::models::*;
 use super::player_simulation::*;

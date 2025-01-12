@@ -1,26 +1,24 @@
 use std::fs;
 
 use bevy::{
-    asset::{AssetServer, Handle}, math::Vec3, prelude::{Commands, DespawnRecursiveExt, Entity, EventReader, Image, Query, Res, Resource, Transform, With}, sprite::{Sprite, SpriteBundle}, window::{PrimaryWindow, Window, WindowResized}
+    asset::{AssetServer, Handle},
+    color::Color,
+    math::{EulerRot, Quat, Vec3},
+    prelude::{
+        Commands, DespawnRecursiveExt, Entity, EventReader, Image, Query, Res, Transform, With,
+        Without,
+    },
+    sprite::{Sprite, SpriteBundle},
+    window::{PrimaryWindow, Window, WindowResized},
 };
-use serde::Deserialize;
+
+use crate::maze::models::{Maze, MazeState, MinimapPlayer, Player};
 
 const TILE_SIZE: f32 = 15.0;
 const TEXTURE_SIZE: f32 = 114.0;
 
-#[derive(Deserialize)]
-pub struct Maze {
-    #[serde(rename = "maze-1")]
-    maze_1: Vec<Vec<u8>>,
-}
-
-#[derive(Resource, Default)]
-pub struct MazeState {
-    pub is_ready: bool,
-}
-
 pub fn display_minimap(
-    commands: Commands,
+    mut commands: Commands,
     asset_server: Res<AssetServer>,
     windows: Query<&Window, With<PrimaryWindow>>,
     maze_state: Res<MazeState>,
@@ -29,7 +27,9 @@ pub fn display_minimap(
         return;
     }
 
-    let (wall_texture, floor_texture) = load_texture(asset_server);
+    let (wall_texture, floor_texture) = load_texture(&asset_server);
+    let player_texture = asset_server.load("player_marker.png");
+
     let maze = read_map();
     let (height, width) = calculate_maze_dimensions(&maze);
     let (window_width, window_height) = calculate_window_dimensions(&windows);
@@ -40,7 +40,7 @@ pub fn display_minimap(
         calculate_minimap_offsets(window_width, window_height, minimap_width, minimap_height);
 
     generate_minimap(
-        commands,
+        &mut commands,
         wall_texture,
         floor_texture,
         maze,
@@ -50,6 +50,33 @@ pub fn display_minimap(
         x_offset,
         y_offset,
     );
+
+    spawn_minimap_player(commands, player_texture, minimap_scale, x_offset, y_offset);
+}
+
+fn spawn_minimap_player(
+    mut commands: Commands<'_, '_>,
+    player_texture: Handle<Image>,
+    minimap_scale: f32,
+    x_offset: f32,
+    y_offset: f32,
+) {
+    commands.spawn((
+        SpriteBundle {
+            texture: player_texture,
+            transform: Transform {
+                translation: Vec3::new(x_offset, y_offset, 1.0),
+                scale: Vec3::splat(TILE_SIZE * minimap_scale * 0.01),
+                ..Default::default()
+            },
+            sprite: Sprite {
+                color: Color::srgb(255.0, 0.0, 0.0),
+                ..Default::default()
+            },
+            ..Default::default()
+        },
+        MinimapPlayer,
+    ));
 }
 
 fn calculate_minimap_offsets(
@@ -90,14 +117,14 @@ fn read_map() -> Maze {
     maze
 }
 
-fn load_texture(asset_server: Res<'_, AssetServer>) -> (Handle<Image>, Handle<Image>) {
+fn load_texture(asset_server: &Res<AssetServer>) -> (Handle<Image>, Handle<Image>) {
     let wall_texture = asset_server.load("white_maze.png");
     let floor_texture = asset_server.load("black_maze.png");
     (wall_texture, floor_texture)
 }
 
 fn generate_minimap(
-    mut commands: Commands<'_, '_>,
+    commands: &mut Commands,
     wall_texture: Handle<Image>,
     floor_texture: Handle<Image>,
     maze: Maze,
@@ -149,4 +176,40 @@ pub fn update_minimap(
     }
 
     display_minimap(commands, asset_server, windows, maze_state);
+}
+
+pub fn update_minimap_player(
+    mut minimap_query: Query<&mut Transform, With<MinimapPlayer>>,
+    player_query: Query<&Transform, (With<Player>, Without<MinimapPlayer>)>,
+    windows: Query<&Window, With<PrimaryWindow>>,
+) {
+    let (window_width, window_height) = {
+        let window = windows.single();
+        (window.width(), window.height())
+    };
+
+    if let (Ok(mut minimap_transform), Ok(player_transform)) =
+        (minimap_query.get_single_mut(), player_query.get_single())
+    {
+        let minimap_scale = 0.4;
+        let maze = read_map();
+        let (height, width) = calculate_maze_dimensions(&maze);
+        let (minimap_width, minimap_height) =
+            calculate_minimap_dimensions(height, width, minimap_scale);
+        let (base_x_offset, base_y_offset) =
+            calculate_minimap_offsets(window_width, window_height, minimap_width, minimap_height);
+
+        let grid_x = player_transform.translation.x;
+        let grid_z = player_transform.translation.z;
+
+        let player_minimap_x = grid_x * (TILE_SIZE * minimap_scale) + base_x_offset;
+        let player_minimap_y = -grid_z * (TILE_SIZE * minimap_scale) + base_y_offset;
+
+        minimap_transform.translation.x = player_minimap_x;
+        minimap_transform.translation.y = player_minimap_y;
+        minimap_transform.translation.z = 1.0;
+
+        let player_angle = -player_transform.rotation.to_euler(EulerRot::XYZ).1;
+        minimap_transform.rotation = Quat::from_rotation_z(player_angle);
+    }
 }

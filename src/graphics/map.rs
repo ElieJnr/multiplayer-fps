@@ -1,5 +1,6 @@
 use crate::maze::maze::maze_setup;
-use crate::maze::minimap::{display_minimap, update_minimap, MazeState};
+use crate::maze::minimap::minimap::{display_minimap, update_minimap, update_minimap_player};
+use crate::maze::models::{CameraState, MazeState, TreeParams};
 use crate::maze::{
     player_simulation::{camera_view_toggle, player_movement, PlayerMovement},
     textures::rotate_sky,
@@ -7,22 +8,16 @@ use crate::maze::{
 use bevy::{
     app::{App, Plugin, Startup, Update},
     prelude::{
-        Commands, DespawnRecursiveExt, Entity, IntoSystemConfigs, OnEnter,
-        OnExit, Query, With,
+        Commands, DespawnRecursiveExt, Entity, IntoSystemConfigs, OnEnter, OnExit, Query, With,
     },
     sprite::Sprite,
     window::{CursorGrabMode, Window},
 };
-// use crate::maze::player_simulation::camera_controller;
-use crate::maze::models::{CameraState, TreeParams};
 
 use super::{
     show_fps::{setup_fps_ui, update_fps_ui},
     states::GameState,
 };
-
-
-
 
 pub struct MazePlugin;
 impl Plugin for MazePlugin {
@@ -36,7 +31,13 @@ impl Plugin for MazePlugin {
             .add_systems(OnEnter(GameState::Game), display_minimap.after(maze_setup))
             .add_systems(
                 Update,
-                (player_movement, camera_view_toggle, rotate_sky).chain(),
+                (
+                    player_movement,
+                    camera_view_toggle,
+                    rotate_sky,
+                    update_minimap_player,
+                )
+                    .chain(),
             )
             .add_systems(OnExit(GameState::Game), cleanup_maze)
             .add_systems(Startup, setup_fps_ui)
