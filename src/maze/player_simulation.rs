@@ -61,6 +61,11 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
             let forward = transform.forward();
             transform.translation -= forward * movement.speed * time.delta_seconds();
         }
+
+        if keyboard_input.pressed(KeyCode::ArrowUp) {
+            let forward = transform.forward();
+            transform.translation += forward * movement.speed * time.delta_seconds();
+        }
         
         // Rotation avec la souris
         if mouse_delta.length_squared() > 0.0 {

@@ -56,13 +56,6 @@ fn setup_mouse(mut windows: Query<&mut Window>) {
     }
 }
 
-// Système pour nettoyer la configuration de la souris lors de la sortie du jeu
-fn _cleanup_mouse(mut windows: Query<&mut Window>) {
-    if let Ok(mut window) = windows.get_single_mut() {
-        window.cursor.grab_mode = CursorGrabMode::None;
-        window.cursor.visible = true;
-    }
-}
 
 #[derive(Resource, Default)]
 pub struct MazeState {
