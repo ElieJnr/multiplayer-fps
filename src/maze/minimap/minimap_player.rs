@@ -31,9 +31,10 @@ pub fn spawn_minimap_player(
             texture: player_texture,
             transform: Transform {
                 translation: Vec3::new(x_offset, y_offset, 1.0),
-                scale: Vec3::splat(TILE_SIZE * minimap_scale * 0.01),
+                scale: Vec3::splat(TILE_SIZE * minimap_scale * 0.0025),
                 ..Default::default()
             },
+
             sprite: Sprite {
                 color: Color::srgb(255.0, 0.0, 0.0),
                 ..Default::default()

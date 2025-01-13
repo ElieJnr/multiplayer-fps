@@ -91,9 +91,9 @@ pub fn read_maze(mut commands: Commands) {
 
 pub fn load_minimap_textures(mut commands: Commands, asset_server: Res<AssetServer>) {
     let textures = MinimapTextures {
-        wall_texture: asset_server.load("white_maze.png"),
-        floor_texture: asset_server.load("black_maze.png"),
-        player_texture: asset_server.load("player_marker.png"),
+        wall_texture: asset_server.load("textures/white_maze.png"),
+        floor_texture: asset_server.load("textures/black_maze.png"),
+        player_texture: asset_server.load("textures/player_marker.png"),
     };
 
     commands.insert_resource(textures);
