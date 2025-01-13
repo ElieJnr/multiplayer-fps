@@ -1,5 +1,6 @@
 use crate::maze::maze::maze_setup;
-use crate::maze::minimap::minimap::{display_minimap, update_minimap, update_minimap_player};
+use crate::maze::minimap::minimap::{display_minimap, update_minimap};
+use crate::maze::minimap::minimap_player::update_minimap_player;
 use crate::maze::models::{CameraState, MazeState, TreeParams};
 use crate::maze::{
     player_simulation::{camera_view_toggle, player_movement, PlayerMovement},

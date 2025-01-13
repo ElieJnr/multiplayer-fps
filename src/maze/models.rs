@@ -95,3 +95,10 @@ impl Default for TreeParams {
         }
     }
 }
+
+#[derive(Resource)]
+pub struct MinimapTextures {
+    pub wall_texture: Handle<Image>,
+    pub floor_texture: Handle<Image>,
+    pub player_texture: Handle<Image>,
+}
