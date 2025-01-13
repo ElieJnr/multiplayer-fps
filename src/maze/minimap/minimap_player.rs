@@ -2,15 +2,18 @@ use bevy::{
     asset::Handle,
     color::Color,
     math::{EulerRot, Quat, Vec3},
-    prelude::{Commands, Image, Query, Transform, With, Without},
+    prelude::{Commands, Image, Query, Res, Transform, With, Without},
     sprite::{Sprite, SpriteBundle},
     window::{PrimaryWindow, Window},
 };
 
-use crate::{maze::models::{MinimapPlayer, Player}, utils::utils::get_window_dimensions};
+use crate::{
+    maze::{maze::calculate_maze_dimensions, models::{Maze, MinimapPlayer, Player}},
+    utils::utils::get_window_dimensions,
+};
 
 use super::minimap::{
-    calculate_maze_dimensions, calculate_minimap_dimensions, calculate_minimap_offsets, read_map, MINIMAP_SCALE, TILE_SIZE
+    calculate_minimap_dimensions, calculate_minimap_offsets, MINIMAP_SCALE, TILE_SIZE,
 };
 
 pub fn spawn_minimap_player(
@@ -42,6 +45,7 @@ pub fn update_minimap_player(
     mut minimap_query: Query<&mut Transform, With<MinimapPlayer>>,
     player_query: Query<&Transform, (With<Player>, Without<MinimapPlayer>)>,
     windows: Query<&Window, With<PrimaryWindow>>,
+    map: Res<Maze>,
 ) {
     let (window_width, window_height) = get_window_dimensions(&windows);
 
@@ -49,7 +53,8 @@ pub fn update_minimap_player(
         (minimap_query.get_single_mut(), player_query.get_single())
     {
         let minimap_scale = MINIMAP_SCALE;
-        let maze = read_map();
+        let maze = &map.maze_1;
+
         let (height, width) = calculate_maze_dimensions(&maze);
         let (minimap_width, minimap_height) =
             calculate_minimap_dimensions(height, width, minimap_scale);

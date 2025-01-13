@@ -11,7 +11,10 @@ use bevy::{
 };
 
 use crate::{
-    maze::models::{Maze, MazeState, MinimapTextures},
+    maze::{
+        maze::calculate_maze_dimensions,
+        models::{Maze, MazeState, MinimapTextures},
+    },
     utils::utils::get_window_dimensions,
 };
 
@@ -27,12 +30,13 @@ pub fn display_minimap(
     windows: Query<&Window, With<PrimaryWindow>>,
     maze_state: Res<MazeState>,
     textures: Res<MinimapTextures>,
+    map: Res<Maze>,
 ) {
     if !maze_state.is_ready {
         return;
     }
 
-    let maze = read_map();
+    let maze = &map.maze_1;
     let (height, width) = calculate_maze_dimensions(&maze);
     let (window_width, window_height) = get_window_dimensions(&windows);
     let minimap_scale = MINIMAP_SCALE;
@@ -53,7 +57,13 @@ pub fn display_minimap(
         y_offset,
     );
 
-    spawn_minimap_player(commands, textures.player_texture.clone(), minimap_scale, x_offset, y_offset);
+    spawn_minimap_player(
+        commands,
+        textures.player_texture.clone(),
+        minimap_scale,
+        x_offset,
+        y_offset,
+    );
 }
 
 pub fn calculate_minimap_offsets(
@@ -67,22 +77,16 @@ pub fn calculate_minimap_offsets(
     (x_offset, y_offset)
 }
 
-pub fn calculate_minimap_dimensions(height: usize, width: usize, minimap_scale: f32) -> (f32, f32) {
-    let minimap_width = TILE_SIZE * width as f32 * minimap_scale;
-    let minimap_height = TILE_SIZE * height as f32 * minimap_scale;
+pub fn calculate_minimap_dimensions(height: f32, width: f32, minimap_scale: f32) -> (f32, f32) {
+    let minimap_width = TILE_SIZE * width * minimap_scale;
+    let minimap_height = TILE_SIZE * height * minimap_scale;
     (minimap_width, minimap_height)
 }
 
-pub fn calculate_maze_dimensions(maze: &Maze) -> (usize, usize) {
-    let height = maze.maze_1.len();
-    let width = maze.maze_1[0].len();
-    (height, width)
-}
-
-pub fn read_map() -> Maze {
+pub fn read_maze(mut commands: Commands) {
     let file_content = fs::read_to_string("src/maze/maze.json").expect("Unable to read file");
     let maze: Maze = serde_json::from_str(&file_content).expect("Unable to parse JSON");
-    maze
+    commands.insert_resource(maze);
 }
 
 pub fn load_minimap_textures(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -99,16 +103,16 @@ fn generate_minimap(
     commands: &mut Commands,
     wall_texture: Handle<Image>,
     floor_texture: Handle<Image>,
-    maze: Maze,
-    height: usize,
-    width: usize,
+    maze: &Vec<Vec<i32>>,
+    height: f32,
+    width: f32,
     minimap_scale: f32,
     x_offset: f32,
     y_offset: f32,
 ) {
-    for y in 0..height {
-        for x in 0..width {
-            let texture = if maze.maze_1[y][x] == 2 || maze.maze_1[y][x] == 0 {
+    for y in 0..height as usize{
+        for x in 0..width as usize {
+            let texture = if maze[y][x] == 2 || maze[y][x] == 0 {
                 floor_texture.clone()
             } else {
                 wall_texture.clone()
@@ -137,7 +141,8 @@ pub fn update_minimap(
     resize_events: EventReader<WindowResized>,
     sprites: Query<Entity, With<Sprite>>,
     maze_state: Res<MazeState>,
-    textures: Res<MinimapTextures>
+    textures: Res<MinimapTextures>,
+    map: Res<Maze>,
 ) {
     if !maze_state.is_ready || resize_events.is_empty() {
         return;
@@ -147,5 +152,5 @@ pub fn update_minimap(
         commands.entity(entity).despawn_recursive();
     }
 
-    display_minimap(commands, windows, maze_state, textures);
+    display_minimap(commands, windows, maze_state, textures, map);
 }

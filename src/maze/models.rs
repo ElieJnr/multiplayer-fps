@@ -24,10 +24,10 @@ pub struct CameraState {
     pub is_top_view: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Resource)]
 pub struct Maze {
     #[serde(rename = "maze-1")]
-    pub maze_1: Vec<Vec<u8>>,
+    pub maze_1: Vec<Vec<i32>>,
 }
 
 #[derive(Resource, Default)]
