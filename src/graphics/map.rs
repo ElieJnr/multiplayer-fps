@@ -10,7 +10,7 @@ use bevy::{
     sprite::{Sprite, SpriteBundle}, window::{CursorGrabMode, PrimaryWindow, Window, WindowResized},
 };
 use serde::Deserialize;
-use crate::maze::{player_simulation::{camera_view_toggle, player_movement, PlayerMovement}, textures::rotate_sky};
+use crate::maze::{player_simulation::{camera_view_toggle, player_movement, toggle_cursor_lock, PlayerMovement}, textures::rotate_sky};
 use crate::maze::maze::maze_setup;
 // use crate::maze::player_simulation::camera_controller;
 use crate::maze::models::{CameraState, TreeParams};
@@ -41,6 +41,7 @@ fn build(&self, app: &mut App) {
             camera_view_toggle,
             rotate_sky,
         ).chain())
+        .add_systems(Update, toggle_cursor_lock)
         .add_systems(OnExit(GameState::Game), cleanup_maze)
         .add_systems(Startup, setup_fps_ui)
         .add_systems(Update, (update_fps_ui, update_minimap));
