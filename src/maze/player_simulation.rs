@@ -62,7 +62,7 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
             transform.translation -= forward * movement.speed * time.delta_seconds();
         }
 
-        if keyboard_input.pressed(KeyCode::ArrowUp) {
+        if keyboard_input.pressed(KeyCode::ArrowDown) {
             let forward = transform.forward();
             transform.translation += forward * movement.speed * time.delta_seconds();
         }

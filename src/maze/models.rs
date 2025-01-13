@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use serde::Deserialize;
 
 #[derive(Component)]
 pub struct ProceduralTree;
@@ -22,6 +23,20 @@ pub struct Player;
 pub struct CameraState {
     pub is_top_view: bool,
 }
+
+#[derive(Deserialize, Resource)]
+pub struct Maze {
+    #[serde(rename = "maze-1")]
+    pub maze_1: Vec<Vec<i32>>,
+}
+
+#[derive(Resource, Default)]
+pub struct MazeState {
+    pub is_ready: bool,
+}
+
+#[derive(Component)]
+pub struct MinimapPlayer;
 
 pub struct Branch(pub Transform, pub Option<usize>, pub bool);
 
@@ -55,6 +70,7 @@ pub struct HouseTextures {
     pub house_8: (Handle<Image>, Handle<Image>, Handle<Image>, Handle<Image>),
 }
 
+#[derive(Default)]
 pub struct HouseMaterials {
     pub house_1: (Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>),
     pub house_2: (Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>),
@@ -78,4 +94,11 @@ impl Default for TreeParams {
             leaf_radius: 0.4,
         }
     }
+}
+
+#[derive(Resource)]
+pub struct MinimapTextures {
+    pub wall_texture: Handle<Image>,
+    pub floor_texture: Handle<Image>,
+    pub player_texture: Handle<Image>,
 }
