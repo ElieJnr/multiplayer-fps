@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy::input::mouse::MouseMotion;
+use bevy::window::CursorGrabMode;
 use super::models::*;
 use bevy::math::primitives::Cylinder;
 
@@ -14,7 +15,7 @@ impl Default for PlayerMovement {
     fn default() -> Self {
         Self {
             speed: 5.0,
-            mouse_sensitivity: 0.003, // Ajustez cette valeur selon vos besoins
+            mouse_sensitivity: 0.003, 
             ground_level: 1.0,
         }
     }
@@ -48,23 +49,22 @@ pub fn create_player(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>,
     player
 }
 
-pub fn player_movement(
-    time: Res<Time>,
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut motion_evr: EventReader<MouseMotion>,
-    mut query: Query<&mut Transform, With<Player>>,
-    movement: Res<PlayerMovement>
-) {
+pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>>, mut motion_evr: EventReader<MouseMotion>, mut query: Query<&mut Transform, With<Player>>, movement: Res<PlayerMovement>) {
     let mut mouse_delta = Vec2::ZERO;
     for event in motion_evr.read() {
         mouse_delta += event.delta;
     }
     
     for mut transform in query.iter_mut() {
-        // Avancer uniquement avec ArrowUp
+        // Avancer
         if keyboard_input.pressed(KeyCode::ArrowUp) {
             let forward = transform.forward();
             transform.translation -= forward * movement.speed * time.delta_seconds();
+        }
+
+        if keyboard_input.pressed(KeyCode::ArrowUp) {
+            let forward = transform.forward();
+            transform.translation += forward * movement.speed * time.delta_seconds();
         }
         
         // Rotation avec la souris
@@ -76,12 +76,8 @@ pub fn player_movement(
     }
 }
 
-pub fn camera_view_toggle(
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut _player_query: Query<&mut Transform, With<Player>>,
-    mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<Player>)>,
-    mut camera_state: ResMut<CameraState>
-) {
+// permet de changer la vue de la camera
+pub fn camera_view_toggle(keyboard_input: Res<ButtonInput<KeyCode>>, mut _player_query: Query<&mut Transform, With<Player>>, mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<Player>)>, mut camera_state: ResMut<CameraState>) {
     if keyboard_input.just_pressed(KeyCode::KeyV) {
         camera_state.is_top_view = !camera_state.is_top_view;
         
@@ -93,6 +89,21 @@ pub fn camera_view_toggle(
                 camera_transform.translation = Vec3::new(0.0, 0.5, 0.0); 
                 camera_transform.rotation = Quat::IDENTITY;
                 camera_transform.look_at(Vec3::new(0.0, 0.5, 0.1), Vec3::Y); 
+            }
+        }
+    }
+}
+
+// permet de rendre visible et invisible la souris avec la touche space 
+pub fn toggle_cursor_lock(keyboard_input: Res<ButtonInput<KeyCode>>, mut windows: Query<&mut Window>) {
+    if keyboard_input.just_pressed(KeyCode::Space) {
+        if let Ok(mut window) = windows.get_single_mut() {
+            if window.cursor.grab_mode == CursorGrabMode::Locked {
+                window.cursor.grab_mode = CursorGrabMode::None;
+                window.cursor.visible = true;
+            } else {
+                window.cursor.grab_mode = CursorGrabMode::Locked;
+                window.cursor.visible = false;
             }
         }
     }
