@@ -72,15 +72,15 @@ pub fn calculate_minimap_offsets(
     minimap_width: f32,
     minimap_height: f32,
 ) -> (f32, f32) {
-    let x_offset = window_width / 2.0 - minimap_width - MARGIN;
-    let y_offset = -window_height / 2.0 + minimap_height + MARGIN;
-    (x_offset, y_offset)
+    (
+        window_width / 2.0 - minimap_width - MARGIN,
+        -window_height / 2.0 + minimap_height + MARGIN,
+    )
 }
 
 pub fn calculate_minimap_dimensions(height: f32, width: f32, minimap_scale: f32) -> (f32, f32) {
-    let minimap_width = TILE_SIZE * width * minimap_scale;
-    let minimap_height = TILE_SIZE * height * minimap_scale;
-    (minimap_width, minimap_height)
+    let scale_factor = TILE_SIZE * minimap_scale;
+    (scale_factor * width, scale_factor * height)
 }
 
 pub fn read_maze(mut commands: Commands) {
@@ -110,7 +110,7 @@ fn generate_minimap(
     x_offset: f32,
     y_offset: f32,
 ) {
-    for y in 0..height as usize{
+    for y in 0..height as usize {
         for x in 0..width as usize {
             let texture = if maze[y][x] == 2 || maze[y][x] == 0 {
                 floor_texture.clone()

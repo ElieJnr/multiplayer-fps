@@ -8,7 +8,10 @@ use bevy::{
 };
 
 use crate::{
-    maze::{maze::calculate_maze_dimensions, models::{Maze, MinimapPlayer, Player}},
+    maze::{
+        maze::calculate_maze_dimensions,
+        models::{Maze, MinimapPlayer, Player},
+    },
     utils::utils::get_window_dimensions,
 };
 
@@ -52,18 +55,17 @@ pub fn update_minimap_player(
     if let (Ok(mut minimap_transform), Ok(player_transform)) =
         (minimap_query.get_single_mut(), player_query.get_single())
     {
-        let minimap_scale = MINIMAP_SCALE;
         let maze = &map.maze_1;
 
         let (height, width) = calculate_maze_dimensions(&maze);
         let (minimap_width, minimap_height) =
-            calculate_minimap_dimensions(height, width, minimap_scale);
+            calculate_minimap_dimensions(height, width, MINIMAP_SCALE);
         let (base_x_offset, base_y_offset) =
             calculate_minimap_offsets(window_width, window_height, minimap_width, minimap_height);
 
         let (player_minimap_x, player_minimap_y) = calculate_player_minimap_position(
             &player_transform,
-            minimap_scale,
+            MINIMAP_SCALE,
             base_x_offset,
             base_y_offset,
         );
