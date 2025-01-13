@@ -7,11 +7,13 @@ use bevy::{
     prelude::{
         Commands, DespawnRecursiveExt, Entity, EventReader, IntoSystemConfigs, OnEnter, OnExit, Query, Res, Resource, Transform, With
     },
-    sprite::{Sprite, SpriteBundle}, window::{PrimaryWindow, Window, WindowResized},
+    sprite::{Sprite, SpriteBundle}, window::{CursorGrabMode, PrimaryWindow, Window, WindowResized},
 };
 use serde::Deserialize;
-
-use crate::server::maze::{camera_controller, maze_setup, rotate_sky, CameraState, TreeParams};
+use crate::maze::{player_simulation::{camera_view_toggle, player_movement, toggle_cursor_lock, PlayerMovement}, textures::rotate_sky};
+use crate::maze::maze::maze_setup;
+// use crate::maze::player_simulation::camera_controller;
+use crate::maze::models::{CameraState, TreeParams};
 
 use super::{show_fps::{setup_fps_ui, update_fps_ui}, states::GameState};
 
@@ -25,20 +27,35 @@ struct Maze {
 }
 
 pub struct MazePlugin;
-
 impl Plugin for MazePlugin {
-    fn build(&self, app: &mut App) {
-        app.init_resource::<TreeParams>()
-            .init_resource::<CameraState>()
-            .init_resource::<MazeState>()
-            .add_systems(OnEnter(GameState::Game), maze_setup) 
-            .add_systems(OnEnter(GameState::Game), display_minimap.after(maze_setup))
-            .add_systems(Update, (camera_controller, rotate_sky).chain())
-            .add_systems(OnExit(GameState::Game), cleanup_maze)
-            .add_systems(Startup, setup_fps_ui)
-            .add_systems(Update, (update_fps_ui, update_minimap));
+fn build(&self, app: &mut App) {
+    app.init_resource::<TreeParams>()
+        .init_resource::<CameraState>()
+        .init_resource::<MazeState>()
+        .init_resource::<PlayerMovement>()
+        .add_systems(OnEnter(GameState::Game), setup_mouse)
+        .add_systems(OnEnter(GameState::Game), maze_setup)
+        .add_systems(OnEnter(GameState::Game), display_minimap.after(maze_setup))
+        .add_systems(Update, (
+            player_movement,
+            camera_view_toggle,
+            rotate_sky,
+        ).chain())
+        .add_systems(Update, toggle_cursor_lock)
+        .add_systems(OnExit(GameState::Game), cleanup_maze)
+        .add_systems(Startup, setup_fps_ui)
+        .add_systems(Update, (update_fps_ui, update_minimap));
+}
+}
+
+// Nouveau système pour configurer la souris
+fn setup_mouse(mut windows: Query<&mut Window>) {
+    if let Ok(mut window) = windows.get_single_mut() {
+        window.cursor.grab_mode = CursorGrabMode::Locked;
+        window.cursor.visible = false;
     }
 }
+
 
 #[derive(Resource, Default)]
 pub struct MazeState {
