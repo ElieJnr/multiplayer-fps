@@ -4,7 +4,8 @@ use super::{map::MazePlugin, resources::PlayerCountState, systems::setup::minima
 use crate::{
     client::player::*,
     common::{protocol::NetworkConfig, sync::NetworkPlugin},
-    graphics::{resources::Map, states::GameState, systems::menu::menu_plugin}, maze::minimap::minimap::{load_minimap_textures, read_maze},
+    graphics::{resources::Map, states::GameState, systems::menu::menu_plugin},
+    maze::minimap::minimap::{load_minimap_textures, read_maze},
 };
 use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*, render::settings::WgpuSettings};
 
@@ -45,8 +46,6 @@ pub fn start(
 
     app.run();
 }
-
-
 
 #[derive(Resource)]
 pub struct MyWgpuSettings(WgpuSettings);
