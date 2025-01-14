@@ -112,7 +112,7 @@ pub struct PlayerPosition {
     pub z: f32,
 }
 
-#[derive(Component)]
+#[derive(Default, Component, Resource)]
 pub struct RemotePlayer {
     pub name: String,
 }

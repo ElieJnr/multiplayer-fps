@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use bevy::asset::Assets;
 use bevy::color::Color;
 use bevy::input::mouse::MouseMotion;
@@ -6,11 +8,12 @@ use bevy::math::{Quat, Vec2, Vec3};
 use bevy::pbr::{PbrBundle, StandardMaterial};
 use bevy::prelude::{
     BuildChildren, Camera3d, Camera3dBundle, Commands, Cylinder, Entity, EventReader, KeyCode,
-    Mesh, Query, Res, ResMut, Resource, Transform, With, Without,
+    Local, Mesh, Query, Res, ResMut, Resource, Transform, With, Without,
 };
 use bevy::time::Time;
 use bevy::utils::default;
 use bevy::window::{CursorGrabMode, Window};
+use serde::{Deserialize, Serialize};
 
 use crate::common::protocol::{
     serialize_message, GameMessage, MessageContent, MessageType, NetworkConfig,
@@ -19,12 +22,29 @@ use crate::common::sync::NetworkMessages;
 
 use super::models::*;
 
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
+pub struct PlayerInput {
+    pub arrow_up: bool,
+    pub arrow_down: bool,
+    pub mouse_delta: Vec2,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct InputSequence {
+    pub sequence_number: u32,
+    pub timestamp: f64,
+    pub input: PlayerInput,
+}
+
 #[derive(Resource, Debug, Clone)]
 pub struct PlayerMovement {
     pub speed: f32,
     pub mouse_sensitivity: f32,
     pub ground_level: f32,
     pub position: Vec3,
+    pub rotation: Vec2,
+    pub last_processed_input: u32,
+    pub input_buffer: VecDeque<InputSequence>,
 }
 
 impl Default for PlayerMovement {
@@ -34,6 +54,9 @@ impl Default for PlayerMovement {
             mouse_sensitivity: 0.003,
             ground_level: 1.0,
             position: Vec3::ZERO,
+            rotation: Vec2::ZERO,
+            last_processed_input: 0,
+            input_buffer: VecDeque::new(),
         }
     }
 }
@@ -92,54 +115,79 @@ pub fn player_movement(
     time: Res<Time>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut motion_evr: EventReader<MouseMotion>,
-    mut query: Query<&mut Transform, With<Player>>,
     mut movement: ResMut<PlayerMovement>,
     network: Option<Res<NetworkConfig>>,
+    mut sequence_number: Local<u32>,
 ) {
     let mut mouse_delta = Vec2::ZERO;
     for event in motion_evr.read() {
         mouse_delta += event.delta;
     }
 
-    for mut transform in query.iter_mut() {
-        let mut moved = false;
+    let input = PlayerInput {
+        arrow_up: keyboard_input.pressed(KeyCode::ArrowUp),
+        arrow_down: keyboard_input.pressed(KeyCode::ArrowDown),
+        mouse_delta,
+    };
 
-        if keyboard_input.pressed(KeyCode::ArrowUp) {
-            let forward = transform.forward();
-            transform.translation -= forward * movement.speed * time.delta_seconds();
-            moved = true;
-        }
+    if input.arrow_up || input.arrow_down || mouse_delta != Vec2::ZERO {
+        *sequence_number += 1;
 
-        if keyboard_input.pressed(KeyCode::ArrowDown) {
-            let forward = transform.forward();
-            transform.translation += forward * movement.speed * time.delta_seconds();
-            moved = true;
-        }
+        let input_sequence = InputSequence {
+            sequence_number: *sequence_number,
+            timestamp: time.elapsed_seconds_f64(),
+            input,
+        };
 
-        if mouse_delta.length_squared() > 0.0 {
-            transform.rotate_y(-mouse_delta.x * movement.mouse_sensitivity);
-            moved = true;
-        }
+        // Store input locally for prediction
+        movement.input_buffer.push_back(input_sequence.clone());
 
-        transform.translation.y = movement.ground_level;
-        
-        if moved {
-            movement.set_position(transform.translation);
+        if let Some(network) = network.as_ref() {
+            let message = GameMessage {
+                message_type: MessageType::PlayerAction,
+                sender: network.player_name.clone(),
+                content: MessageContent::PlayerAction {
+                    action: input,
+                    sequence_number: *sequence_number,
+                    timestamp: time.elapsed_seconds_f64(),
+                },
+            };
 
-            if let Some(network) = network.as_ref() {
-                let message = GameMessage {
-                    message_type: MessageType::GameUpdate,
-                    sender: network.player_name.clone(),
-                    content: MessageContent::GameUpdate {
-                        position: (movement.position.x, movement.position.z),
-                        score: 0,
-                    },
-                };
-
-                if let Some(msg_bytes) = serialize_message(&message) {
-                    let _ = network.client_socket.send(&msg_bytes);
-                }
+            if let Some(msg_bytes) = serialize_message(&message) {
+                let _ = network.client_socket.send(&msg_bytes);
             }
+        }
+    }
+}
+
+pub fn apply_client_prediction(
+    time: Res<Time>,
+    mut movement: ResMut<PlayerMovement>,
+    mut query: Query<&mut Transform, With<Player>>,
+) {
+    for mut transform in query.iter_mut() {
+        while let Some(input_sequence) = movement.input_buffer.front() {
+            if input_sequence.sequence_number <= movement.last_processed_input {
+                movement.input_buffer.pop_front();
+                continue;
+            }
+
+            let forward = transform.forward();
+            if input_sequence.input.arrow_up {
+                transform.translation -= forward * movement.speed * time.delta_seconds();
+            }
+            if input_sequence.input.arrow_down {
+                transform.translation += forward * movement.speed * time.delta_seconds();
+            }
+            if input_sequence.input.mouse_delta.length_squared() > 0.0 {
+                transform
+                    .rotate_y(-input_sequence.input.mouse_delta.x * movement.mouse_sensitivity);
+            }
+
+            transform.translation.y = movement.ground_level;
+            movement.position = transform.translation;
+            movement.rotation.x = transform.rotation.x;
+            movement.rotation.y = transform.rotation.y;
         }
     }
 }
@@ -185,7 +233,7 @@ pub fn toggle_cursor_lock(
     }
 }
 
-pub fn manage_remote_players(
+/* pub fn manage_remote_players(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -233,6 +281,43 @@ pub fn manage_remote_players(
                     .id();
 
                 remote_players.0.insert(player_name.clone(), remote_player);
+            }
+        }
+    }
+}
+ */
+
+pub fn handle_server_update(
+    mut query: Query<(&mut Transform, &Player)>,
+    mut movement: ResMut<PlayerMovement>,
+    mut network_messages: ResMut<NetworkMessages>,
+    network: Res<NetworkConfig>,
+) {
+    while let Some(message) = network_messages.0.pop_front() {
+        if let MessageContent::GameUpdate {
+            position,
+            rotation,
+            sequence_number,
+            ..
+        } = message.content
+        {
+            movement.last_processed_input = sequence_number;
+
+            while let Some(input) = movement.input_buffer.front() {
+                if input.sequence_number <= sequence_number {
+                    movement.input_buffer.pop_front();
+                } else {
+                    break;
+                }
+            }
+
+            for (mut transform, _) in query.iter_mut() {
+                let player_name = &message.sender;
+
+                if player_name == &network.player_name {
+                    transform.translation = position;
+                    transform.rotation = Quat::from_rotation_y(rotation.y);
+                }
             }
         }
     }

@@ -1,7 +1,10 @@
-use crate::utils::logger::*;
-use bevy::prelude::Resource;
+use crate::{maze::player_simulation::PlayerInput, utils::logger::*};
+use bevy::{math::{Vec2, Vec3}, prelude::Resource};
 use serde::{Deserialize, Serialize};
-use std::{net::{SocketAddr, UdpSocket}, sync::Arc};
+use std::{
+    net::{SocketAddr, UdpSocket},
+    sync::Arc,
+};
 
 #[derive(Resource, Debug)]
 pub struct NetworkConfig {
@@ -15,7 +18,7 @@ impl NetworkConfig {
         NetworkConfig {
             player_name,
             server_address,
-            client_socket: Arc::new(socket), 
+            client_socket: Arc::new(socket),
         }
     }
 }
@@ -41,8 +44,17 @@ pub enum MessageType {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub enum MessageContent {
     NewConnection { name: String },
-    GameUpdate { position: (f32, f32), score: u32 },
-    PlayerAction { action: String },
+    GameUpdate { 
+        position: Vec3,
+        rotation: Vec2,
+        sequence_number: u32,
+        timestamp: f64,
+    },
+    PlayerAction { 
+        action: PlayerInput,
+        sequence_number: u32,
+        timestamp: f64,
+    },
     ServerInfo { server_status: String },
     Disconnect { reason: String },
     WaitForPlayers { msg: String },
@@ -97,13 +109,16 @@ pub fn send_disconnect_message(config: &NetworkConfig, player_name: &str, reason
             reason: reason.to_string(),
         },
     };
-    
+
     let serialized_msg = match serialize_message(&disconnect_message) {
         Some(msg) => msg,
         None => return display_error("Failed to serialize disconnect message."),
     };
-    
-    if let Err(err) = config.client_socket.send_to(&serialized_msg, config.server_address.clone()) {
+
+    if let Err(err) = config
+        .client_socket
+        .send_to(&serialized_msg, config.server_address.clone())
+    {
         display_error(&format!("Failed to send disconnect message: {}", err));
     } else {
         display_info(&format!("{} is disconnected successfully.", player_name));

@@ -3,6 +3,8 @@ use std::{
     net::{SocketAddr, UdpSocket},
 };
 
+use bevy::{math::Quat, prelude::Transform};
+
 use crate::{
     client::player::{add_player, Player},
     common::{constant::MIN_PLAYERS, protocol::*},
@@ -22,7 +24,7 @@ pub fn handle_message(
         MessageType::NewConnection => {
             handle_new_connection(server_socket, players, message, src, state)
         }
-        MessageType::PlayerAction => handle_player_action(message, src),
+        MessageType::PlayerAction => handle_player_action(server_socket, players, message),
         MessageType::GameUpdate => handle_game_update(server_socket, players, message),
         MessageType::Disconnect => handle_disconnect(server_socket, players, message, src),
         _ => display_error(&format!(
@@ -41,7 +43,7 @@ fn handle_new_connection(
 ) {
     add_player(players, message.sender.clone(), src);
     state.player_count = players.len();
-    
+
     let has_enough = players.len() >= MIN_PLAYERS;
     state.has_enough_players = has_enough;
 
@@ -142,7 +144,7 @@ fn handle_disconnect(
             players,
             broadcast_bytes,
             Some(&src.to_string()),
-            false, 
+            false,
         );
 
         display_info(&format!("Player {} has been disconnected.", message.sender));
@@ -154,9 +156,49 @@ fn handle_disconnect(
     }
 }
 
-fn handle_player_action(message: GameMessage, src: SocketAddr) {
-    println!("Player action from {}: {:?}", src, message.content);
+fn handle_player_action(
+    server_socket: &UdpSocket,
+    players: &mut HashMap<String, Player>,
+    message: GameMessage,
+) {
+    if let MessageContent::PlayerAction { action, sequence_number, timestamp } = message.content {
+        if let Some(player) = players.get_mut(&message.sender) {
+            let mut transform = Transform::from_translation(player.movement.position);
+            transform.rotation = Quat::from_rotation_y(player.movement.rotation.y);
+
+            let forward = transform.forward();
+            if action.arrow_up {
+                transform.translation -= forward * player.movement.speed * 0.016; 
+            }
+            if action.arrow_down {
+                transform.translation += forward * player.movement.speed * 0.016;
+            }
+            if action.mouse_delta.length_squared() > 0.0 {
+                transform.rotate_y(-action.mouse_delta.x * player.movement.mouse_sensitivity);
+            }
+
+            transform.translation.y = player.movement.ground_level;
+            player.movement.position = transform.translation;
+            player.movement.rotation.y = transform.rotation.y;
+
+            let update_msg = GameMessage {
+                message_type: MessageType::GameUpdate,
+                sender: message.sender.clone(),
+                content: MessageContent::GameUpdate {
+                    position: player.movement.position,
+                    rotation: player.movement.rotation,
+                    sequence_number,
+                    timestamp,
+                },
+            };
+
+            if let Some(msg_bytes) = serialize_message(&update_msg) {
+                broadcast_message(server_socket, players, msg_bytes, None, true);
+            }
+        }
+    }
 }
+
 
 fn handle_game_update(
     server_socket: &UdpSocket,
