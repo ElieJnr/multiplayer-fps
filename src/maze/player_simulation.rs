@@ -1,19 +1,30 @@
+use bevy::asset::Assets;
+use bevy::color::Color;
+use bevy::input::mouse::MouseMotion;
+use bevy::input::ButtonInput;
+use bevy::math::{Quat, Vec2, Vec3};
+use bevy::pbr::{PbrBundle, StandardMaterial};
+use bevy::prelude::{
+    BuildChildren, Camera3d, Camera3dBundle, Commands, Cylinder, Entity, EventReader, KeyCode,
+    Mesh, Query, Res, ResMut, Resource, Transform, With, Without,
+};
+use bevy::time::Time;
+use bevy::utils::default;
+use bevy::window::{CursorGrabMode, Window};
+
 use crate::common::protocol::{
     serialize_message, GameMessage, MessageContent, MessageType, NetworkConfig,
 };
 use crate::common::sync::NetworkMessages;
 
 use super::models::*;
-use bevy::input::mouse::MouseMotion;
-use bevy::math::primitives::Cylinder;
-use bevy::prelude::*;
-use bevy::window::CursorGrabMode;
 
-#[derive(Resource)]
+#[derive(Resource, Debug, Clone)]
 pub struct PlayerMovement {
     pub speed: f32,
     pub mouse_sensitivity: f32,
     pub ground_level: f32,
+    pub position: Vec3,
 }
 
 impl Default for PlayerMovement {
@@ -22,7 +33,18 @@ impl Default for PlayerMovement {
             speed: 5.0,
             mouse_sensitivity: 0.003,
             ground_level: 1.0,
+            position: Vec3::ZERO,
         }
+    }
+}
+
+impl PlayerMovement {
+    pub fn get_position(&self) -> Vec3 {
+        self.position
+    }
+
+    pub fn set_position(&mut self, new_position: Vec3) {
+        self.position = new_position;
     }
 }
 
@@ -71,7 +93,7 @@ pub fn player_movement(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut motion_evr: EventReader<MouseMotion>,
     mut query: Query<&mut Transform, With<Player>>,
-    movement: Res<PlayerMovement>,
+    mut movement: ResMut<PlayerMovement>,
     network: Option<Res<NetworkConfig>>,
 ) {
     let mut mouse_delta = Vec2::ZERO;
@@ -100,14 +122,16 @@ pub fn player_movement(
         }
 
         transform.translation.y = movement.ground_level;
-
+        
         if moved {
+            movement.set_position(transform.translation);
+
             if let Some(network) = network.as_ref() {
                 let message = GameMessage {
                     message_type: MessageType::GameUpdate,
                     sender: network.player_name.clone(),
                     content: MessageContent::GameUpdate {
-                        position: (transform.translation.x, transform.translation.z),
+                        position: (movement.position.x, movement.position.z),
                         score: 0,
                     },
                 };

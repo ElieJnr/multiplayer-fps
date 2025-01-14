@@ -166,7 +166,7 @@ fn handle_game_update(
     println!("message-server {:#?}", message);
     let update_msg = GameMessage {
         message_type: MessageType::GameUpdate,
-        sender: "server".to_string(),
+        sender: message.sender.to_string(),
         content: message.content.clone(),
     };
 
