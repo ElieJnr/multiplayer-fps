@@ -27,6 +27,9 @@ pub struct CameraState {
 #[derive(Component)]
 pub struct Collider;
 
+#[derive(Component)]
+pub struct ColliderHouse;
+
 #[derive(Deserialize, Resource)]
 pub struct Maze {
     #[serde(rename = "maze-1")]

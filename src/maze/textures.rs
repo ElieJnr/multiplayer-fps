@@ -254,56 +254,71 @@ pub fn create_house(commands: &mut Commands, meshes: Handle<Mesh>, house_materia
     };
 
     let house = commands
-        .spawn(SpatialBundle {
-            transform: Transform::from_translation(Vec3::new(
-                position.x,
-                wall_size.y / 8.6,
-                position.z,
-            )),
-            ..default()
-        })
+        .spawn((
+            SpatialBundle {
+                transform: Transform::from_translation(Vec3::new(
+                    position.x,
+                    wall_size.y / 8.6,
+                    position.z,
+                )),
+                ..default()
+            },
+            ColliderHouse,
+        ))
         .id();
 
     // Front face
     commands
-        .spawn(PbrBundle {
-            mesh: meshes.clone(),
-            material: front_material,
-            transform: Transform::from_xyz(0.0, 1.0, 1.5),
-            ..default()
-        })
+        .spawn((
+            PbrBundle {
+                mesh: meshes.clone(),
+                material: front_material,
+                transform: Transform::from_xyz(0.0, 1.0, 1.5),
+                ..default()
+            },
+            ColliderHouse,
+        ))
         .set_parent(house);
 
     // Back face
     commands
-        .spawn(PbrBundle {
-            mesh: meshes.clone(),
-            material: back_material,
-            transform: Transform::from_xyz(0.0, 1.0, -1.5),
-            ..default()
-        })
+        .spawn((
+            PbrBundle {
+                mesh: meshes.clone(),
+                material: back_material,
+                transform: Transform::from_xyz(0.0, 1.0, -1.5),
+                ..default()
+            },
+            ColliderHouse,
+        ))
         .set_parent(house);
 
     // Left face
     commands
-        .spawn(PbrBundle {
-            mesh: meshes.clone(),
-            material: left_material,
-            transform: Transform::from_xyz(-1.5, 1.0, 0.0)
-                .with_rotation(Quat::from_rotation_y(std::f32::consts::FRAC_PI_2)),
-            ..default()
-        })
+        .spawn((
+            PbrBundle {
+                mesh: meshes.clone(),
+                material: left_material,
+                transform: Transform::from_xyz(-1.5, 1.0, 0.0)
+                    .with_rotation(Quat::from_rotation_y(std::f32::consts::FRAC_PI_2)),
+                ..default()
+            },
+            ColliderHouse,
+        ))
         .set_parent(house);
 
     // Right face
     commands
-        .spawn(PbrBundle {
-            mesh: meshes.clone(),
-            material: right_material,
-            transform: Transform::from_xyz(1.5, 1.0, 0.0)
-                .with_rotation(Quat::from_rotation_y(-std::f32::consts::FRAC_PI_2)),
-            ..default()
-        })
+        .spawn((
+            PbrBundle {
+                mesh: meshes.clone(),
+                material: right_material,
+                transform: Transform::from_xyz(1.5, 1.0, 0.0)
+                    .with_rotation(Quat::from_rotation_y(-std::f32::consts::FRAC_PI_2)),
+                ..default()
+            },
+            ColliderHouse,
+        ))
         .set_parent(house);
 }
 

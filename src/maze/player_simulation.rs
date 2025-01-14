@@ -50,14 +50,7 @@ pub fn create_player(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>,
     player
 }
 
-pub fn player_movement(
-    time: Res<Time>,
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut motion_evr: EventReader<MouseMotion>,
-    mut query: Query<&mut Transform, With<Player>>,
-    collider_query: Query<&Transform, (With<Collider>, Without<Player>)>,
-    movement: Res<PlayerMovement>
-){
+pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>>, mut motion_evr: EventReader<MouseMotion>, mut query: Query<&mut Transform, With<Player>>, collider_query: Query<&Transform, (With<Collider>, Without<Player>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Player>)>, movement: Res<PlayerMovement>){
     let mut mouse_delta = Vec2::ZERO;
     for event in motion_evr.read() {
         mouse_delta += event.delta;
@@ -76,7 +69,7 @@ pub fn player_movement(
             new_translation += forward * movement.speed * time.delta_seconds();
         }
 
-        if !check_collisions(&Transform { translation: new_translation, ..*transform }, &collider_query) {
+        if !check_collisions(&Transform { translation: new_translation, ..*transform }, &collider_query, &house_collider_query) {
             transform.translation = new_translation;
         }
 
@@ -121,19 +114,33 @@ pub fn toggle_cursor_lock(keyboard_input: Res<ButtonInput<KeyCode>>, mut windows
     }
 }
 
-pub fn check_collisions(player_transform: &Transform, collider_query: &Query<&Transform, (With<Collider>, Without<Player>)>) -> bool{
+pub fn check_collisions(
+    player_transform: &Transform,
+    collider_query: &Query<&Transform, (With<Collider>, Without<Player>)>,
+    house_collider_query: &Query<&Transform, (With<ColliderHouse>, Without<Player>)>,
+) -> bool {
     for collider_transform in collider_query.iter() {
-        let collision = collide(
+        if collide(
             player_transform.translation,
-            Vec3::new(0.4, 1.0, 0.4), // Player size
+            Vec3::new(0.6, 1.0, 0.6), // player
             collider_transform.translation,
-            Vec3::new(1.0, 1.0, 1.0), // Obstacle size
-        );
-
-        if collision.is_some() {
+            Vec3::new(1.0, 1.0, 1.0), // obstacle wall
+        ).is_some() {
             return true;
         }
     }
+
+    for house_collider_transform in house_collider_query.iter() {
+        if collide(
+            player_transform.translation,
+            Vec3::new(0.6, 1.0, 0.6), // player
+            house_collider_transform.translation,
+            Vec3::new(3.0, 2.5, 3.0), // obstacle house
+        ).is_some() {
+            return true;
+        }
+    }
+
     false
 }
 

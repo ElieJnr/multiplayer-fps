@@ -10,12 +10,7 @@ pub fn maze_setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut 
     commands.insert_resource(CameraState::default());
     let (mesh_face, house_materials, branch_material, leaf_material, branch_mesh, leaf_mesh, wall_material, wall_mesh, floor_mesh, floor_material, arch_mesh, sup_arch_mesh, arch_material) = initialize_materials(&mut meshes, &mut materials, &textures, &*params, width, height);
     create_surface(&mut commands, floor_mesh, floor_material, width, height);
-    create_sky(
-        &mut commands,
-        &mut meshes,
-        &mut materials,
-        textures.sky_texture,
-    );
+    create_sky(&mut commands, &mut meshes, &mut materials, textures.sky_texture);
     create_lights(&mut commands, width, height);
 
     for (i, row) in map.iter().enumerate() {
