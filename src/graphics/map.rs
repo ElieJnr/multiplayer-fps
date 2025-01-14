@@ -15,8 +15,6 @@ use bevy::{
     sprite::Sprite,
     window::{CursorGrabMode, Window},
 };
-// use crate::maze::player_simulation::camera_controller;
-
 use super::{
     show_fps::{setup_fps_ui, update_fps_ui},
     states::GameState,
@@ -32,16 +30,7 @@ impl Plugin for MazePlugin {
             .add_systems(OnEnter(GameState::Game), setup_mouse)
             .add_systems(OnEnter(GameState::Game), maze_setup)
             .add_systems(OnEnter(GameState::Game), display_minimap.after(maze_setup))
-            .add_systems(
-                Update,
-                (
-                    player_movement,
-                    camera_view_toggle,
-                    rotate_sky,
-                    update_minimap_player,
-                )
-                    .chain(),
-            )
+            .add_systems(Update, (player_movement, camera_view_toggle, rotate_sky, update_minimap_player).chain())
             .add_systems(OnExit(GameState::Game), cleanup_maze)
             .add_systems(Startup, setup_fps_ui)
             .add_systems(Update, (update_fps_ui, update_minimap, toggle_cursor_lock));

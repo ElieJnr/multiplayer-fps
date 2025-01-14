@@ -36,6 +36,7 @@ pub fn create_player(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>,
             ..default()
         },
         Player,
+        Collider,
     )).id();
 
     commands.spawn((
@@ -49,29 +50,40 @@ pub fn create_player(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>,
     player
 }
 
-pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>>, mut motion_evr: EventReader<MouseMotion>, mut query: Query<&mut Transform, With<Player>>, movement: Res<PlayerMovement>) {
+pub fn player_movement(
+    time: Res<Time>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut motion_evr: EventReader<MouseMotion>,
+    mut query: Query<&mut Transform, With<Player>>,
+    collider_query: Query<&Transform, (With<Collider>, Without<Player>)>,
+    movement: Res<PlayerMovement>
+){
     let mut mouse_delta = Vec2::ZERO;
     for event in motion_evr.read() {
         mouse_delta += event.delta;
     }
-    
+
     for mut transform in query.iter_mut() {
-        // Avancer
+        let mut new_translation = transform.translation;
+
         if keyboard_input.pressed(KeyCode::ArrowUp) {
             let forward = transform.forward();
-            transform.translation -= forward * movement.speed * time.delta_seconds();
+            new_translation -= forward * movement.speed * time.delta_seconds();
         }
 
         if keyboard_input.pressed(KeyCode::ArrowDown) {
             let forward = transform.forward();
-            transform.translation += forward * movement.speed * time.delta_seconds();
+            new_translation += forward * movement.speed * time.delta_seconds();
         }
-        
-        // Rotation avec la souris
+
+        if !check_collisions(&Transform { translation: new_translation, ..*transform }, &collider_query) {
+            transform.translation = new_translation;
+        }
+
         if mouse_delta.length_squared() > 0.0 {
             transform.rotate_y(-mouse_delta.x * movement.mouse_sensitivity);
         }
-        
+
         transform.translation.y = movement.ground_level;
     }
 }
@@ -106,5 +118,33 @@ pub fn toggle_cursor_lock(keyboard_input: Res<ButtonInput<KeyCode>>, mut windows
                 window.cursor.visible = false;
             }
         }
+    }
+}
+
+pub fn check_collisions(player_transform: &Transform, collider_query: &Query<&Transform, (With<Collider>, Without<Player>)>) -> bool{
+    for collider_transform in collider_query.iter() {
+        let collision = collide(
+            player_transform.translation,
+            Vec3::new(0.4, 1.0, 0.4), // Player size
+            collider_transform.translation,
+            Vec3::new(1.0, 1.0, 1.0), // Obstacle size
+        );
+
+        if collision.is_some() {
+            return true;
+        }
+    }
+    false
+}
+
+fn collide(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
+    let collision_x = (pos1.x - pos2.x).abs() < (size1.x + size2.x) / 2.0;
+    let collision_y = (pos1.y - pos2.y).abs() < (size1.y + size2.y) / 2.0;
+    let collision_z = (pos1.z - pos2.z).abs() < (size1.z + size2.z) / 2.0;
+
+    if collision_x && collision_y && collision_z {
+        Some(())
+    } else {
+        None
     }
 }

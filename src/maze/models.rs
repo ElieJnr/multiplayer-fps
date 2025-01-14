@@ -24,6 +24,9 @@ pub struct CameraState {
     pub is_top_view: bool,
 }
 
+#[derive(Component)]
+pub struct Collider;
+
 #[derive(Deserialize, Resource)]
 pub struct Maze {
     #[serde(rename = "maze-1")]
