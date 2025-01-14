@@ -171,39 +171,41 @@ pub fn rotate_sky(time: Res<Time>, mut query: Query<&mut Transform, With<Sky>>) 
 }
 
 // permet de créer un arc en utilisant des piliers et un arc supérieur
-pub fn create_arch(commands: &mut Commands, _meshes: &mut ResMut<Assets<Mesh>>, arch_mesh: Handle<Mesh>, sup_arch_mesh: Handle<Mesh>, arch_material: Handle<StandardMaterial>, arch: Entity, pillar_height: f32, arch_radius: f32, i: f32, j: f32) {
-    if i == 29.0 && j == 22.0 {
-        commands.entity(arch).insert(
-            Transform::from_xyz(j - 0.26, 0.0, i + 0.5)
-                .with_rotation(Quat::from_rotation_y(PI / 2.0)),
-        );
+pub fn create_arch(
+    commands: &mut Commands,
+    _meshes: &mut ResMut<Assets<Mesh>>,
+    arch_mesh: Handle<Mesh>,
+    sup_arch_mesh: Handle<Mesh>,
+    arch_material: Handle<StandardMaterial>,
+    arch: Entity,
+    pillar_height: f32,
+    arch_radius: f32,
+    i: f32,
+    j: f32,
+) {
+    let transform = if i == 29.0 && j == 22.0 {
+        Transform::from_xyz(j - 0.26, 0.0, i + 0.5)
+            .with_rotation(Quat::from_rotation_y(PI / 2.0))
     } else if i == 30.0 && j == 22.0 {
-        commands.entity(arch).insert(
-            Transform::from_xyz(j + 0.26, 0.0, i - 0.5)
-                .with_rotation(Quat::from_rotation_y(PI / 2.0)),
-        );
-    } else if i == 19.0 && j == 35.0 {
-        commands.entity(arch).insert(
-            Transform::from_xyz(j - 0.5, 0.0, i + 0.28)
-                .with_rotation(Quat::from_rotation_y(PI * 2.0)),
-        );
+        Transform::from_xyz(j + 0.26, 0.0, i - 0.5)
+            .with_rotation(Quat::from_rotation_y(PI / 2.0))
     } else {
-        commands.entity(arch).insert(
-            Transform::from_xyz(j - 0.5, 0.0, i + 0.28)
-                .with_rotation(Quat::from_rotation_y(PI * 2.0)),
-        );
-    }
+        Transform::from_xyz(j - 0.5, 0.0, i + 0.28)
+            .with_rotation(Quat::from_rotation_y(PI * 2.0))
+    };
+
+    commands.entity(arch).insert(transform);
 
     // Piliers
     for x in [-arch_radius, arch_radius] {
-        commands
-            .spawn(PbrBundle {
+        commands.spawn((
+            PbrBundle {
                 mesh: arch_mesh.clone(),
                 material: arch_material.clone(),
                 transform: Transform::from_xyz(x, pillar_height / 2.0, 0.0),
                 ..default()
-            })
-            .set_parent(arch);
+            },
+        )).set_parent(arch);
     }
 
     // Arc supérieur
@@ -214,17 +216,18 @@ pub fn create_arch(commands: &mut Commands, _meshes: &mut ResMut<Assets<Mesh>>, 
         let y = angle.sin() * arch_radius + pillar_height;
 
         commands
-            .spawn(PbrBundle {
-                mesh: sup_arch_mesh.clone(),
-                material: arch_material.clone(),
-                transform: Transform::from_xyz(x, y, 0.0)
+            .spawn((
+                PbrBundle {
+                    mesh: sup_arch_mesh.clone(),
+                    material: arch_material.clone(),
+                    transform: Transform::from_xyz(x, y, 0.0)
                     .with_rotation(Quat::from_rotation_z(angle)),
                 ..default()
-            })
+            },
+        ))
             .set_parent(arch);
     }
 }
-
 // permet de créer une maison en utilisant 4 facades de mur
 pub fn create_house(commands: &mut Commands, meshes: Handle<Mesh>, house_materials: &HouseMaterials, position: Vec3) {
     let wall_size = Vec3::new(3.0, 2.5, 0.1);
@@ -328,7 +331,6 @@ pub fn load_textures(asset_server: &Res<AssetServer>) -> Textures {
         wall_texture: asset_server.load("textures/wall_2.png"),
         arch_texture: asset_server.load("textures/wall.png"),
         floor_texture: asset_server.load("textures/floor_sand.png"),
-        // wall_desert_texture: asset_server.load("textures/wall_desert.png"),
         sky_texture: asset_server.load("textures/cloud_2.png"),
         house_textures: HouseTextures {
             house_1: (
