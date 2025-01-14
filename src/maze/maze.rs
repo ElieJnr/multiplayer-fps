@@ -2,6 +2,8 @@ use super::models::*;
 use super::player_simulation::*;
 use super::textures::*;
 use bevy::prelude::*;
+use std::collections::HashMap;
+use rand::Rng;
 
 pub fn maze_setup(
     mut commands: Commands,
@@ -102,7 +104,35 @@ pub fn maze_setup(
         }
     }
 
-    create_player(&mut commands, &mut meshes, &mut materials, width, height);
+    let mut name_position:HashMap<String, Vec<f32>>=HashMap::new();
+    name_position.insert("1".to_string(),vec![20.0, 1.0, 37.0]);
+    name_position.insert("2".to_string(),vec![24.29, 1.0, 25.13]);
+    name_position.insert("3".to_string(),vec![15.84, 1.0, 19.92]);
+    name_position.insert("4".to_string(),vec![25.97, 1.0, 18.76]);
+    name_position.insert("5".to_string(),vec![37.70, 1.0, 21.66]);
+    name_position.insert("6".to_string(),vec![24.14, 1.0, 1.41]);
+    name_position.insert("7".to_string(),vec![37.0, 1.0, 35.0]);
+    name_position.insert("8".to_string(),vec![37.4, 1.0, 1.2]);
+    name_position.insert("9".to_string(),vec![1.27, 1.0, 5.63]);
+    name_position.insert("10".to_string(),vec![1.68, 1.0, 18.91]);
+
+    let mut bool_position: HashMap<String,bool>=HashMap::new();
+    bool_position.insert("1".to_string(),false);
+    bool_position.insert("2".to_string(),false);
+    bool_position.insert("3".to_string(),false);
+    bool_position.insert("4".to_string(),false);
+    bool_position.insert("5".to_string(),false);
+    bool_position.insert("6".to_string(),false);
+    bool_position.insert("7".to_string(),false);
+    bool_position.insert("8".to_string(),false);
+    bool_position.insert("9".to_string(),false);
+    bool_position.insert("10".to_string(),false);
+
+    let pos= choose_place(&mut name_position, &mut bool_position);
+
+    println!("~~~~~~~~~~~~~~~~~~~{:?}~~~~~~~~~~~~~~~~~",pos);
+
+    create_player(&mut commands, &mut meshes, &mut materials, width, height, pos);
     maze_state.is_ready = true;
 }
 
@@ -110,4 +140,38 @@ pub fn calculate_maze_dimensions(maze: &Vec<Vec<i32>>) -> (f32, f32) {
     let height = maze.len();
     let width = maze[0].len();
     (height as f32, width as f32)
+}
+
+fn choose_place(
+    name_position: &mut HashMap<String, Vec<f32>>,
+    bool_position: &mut HashMap<String, bool>,
+) -> Vec<f32> {
+    let mut rng = rand::thread_rng();
+    
+    // Générer un index aléatoire basé sur la longueur de name_position
+    let random_number = rng.gen_range(0..name_position.len());
+    
+    // Obtenir la clé correspondant à l'index aléatoire
+    let random_key = name_position.keys().nth(random_number).unwrap().clone();
+    
+    // Vérifier si la clé existe dans bool_position
+    match bool_position.get_mut(&random_key) {
+        Some(bool_value) => {
+            // Vérifier si le lieu a déjà été choisi (i.e., si la valeur booléenne est true)
+            if *bool_value {
+                // Si déjà choisi, on rappelle la fonction pour essayer de choisir un autre lieu
+                return choose_place(name_position, bool_position);
+            } else {
+                // Marquer le lieu comme choisi (mettre la valeur à true)
+                *bool_value = true;
+                
+                // Retourner la valeur correspondante de name_position
+                return name_position.get(&random_key).unwrap().clone();
+            }
+        },
+        None => {
+            // Si la clé n'existe pas dans bool_position, on rappelle la fonction pour essayer encore
+            return choose_place(name_position, bool_position);
+        }
+    }
 }

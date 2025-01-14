@@ -12,6 +12,7 @@ pub struct Player {
     pub name: String,
     pub address: SocketAddr,
     pub health: u32,
+    // pub position: Vec<f32>,
 }
 
 pub fn add_player(players: &mut HashMap<String, Player>, name: String, address: SocketAddr) {
@@ -24,6 +25,7 @@ pub fn add_player(players: &mut HashMap<String, Player>, name: String, address: 
                 name: name.clone(),
                 address,
                 health: 3,
+                // position: vec![25.97,1.0,18.76]
             },
         );
         display_info(&format!("{} has joined", name.clone()));

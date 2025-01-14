@@ -21,7 +21,7 @@ impl Default for PlayerMovement {
     }
 }
 
-pub fn create_player(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, width: f32, height: f32) -> Entity {
+pub fn create_player(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, width: f32, height: f32, pos:Vec<f32>) -> Entity {
     let cylinder_mesh = meshes.add(Mesh::from(Cylinder { radius: 0.4, half_height: 0.5, ..default() }));
     let cylinder_material = materials.add(StandardMaterial {
         base_color: Color::srgb(0.8, 0.7, 0.6),
@@ -40,7 +40,7 @@ pub fn create_player(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>,
 
     commands.spawn((
         Camera3dBundle {
-            transform: Transform::from_xyz(0.0, 0.5, 0.0)
+            transform: Transform::from_xyz(pos[0], pos[1], pos[2])
                 .looking_at(Vec3::new(0.0, 0.5, 0.1), Vec3::Y), 
             ..default()
         },
