@@ -17,7 +17,7 @@ pub struct NetworkTimer {
 impl Default for NetworkTimer {
     fn default() -> Self {
         Self {
-            timer: Timer::new(Duration::from_millis(500), TimerMode::Repeating), // Augmenté à 500ms
+            timer: Timer::new(Duration::from_millis(50), TimerMode::Repeating), // Augmenté à 500ms
             last_check: 0.0,
         }
     }

@@ -112,7 +112,6 @@ pub fn player_movement(
                     },
                 };
 
-                println!("{:#?}", message);
                 if let Some(msg_bytes) = serialize_message(&message) {
                     let _ = network.client_socket.send(&msg_bytes);
                 }
@@ -171,6 +170,8 @@ pub fn manage_remote_players(
     mut messages: ResMut<NetworkMessages>,
 ) {
     while let Some(message) = messages.0.pop_front() {
+        println!("player sim {:#?}", message);
+
         if let MessageContent::GameUpdate {
             position: (x, z), ..
         } = &message.content
