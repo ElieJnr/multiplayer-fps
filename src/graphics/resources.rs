@@ -28,6 +28,7 @@ pub struct PlayerCountState {
     pub has_enough_players: bool,
 }
 
+
 impl PlayerCountState {
     pub fn new() -> Self {
         PlayerCountState {

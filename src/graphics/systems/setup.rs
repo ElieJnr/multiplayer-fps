@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::server::maze::MinimapCamera;
+use crate::maze::models::MinimapCamera;
 
 pub fn minimap_setup(mut commands: Commands) {
     commands.spawn((

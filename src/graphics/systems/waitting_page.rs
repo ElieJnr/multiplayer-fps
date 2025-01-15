@@ -21,9 +21,8 @@ impl Plugin for WaittingRoomPlugin {
                 OnExit(GameState::Waitting),
                 despawn_menu::<OnWaittingScreen>,
             )
-            .add_systems(Update, check_player_count)
+            .add_systems(Update, (check_player_count, handle_transition_effect))
             .add_systems(OnEnter(GameState::Transition), spawn_transition_effect)
-            .add_systems(Update, handle_transition_effect)
             .add_systems(
                 OnExit(GameState::Transition),
                 despawn_menu::<OnTransitionScreen>,
@@ -62,9 +61,8 @@ fn spawn_waitting_page(mut commands: Commands, asset_server: Res<AssetServer>) {
 fn check_player_count(
     player_count_state: Res<PlayerCountState>,
     mut game_state: ResMut<NextState<GameState>>,
-    current_state: Res<State<GameState>>,
 ) {
-    if player_count_state.has_enough_players && *current_state.get() == GameState::Waitting {
+    if player_count_state.has_enough_players {
         game_state.set(GameState::Transition);
     }
 }
@@ -85,7 +83,7 @@ fn spawn_transition_effect(mut commands: Commands, asset_server: Res<AssetServer
                 ..Default::default()
             },
             OnTransitionScreen,
-            FadeTimer(Timer::from_seconds(10.0, TimerMode::Once)), // Fade-out duration
+            FadeTimer(Timer::from_seconds(3.0, TimerMode::Once)), // Fade-out duration
         ))
         .with_children(|parent| {
             parent.spawn(TextBundle::from_section(

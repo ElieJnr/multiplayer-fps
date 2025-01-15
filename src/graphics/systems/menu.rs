@@ -37,11 +37,7 @@ pub fn menu_plugin(app: &mut App) {
         .add_systems(OnEnter(MenuState::Options), option_menu_setup)
         .add_systems(
             Update,
-            (
-                fade_in_system,
-                button_interaction_system,
-                menu_action,
-            ),
+            (fade_in_system, button_interaction_system, menu_action),
         );
 }
 
@@ -59,7 +55,7 @@ fn main_menu_setup(mut commands: Commands, assets_server: Res<AssetServer>) {
                     flex_direction: FlexDirection::Row,
                     ..Default::default()
                 },
-                background_color: Color::srgba(1.0, 1.0, 1.0, 0.0).into(), 
+                background_color: Color::srgba(1.0, 1.0, 1.0, 0.0).into(),
                 ..Default::default()
             },
             OnMenuScreen,
@@ -132,16 +128,11 @@ fn option_menu_setup(mut commands: Commands, assets_server: Res<AssetServer>) {
 // Modified button interaction system to handle disabled state
 fn button_interaction_system(
     mut query: Query<
-        (
-            &Interaction,
-            &mut BackgroundColor,
-            &mut Transform,
-        ),
+        (&Interaction, &mut BackgroundColor, &mut Transform),
         (Changed<Interaction>, With<Button>),
     >,
 ) {
-    for (interaction, mut color,mut  transform) in &mut query {
-
+    for (interaction, mut color, mut transform) in &mut query {
         *color = match *interaction {
             Interaction::Hovered => {
                 transform.scale = Vec3::new(1.2, 1.2, 1.0);
@@ -168,8 +159,10 @@ fn menu_action(
     mut menu_state: ResMut<NextState<MenuState>>,
     mut game_state: ResMut<NextState<GameState>>,
     network_config: Res<NetworkConfig>,
-
+    // player: Res<AllPlayers>,
 ) {
+    // print!("ici {:?}", player);
+
     for (interaction, menu_button_action) in &interaction_query {
         if *interaction == Interaction::Pressed {
             match menu_button_action {
@@ -183,7 +176,7 @@ fn menu_action(
                 }
                 MenuButtonAction::Play => {
                     game_state.set(GameState::Waitting);
-                    
+                    send_ready_msg(&network_config, &network_config.player_name);
                     menu_state.set(MenuState::Disabled);
                 }
                 MenuButtonAction::Options => menu_state.set(MenuState::Options),
@@ -191,7 +184,6 @@ fn menu_action(
         }
     }
 }
-
 
 // Generic system that takes a Component as parameter, and will despawn all entities with that component
 pub fn despawn_menu<T: Component>(to_despawn: Query<Entity, With<T>>, mut commands: Commands) {
