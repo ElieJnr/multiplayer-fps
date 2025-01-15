@@ -5,7 +5,6 @@ pub enum GameState {
     #[default]
     Menu,
     Waitting,
-    Transition,
     Game,
 }
 
