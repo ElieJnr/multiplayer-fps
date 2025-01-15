@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, States)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, States, Resource)]
 pub enum GameState {
     #[default]
     Menu,

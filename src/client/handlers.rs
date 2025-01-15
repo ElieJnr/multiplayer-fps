@@ -2,7 +2,6 @@ use crate::graphics::resources::PlayerCountState;
 use crate::graphics::start::start;
 use crate::{common::protocol::*, utils::logger::*};
 
-
 pub fn handle_disconnect(content: MessageContent) {
     if let MessageContent::Disconnect { reason } = content {
         display_warning(&format!("[{}]", reason));
@@ -51,19 +50,12 @@ pub fn handle_waiting(
     }
 }
 
-pub fn handle_start(
-    content: MessageContent,
-    config: &NetworkConfig,
-    state: &mut PlayerCountState,
-) {
+pub fn handle_start(content: MessageContent, config: &NetworkConfig, state: &mut PlayerCountState) {
     if let MessageContent::StartGame { msg } = content {
         if msg == "start" {
             state.has_enough_players = true;
         }
         display_info(&msg);
-
-        println!("[===> {:?} <==]", state);
-
         unsafe {
             start(
                 config.player_name.clone(),

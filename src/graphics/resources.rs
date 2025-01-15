@@ -1,18 +1,14 @@
 use bevy::{
-    app::{App, Plugin, Update},
+    app::{App, Plugin, Startup, Update},
     asset::{AssetServer, Handle},
     audio::{AudioBundle, AudioSink, AudioSinkPlayback, AudioSource, PlaybackSettings},
-    log::info,
     prelude::{
-        Commands, Component, DespawnRecursiveExt, Entity, IntoSystemConfigs, OnEnter, OnExit,
-        Query, Res, ResMut, Resource, With,
+        Commands, Component, DespawnRecursiveExt, DetectChanges, Entity, Query, Res, Resource, With,
     },
     time::Time,
 };
 
 use super::states::GameState;
-
-// use bevy::audio::{AudioBundle, AudioSink, PlaybackSettings};
 
 #[derive(Debug, Resource, Component, PartialEq, Eq, Clone, Copy, Default)]
 pub enum Map {
@@ -28,7 +24,6 @@ pub struct PlayerCountState {
     pub has_enough_players: bool,
 }
 
-
 impl PlayerCountState {
     pub fn new() -> Self {
         PlayerCountState {
@@ -42,96 +37,104 @@ pub struct SoundPlugin;
 
 impl Plugin for SoundPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(CurrentTrack::None)
-            .add_systems(
-                OnEnter(GameState::Menu),
-                (setup_sound, setup_menu_sound).chain(),
-            )
-            .add_systems(OnEnter(GameState::Game), setup_game_sound)
+        app.add_systems(Startup, setup)
             .add_systems(Update, (fade_in, fade_out))
-            .add_systems(OnExit(GameState::Menu), fade_out_menu)
-            .add_systems(OnExit(GameState::Game), fade_out_game);
+            .add_systems(Update, change_track);
     }
 }
 
-#[derive(Component)]
-pub struct FadeIn;
-
-#[derive(Component)]
-pub struct FadeOut;
-
+//  This resource will hold the track list for your soundtrack
 #[derive(Resource)]
 struct SoundtrackPlayer {
-    menu_track: Handle<AudioSource>,
-    game_track: Handle<AudioSource>,
+    track_list: Vec<Handle<AudioSource>>,
 }
 
 impl SoundtrackPlayer {
-    fn new(menu_track: Handle<AudioSource>, game_track: Handle<AudioSource>) -> Self {
-        Self {
-            menu_track,
-            game_track,
+    fn new(track_list: Vec<Handle<AudioSource>>) -> Self {
+        Self { track_list }
+    }
+}
+
+// This component will be attached to an entity to fade the audio in
+#[derive(Component)]
+struct FadeIn;
+
+// This component will be attached to an entity to fade the audio out
+#[derive(Component)]
+struct FadeOut;
+
+fn setup(asset_server: Res<AssetServer>, mut commands: Commands) {
+    // Instantiate the game state resources
+    commands.insert_resource(GameState::default());
+
+    // Create the track list
+    let track_1 = asset_server.load::<AudioSource>("sounds/menu.ogg");
+    let track_2 = asset_server.load::<AudioSource>("sounds/game.ogg");
+    let track_list = vec![track_1, track_2];
+    commands.insert_resource(SoundtrackPlayer::new(track_list));
+}
+
+// Every time the GameState resource changes, this system is run to trigger the song change.
+fn change_track(
+    mut commands: Commands,
+    soundtrack_player: Res<SoundtrackPlayer>,
+    soundtrack: Query<Entity, With<AudioSink>>,
+    game_state: Res<GameState>,
+) {
+    if game_state.is_changed() {
+        // Fade out all currently running tracks
+        for track in soundtrack.iter() {
+            commands.entity(track).insert(FadeOut);
+        }
+
+        // Spawn a new `AudioPlayer` with the appropriate soundtrack based on
+        // the game state.
+        //
+        // Volume is set to start at zero and is then increased by the fade_in system.
+        match game_state.as_ref() {
+            GameState::Menu => {
+                commands.spawn((
+                    AudioBundle {
+                        source: soundtrack_player.track_list.first().unwrap().clone(),
+                        settings: PlaybackSettings {
+                            mode: bevy::audio::PlaybackMode::Loop,
+                            volume: bevy::audio::Volume::ZERO,
+                            ..Default::default()
+                        },
+                    },
+                    FadeIn,
+                ));
+            }
+
+            GameState::Waitting => {
+                commands.spawn((
+                    AudioBundle {
+                        source: soundtrack_player.track_list.get(1).unwrap().clone(),
+                        settings: PlaybackSettings {
+                            mode: bevy::audio::PlaybackMode::Loop,
+                            volume: bevy::audio::Volume::ZERO,
+                            ..Default::default()
+                        },
+                    },
+                    FadeIn,
+                ));
+            }
+            GameState::Game => {}
         }
     }
 }
 
-#[derive(Resource)]
-enum CurrentTrack {
-    Menu,
-    Game,
-    None,
-}
-
-fn setup_menu_sound(
-    mut commands: Commands,
-    soundtrack_player: Res<SoundtrackPlayer>,
-    mut current_track: ResMut<CurrentTrack>,
-) {
-    commands.spawn((
-        AudioBundle {
-            source: soundtrack_player.menu_track.clone(),
-            settings: PlaybackSettings {
-                mode: bevy::audio::PlaybackMode::Loop,
-                volume: bevy::audio::Volume::ZERO,
-                ..Default::default()
-            },
-            ..Default::default()
-        },
-        FadeIn,
-    ));
-
-    *current_track = CurrentTrack::Menu;
-}
-
-fn setup_game_sound(
-    mut commands: Commands,
-    soundtrack_player: Res<SoundtrackPlayer>,
-    mut current_track: ResMut<CurrentTrack>,
-) {
-    commands.spawn((
-        AudioBundle {
-            source: soundtrack_player.game_track.clone(),
-            settings: PlaybackSettings {
-                mode: bevy::audio::PlaybackMode::Loop,
-                volume: bevy::audio::Volume::ZERO,
-                ..Default::default()
-            },
-            ..Default::default()
-        },
-        FadeIn,
-    ));
-
-    *current_track = CurrentTrack::Game;
-}
-
+// Fade effect duration
 const FADE_TIME: f32 = 2.0;
 
+// Fades in the audio of entities that has the FadeIn component. Removes the FadeIn component once
+// full volume is reached.
 fn fade_in(
     mut commands: Commands,
     mut audio_sink: Query<(&mut AudioSink, Entity), With<FadeIn>>,
     time: Res<Time>,
 ) {
-    for (audio, entity) in &mut audio_sink {
+    for (audio, entity) in audio_sink.iter_mut() {
         audio.set_volume(audio.volume() + time.delta_seconds() / FADE_TIME);
         if audio.volume() >= 1.0 {
             audio.set_volume(1.0);
@@ -140,48 +143,17 @@ fn fade_in(
     }
 }
 
+// Fades out the audio of entities that has the FadeOut component. Despawns the entities once audio
+// volume reaches zero.
 fn fade_out(
     mut commands: Commands,
     mut audio_sink: Query<(&mut AudioSink, Entity), With<FadeOut>>,
     time: Res<Time>,
 ) {
-    for (audio, entity) in &mut audio_sink {
+    for (audio, entity) in audio_sink.iter_mut() {
         audio.set_volume(audio.volume() - time.delta_seconds() / FADE_TIME);
         if audio.volume() <= 0.0 {
-            audio.set_volume(0.0);
             commands.entity(entity).despawn_recursive();
         }
     }
-}
-
-fn fade_out_menu(
-    mut commands: Commands,
-    current_track: ResMut<CurrentTrack>,
-    menu_audio: Query<Entity, With<FadeIn>>,
-) {
-    if let CurrentTrack::Menu = *current_track {
-        for entity in &menu_audio {
-            commands.entity(entity).insert(FadeOut);
-        }
-    }
-}
-
-fn fade_out_game(
-    mut commands: Commands,
-    current_track: ResMut<CurrentTrack>,
-    game_audio: Query<Entity, With<FadeIn>>,
-) {
-    if let CurrentTrack::Game = *current_track {
-        for entity in &game_audio {
-            commands.entity(entity).insert(FadeOut);
-        }
-    }
-}
-
-fn setup_sound(asset_server: Res<AssetServer>, mut commands: Commands) {
-    let menu_track = asset_server.load("sounds/menu.ogg");
-    let game_track = asset_server.load("sounds/game.ogg");
-
-    commands.insert_resource(SoundtrackPlayer::new(menu_track, game_track));
-    info!("SoundtrackPlayer initialized.");
 }
