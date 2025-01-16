@@ -138,7 +138,7 @@ pub fn player_movement(
 
     if input.arrow_up || input.arrow_down || mouse_delta != Vec2::ZERO {
         *sequence_number += 1;
-        
+
         let input_sequence = InputSequence {
             sequence_number: *sequence_number,
             timestamp: time.elapsed_seconds_f64(),
@@ -163,7 +163,7 @@ pub fn player_movement(
                     timestamp: time.elapsed_seconds_f64(),
                 },
             };
-            
+
             if let Some(msg_bytes) = serialize_message(&message) {
                 let _ = network.client_socket.send(&msg_bytes);
             }
@@ -171,9 +171,14 @@ pub fn player_movement(
     }
 }
 
-pub fn apply_input(transform: &mut Transform, input: &PlayerInput, movement: &PlayerMovement, delta_time: f32) {
+pub fn apply_input(
+    transform: &mut Transform,
+    input: &PlayerInput,
+    movement: &PlayerMovement,
+    delta_time: f32,
+) {
     let forward = transform.forward();
-    
+
     if input.arrow_up {
         transform.translation -= forward * movement.speed * delta_time;
     }
@@ -183,7 +188,7 @@ pub fn apply_input(transform: &mut Transform, input: &PlayerInput, movement: &Pl
     if input.mouse_delta.length_squared() > 0.0 {
         transform.rotate_y(-input.mouse_delta.x * movement.mouse_sensitivity);
     }
-    
+
     transform.translation.y = movement.ground_level;
 }
 
@@ -237,14 +242,12 @@ pub fn manage_remote_players(
     mut messages: ResMut<NetworkMessages>,
 ) {
     while let Some(message) = messages.0.pop_front() {
-        println!("player sim {:#?}", message);
-        
         if let MessageContent::GameUpdate {
-            position: (x, z),
-            ..
-        } = &message.content {
+            position: (x, z), ..
+        } = &message.content
+        {
             let player_name = &message.sender;
-            
+
             if player_name == &network.player_name {
                 continue;
             }
@@ -253,6 +256,7 @@ pub fn manage_remote_players(
                 if let Some(mut entity_commands) = commands.get_entity(entity) {
                     entity_commands.insert(Transform::from_xyz(*x, 1.0, *z));
                 }
+                // println!("moved player {:#?}", player_name);
             } else {
                 let remote_player = commands
                     .spawn((
@@ -274,7 +278,7 @@ pub fn manage_remote_players(
                         },
                     ))
                     .id();
-                
+
                 remote_players.0.insert(player_name.clone(), remote_player);
                 println!("Spawned new remote player: {}", player_name);
             }
