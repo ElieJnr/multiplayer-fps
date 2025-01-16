@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use std::{collections::VecDeque, time::Duration};
+use std::collections::VecDeque;
 
 use crate::{graphics::resources::PlayerCountState, utils::logger::display_info};
 
@@ -10,14 +10,14 @@ use super::protocol::{
 
 #[derive(Resource)]
 pub struct NetworkTimer {
-    timer: Timer,
+    // timer: Timer,
     last_check: f32,
 }
 
 impl Default for NetworkTimer {
     fn default() -> Self {
         Self {
-            timer: Timer::new(Duration::from_millis(50), TimerMode::Repeating), // Augmenté à 500ms
+            // timer: Timer::new(Duration::from_millis(50), TimerMode::Repeating), // Augmenté à 500ms
             last_check: 0.0,
         }
     }
@@ -33,9 +33,14 @@ impl Plugin for NetworkPlugin {
     }
 }
 
-#[derive(Resource, Default)]
+#[derive(Resource)]
 pub struct NetworkMessages(pub VecDeque<GameMessage>);
 
+impl Default for NetworkMessages {
+    fn default() -> Self {
+        Self(VecDeque::new())
+    }
+}
 fn check_network_messages(
     time: Res<Time>,
     mut timer: ResMut<NetworkTimer>,
@@ -43,14 +48,11 @@ fn check_network_messages(
     mut state: ResMut<PlayerCountState>,
     mut network_messages: ResMut<NetworkMessages>,
 ) {
-    if time.elapsed_seconds() - timer.last_check < 0.1 {
+    if time.elapsed_seconds() - timer.last_check < 0.016 { 
         return;
     }
+    
     timer.last_check = time.elapsed_seconds();
-
-    if !timer.timer.tick(time.delta()).just_finished() {
-        return;
-    }
 
     // Configure le socket en mode non-bloquant
     if let Ok(socket) = network_config.client_socket.try_clone() {
@@ -61,7 +63,7 @@ fn check_network_messages(
             Some((data, _)) => {
                 if let Some(game_message) = deserialize_message(&data) {
                     match game_message.message_type {
-                        MessageType::PlayerAction => {
+                        MessageType::GameUpdate => {
                             network_messages.0.push_back(game_message);
                         }
                         _ => handle_game_message(game_message, &mut state),

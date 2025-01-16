@@ -4,7 +4,7 @@ use crate::maze::maze::maze_setup;
 use crate::maze::minimap::minimap::{display_minimap, update_minimap};
 use crate::maze::minimap::minimap_player::update_minimap_player;
 use crate::maze::models::{CameraState, MazeState, RemotePlayers, TreeParams};
-use crate::maze::player_simulation::{apply_client_prediction, handle_server_update, toggle_cursor_lock};
+use crate::maze::player_simulation::{manage_remote_players, toggle_cursor_lock};
 use crate::maze::{
     player_simulation::{camera_view_toggle, player_movement, PlayerMovement},
     textures::rotate_sky,
@@ -37,15 +37,12 @@ impl Plugin for MazePlugin {
             .add_systems(
                 Update,
                 (
-                    // manage_remote_players,
                     player_movement,
-                    apply_client_prediction,
-                    handle_server_update,
+                    manage_remote_players,
                     camera_view_toggle,
                     rotate_sky,
                     update_minimap_player,
                 )
-                    .chain(),
             )
             .add_systems(OnExit(GameState::Game), cleanup_maze)
             .add_systems(Startup, setup_fps_ui)

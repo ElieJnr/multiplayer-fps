@@ -118,7 +118,13 @@ pub fn player_movement(
     mut movement: ResMut<PlayerMovement>,
     network: Option<Res<NetworkConfig>>,
     mut sequence_number: Local<u32>,
+    mut query: Query<&mut Transform, With<Player>>,
+    maze_state: Res<MazeState>,
 ) {
+    if !maze_state.is_ready {
+        return;
+    }
+
     let mut mouse_delta = Vec2::ZERO;
     for event in motion_evr.read() {
         mouse_delta += event.delta;
@@ -132,14 +138,19 @@ pub fn player_movement(
 
     if input.arrow_up || input.arrow_down || mouse_delta != Vec2::ZERO {
         *sequence_number += 1;
-
+        
         let input_sequence = InputSequence {
             sequence_number: *sequence_number,
             timestamp: time.elapsed_seconds_f64(),
             input,
         };
 
-        // Store input locally for prediction
+        if let Ok(mut transform) = query.get_single_mut() {
+            apply_input(&mut transform, &input, &movement, time.delta_seconds());
+            movement.position = transform.translation;
+            movement.rotation.y = transform.rotation.y;
+        }
+
         movement.input_buffer.push_back(input_sequence.clone());
 
         if let Some(network) = network.as_ref() {
@@ -152,7 +163,7 @@ pub fn player_movement(
                     timestamp: time.elapsed_seconds_f64(),
                 },
             };
-
+            
             if let Some(msg_bytes) = serialize_message(&message) {
                 let _ = network.client_socket.send(&msg_bytes);
             }
@@ -160,36 +171,20 @@ pub fn player_movement(
     }
 }
 
-pub fn apply_client_prediction(
-    time: Res<Time>,
-    mut movement: ResMut<PlayerMovement>,
-    mut query: Query<&mut Transform, With<Player>>,
-) {
-    for mut transform in query.iter_mut() {
-        while let Some(input_sequence) = movement.input_buffer.front() {
-            if input_sequence.sequence_number <= movement.last_processed_input {
-                movement.input_buffer.pop_front();
-                continue;
-            }
-
-            let forward = transform.forward();
-            if input_sequence.input.arrow_up {
-                transform.translation -= forward * movement.speed * time.delta_seconds();
-            }
-            if input_sequence.input.arrow_down {
-                transform.translation += forward * movement.speed * time.delta_seconds();
-            }
-            if input_sequence.input.mouse_delta.length_squared() > 0.0 {
-                transform
-                    .rotate_y(-input_sequence.input.mouse_delta.x * movement.mouse_sensitivity);
-            }
-
-            transform.translation.y = movement.ground_level;
-            movement.position = transform.translation;
-            movement.rotation.x = transform.rotation.x;
-            movement.rotation.y = transform.rotation.y;
-        }
+pub fn apply_input(transform: &mut Transform, input: &PlayerInput, movement: &PlayerMovement, delta_time: f32) {
+    let forward = transform.forward();
+    
+    if input.arrow_up {
+        transform.translation -= forward * movement.speed * delta_time;
     }
+    if input.arrow_down {
+        transform.translation += forward * movement.speed * delta_time;
+    }
+    if input.mouse_delta.length_squared() > 0.0 {
+        transform.rotate_y(-input.mouse_delta.x * movement.mouse_sensitivity);
+    }
+    
+    transform.translation.y = movement.ground_level;
 }
 
 // permet de changer la vue de la camera
@@ -233,7 +228,7 @@ pub fn toggle_cursor_lock(
     }
 }
 
-/* pub fn manage_remote_players(
+pub fn manage_remote_players(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -243,13 +238,13 @@ pub fn toggle_cursor_lock(
 ) {
     while let Some(message) = messages.0.pop_front() {
         println!("player sim {:#?}", message);
-
+        
         if let MessageContent::GameUpdate {
-            position: (x, z), ..
-        } = &message.content
-        {
+            position: (x, z),
+            ..
+        } = &message.content {
             let player_name = &message.sender;
-
+            
             if player_name == &network.player_name {
                 continue;
             }
@@ -279,45 +274,9 @@ pub fn toggle_cursor_lock(
                         },
                     ))
                     .id();
-
+                
                 remote_players.0.insert(player_name.clone(), remote_player);
-            }
-        }
-    }
-}
- */
-
-pub fn handle_server_update(
-    mut query: Query<(&mut Transform, &Player)>,
-    mut movement: ResMut<PlayerMovement>,
-    mut network_messages: ResMut<NetworkMessages>,
-    network: Res<NetworkConfig>,
-) {
-    while let Some(message) = network_messages.0.pop_front() {
-        if let MessageContent::GameUpdate {
-            position,
-            rotation,
-            sequence_number,
-            ..
-        } = message.content
-        {
-            movement.last_processed_input = sequence_number;
-
-            while let Some(input) = movement.input_buffer.front() {
-                if input.sequence_number <= sequence_number {
-                    movement.input_buffer.pop_front();
-                } else {
-                    break;
-                }
-            }
-
-            for (mut transform, _) in query.iter_mut() {
-                let player_name = &message.sender;
-
-                if player_name == &network.player_name {
-                    transform.translation = position;
-                    transform.rotation = Quat::from_rotation_y(rotation.y);
-                }
+                println!("Spawned new remote player: {}", player_name);
             }
         }
     }

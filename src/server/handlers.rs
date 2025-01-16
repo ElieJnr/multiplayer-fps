@@ -6,11 +6,7 @@ use std::{
 use bevy::{math::Quat, prelude::Transform};
 
 use crate::{
-    client::player::{add_player, Player},
-    common::{constant::MIN_PLAYERS, protocol::*},
-    graphics::resources::PlayerCountState,
-    server::udp::broadcast_message,
-    utils::logger::*,
+    client::player::{add_player, Player}, common::{constant::MIN_PLAYERS, protocol::*}, graphics::resources::PlayerCountState, server::udp::broadcast_message, utils::logger::*
 };
 
 pub fn handle_message(
@@ -156,7 +152,7 @@ fn handle_disconnect(
     }
 }
 
-fn handle_player_action(
+pub fn handle_player_action(
     server_socket: &UdpSocket,
     players: &mut HashMap<String, Player>,
     message: GameMessage,
@@ -165,10 +161,10 @@ fn handle_player_action(
         if let Some(player) = players.get_mut(&message.sender) {
             let mut transform = Transform::from_translation(player.movement.position);
             transform.rotation = Quat::from_rotation_y(player.movement.rotation.y);
-
+            
             let forward = transform.forward();
             if action.arrow_up {
-                transform.translation -= forward * player.movement.speed * 0.016; 
+                transform.translation -= forward * player.movement.speed * 0.016;
             }
             if action.arrow_down {
                 transform.translation += forward * player.movement.speed * 0.016;
@@ -176,8 +172,8 @@ fn handle_player_action(
             if action.mouse_delta.length_squared() > 0.0 {
                 transform.rotate_y(-action.mouse_delta.x * player.movement.mouse_sensitivity);
             }
-
             transform.translation.y = player.movement.ground_level;
+            
             player.movement.position = transform.translation;
             player.movement.rotation.y = transform.rotation.y;
 
@@ -185,7 +181,7 @@ fn handle_player_action(
                 message_type: MessageType::GameUpdate,
                 sender: message.sender.clone(),
                 content: MessageContent::GameUpdate {
-                    position: player.movement.position,
+                    position: (transform.translation.x, transform.translation.z),
                     rotation: player.movement.rotation,
                     sequence_number,
                     timestamp,
@@ -198,7 +194,6 @@ fn handle_player_action(
         }
     }
 }
-
 
 fn handle_game_update(
     server_socket: &UdpSocket,

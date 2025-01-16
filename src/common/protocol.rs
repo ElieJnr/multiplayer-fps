@@ -1,5 +1,5 @@
 use crate::{maze::player_simulation::PlayerInput, utils::logger::*};
-use bevy::{math::{Vec2, Vec3}, prelude::Resource};
+use bevy::{math::Vec2, prelude::Resource};
 use serde::{Deserialize, Serialize};
 use std::{
     net::{SocketAddr, UdpSocket},
@@ -44,13 +44,13 @@ pub enum MessageType {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub enum MessageContent {
     NewConnection { name: String },
-    GameUpdate { 
-        position: Vec3,
+    GameUpdate {
+        position: (f32, f32),
         rotation: Vec2,
         sequence_number: u32,
         timestamp: f64,
     },
-    PlayerAction { 
+    PlayerAction {
         action: PlayerInput,
         sequence_number: u32,
         timestamp: f64,
