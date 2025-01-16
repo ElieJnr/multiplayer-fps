@@ -39,6 +39,11 @@ pub struct ColliderHouse;
 #[derive(Component)]
 pub struct ColliderPillar;
 
+#[derive(Default, Resource, Clone)]
+pub struct ObstaclePositions {
+    pub positions: Vec<Vec<bool>>,
+}
+
 #[derive(Deserialize, Resource)]
 pub struct Maze {
     #[serde(rename = "maze-1")]

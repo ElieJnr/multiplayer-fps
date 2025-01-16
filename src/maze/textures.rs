@@ -171,16 +171,20 @@ pub fn rotate_sky(time: Res<Time>, mut query: Query<&mut Transform, With<Sky>>) 
 }
 
 // permet de créer un arc en utilisant des piliers et un arc supérieur
-pub fn create_arch(commands: &mut Commands, _meshes: &mut ResMut<Assets<Mesh>>, arch_mesh: Handle<Mesh>, sup_arch_mesh: Handle<Mesh>, arch_material: Handle<StandardMaterial>, arch: Entity, pillar_height: f32, arch_radius: f32, i: f32, j: f32) {
+pub fn create_arch(commands: &mut Commands, _meshes: &mut ResMut<Assets<Mesh>>, arch_mesh: Handle<Mesh>, sup_arch_mesh: Handle<Mesh>, arch_material: Handle<StandardMaterial>, arch: Entity, pillar_height: f32, arch_radius: f32, i: f32, j: f32, obstacle_positions: &mut Vec<Vec<bool>>) {
     let mut obstacles_pillar = Vec::new();
+    
 
     let transform = if i == 29.0 && j == 22.0 {
+        obstacle_positions[(i + 0.5) as usize][(j-0.26) as usize] = true;
         Transform::from_xyz(j - 0.26, 0.0, i + 0.5)
             .with_rotation(Quat::from_rotation_y(PI / 2.0))
     } else if i == 30.0 && j == 22.0 {
+        obstacle_positions[(i - 0.5) as usize][(j+0.26) as usize] = true;
         Transform::from_xyz(j + 0.26, 0.0, i - 0.5)
             .with_rotation(Quat::from_rotation_y(PI / 2.0))
     } else {
+        obstacle_positions[(i + 0.28) as usize][(j-0.5) as usize] = true;
         Transform::from_xyz(j - 0.5, 0.0, i + 0.28)
             .with_rotation(Quat::from_rotation_y(PI * 2.0))
     };
@@ -195,6 +199,7 @@ pub fn create_arch(commands: &mut Commands, _meshes: &mut ResMut<Assets<Mesh>>, 
             position: pillar_position,
             size: pillar_size,
         });
+        
 
         commands.spawn((
             PbrBundle {

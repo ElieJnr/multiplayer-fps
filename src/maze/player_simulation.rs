@@ -56,18 +56,8 @@ pub fn create_player(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>,
     player
 }
 
-pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>>, mut motion_evr: EventReader<MouseMotion>, mut query: Query<&mut Transform, With<Player>>, collider_query: Query<&Transform, (With<Collider>, Without<Player>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Player>)>,pillar_query: Query<&Transform, (With<ColliderPillar>, Without<Player>)>, movement: Res<PlayerMovement>) {
+pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>>, mut motion_evr: EventReader<MouseMotion>, mut query: Query<&mut Transform, With<Player>>, collider_query: Query<&Transform, (With<Collider>, Without<Player>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Player>)>,pillar_query: Query<&Transform, (With<ColliderPillar>, Without<Player>)>, movement: Res<PlayerMovement>, obstacle_positions: Res<ObstaclePositions>) {
     let mut mouse_delta = Vec2::ZERO;
-    // let obstacles_pillar = vec![
-    //     Pillar {
-    //         position: Vec3::new(-1.0, 1.0 / 2.0, 0.0),
-    //         size: Vec3::new(0.8, 2.0, 0.8),
-    //     },
-    //     Pillar {
-    //         position: Vec3::new(1.0, 1.0 / 2.0, 0.0),
-    //         size: Vec3::new(0.8, 2.0, 0.8),
-    //     },      
-    // ];
 
     for event in motion_evr.read() {
         mouse_delta += event.delta;
@@ -75,7 +65,7 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
 
     for mut transform in query.iter_mut() {
         let mut new_translation = transform.translation;
-
+        
         if keyboard_input.pressed(KeyCode::ArrowUp) {
             let forward = transform.forward();
             new_translation -= forward * movement.speed * time.delta_seconds();
@@ -87,7 +77,9 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
         }
 
         if !check_collisions(&Transform { translation: new_translation, ..*transform }, &collider_query, &house_collider_query, &pillar_query) {
-            transform.translation = new_translation;
+           if !check_collisions_with_pillar(&obstacle_positions, new_translation.z as usize, new_translation.x as usize, *transform.forward(), movement.speed * time.delta_seconds()) {
+             transform.translation = new_translation;
+           }
         }
 
         if mouse_delta.length_squared() > 0.0 {
@@ -170,7 +162,15 @@ pub fn check_collisions(player_transform: &Transform, collider_query: &Query<&Tr
     }
 
 
+
+
     false
+}
+
+pub fn check_collisions_with_pillar(obstacle_positions: &Res<ObstaclePositions>, z: usize, x: usize, direction: Vec3, distance: f32) -> bool {
+    let new_z = (z as f32 + direction.z * distance).round() as usize;
+    let new_x = (x as f32 + direction.x * distance).round() as usize;
+    obstacle_positions.positions.get(new_z).and_then(|row| row.get(new_x)).copied().unwrap_or(false)
 }
 
 fn collide(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
