@@ -17,7 +17,6 @@ pub struct NetworkTimer {
 impl Default for NetworkTimer {
     fn default() -> Self {
         Self {
-            // timer: Timer::new(Duration::from_millis(50), TimerMode::Repeating), // Augmenté à 500ms
             last_check: 0.0,
         }
     }
@@ -54,7 +53,6 @@ fn check_network_messages(
     
     timer.last_check = time.elapsed_seconds();
 
-    // Configure le socket en mode non-bloquant
     if let Ok(socket) = network_config.client_socket.try_clone() {
         let _ = socket.set_nonblocking(true);
         let mut buffer = [0; 1024];
@@ -63,7 +61,7 @@ fn check_network_messages(
             Some((data, _)) => {
                 if let Some(game_message) = deserialize_message(&data) {
                     match game_message.message_type {
-                        MessageType::GameUpdate => {
+                        MessageType::GameUpdate | MessageType::PlayerAction => {
                             network_messages.0.push_back(game_message);
                         }
                         _ => handle_game_message(game_message, &mut state),

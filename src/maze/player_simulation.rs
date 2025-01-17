@@ -138,34 +138,38 @@ pub fn player_movement(
 
     if input.arrow_up || input.arrow_down || mouse_delta != Vec2::ZERO {
         *sequence_number += 1;
-
-        let input_sequence = InputSequence {
-            sequence_number: *sequence_number,
-            timestamp: time.elapsed_seconds_f64(),
-            input,
-        };
+        let delta_time = time.delta_seconds();
 
         if let Ok(mut transform) = query.get_single_mut() {
-            apply_input(&mut transform, &input, &movement, time.delta_seconds());
+            
+            apply_input(&mut transform, &input, &movement, delta_time);
+            
             movement.position = transform.translation;
             movement.rotation.y = transform.rotation.y;
-        }
 
-        movement.input_buffer.push_back(input_sequence.clone());
-
-        if let Some(network) = network.as_ref() {
-            let message = GameMessage {
-                message_type: MessageType::PlayerAction,
-                sender: network.player_name.clone(),
-                content: MessageContent::PlayerAction {
-                    action: input,
-                    sequence_number: *sequence_number,
-                    timestamp: time.elapsed_seconds_f64(),
-                },
+            let input_sequence = InputSequence {
+                sequence_number: *sequence_number,
+                timestamp: time.elapsed_seconds_f64(),
+                input,
             };
 
-            if let Some(msg_bytes) = serialize_message(&message) {
-                let _ = network.client_socket.send(&msg_bytes);
+            movement.input_buffer.push_back(input_sequence.clone());
+
+            if let Some(network) = network.as_ref() {
+                let message = GameMessage {
+                    message_type: MessageType::GameUpdate,
+                    sender: network.player_name.clone(),
+                    content: MessageContent::GameUpdate {
+                        position: (transform.translation.x, transform.translation.z),
+                        rotation: movement.rotation,
+                        sequence_number: *sequence_number,
+                        timestamp: time.elapsed_seconds_f64(),
+                    },
+                };
+
+                if let Some(msg_bytes) = serialize_message(&message) {
+                    let _ = network.client_socket.send(&msg_bytes);
+                }
             }
         }
     }
@@ -191,6 +195,7 @@ pub fn apply_input(
 
     transform.translation.y = movement.ground_level;
 }
+
 
 // permet de changer la vue de la camera
 pub fn camera_view_toggle(
@@ -240,23 +245,23 @@ pub fn manage_remote_players(
     mut remote_players: ResMut<RemotePlayers>,
     network: Res<NetworkConfig>,
     mut messages: ResMut<NetworkMessages>,
+    mut query: Query<&mut Transform>,
 ) {
     while let Some(message) = messages.0.pop_front() {
-        if let MessageContent::GameUpdate {
-            position: (x, z), ..
-        } = &message.content
-        {
+        if let MessageContent::GameUpdate { position: (x, z), rotation, .. } = &message.content {
             let player_name = &message.sender;
-
             if player_name == &network.player_name {
                 continue;
             }
 
             if let Some(&entity) = remote_players.0.get(player_name) {
-                if let Some(mut entity_commands) = commands.get_entity(entity) {
-                    entity_commands.insert(Transform::from_xyz(*x, 1.0, *z));
+                if let Ok(mut transform) = query.get_mut(entity) {
+                    transform.translation.x = *x;
+                    transform.translation.z = *z;
+                    transform.translation.y = 1.0;
+                    
+                    transform.rotation = Quat::from_rotation_y(rotation.y);
                 }
-                // println!("moved player {:#?}", player_name);
             } else {
                 let remote_player = commands
                     .spawn((
@@ -270,7 +275,8 @@ pub fn manage_remote_players(
                                 base_color: Color::srgb(1.0, 0.0, 0.0),
                                 ..default()
                             }),
-                            transform: Transform::from_xyz(*x, 1.0, *z),
+                            transform: Transform::from_xyz(*x, 1.0, *z)
+                                .with_rotation(Quat::from_rotation_y(rotation.y)),
                             ..default()
                         },
                         RemotePlayer {
@@ -278,9 +284,7 @@ pub fn manage_remote_players(
                         },
                     ))
                     .id();
-
                 remote_players.0.insert(player_name.clone(), remote_player);
-                println!("Spawned new remote player: {}", player_name);
             }
         }
     }

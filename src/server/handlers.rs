@@ -200,7 +200,6 @@ fn handle_game_update(
     players: &mut HashMap<String, Player>,
     message: GameMessage,
 ) {
-    println!("message-server {:#?}", message);
     let update_msg = GameMessage {
         message_type: MessageType::GameUpdate,
         sender: message.sender.to_string(),
