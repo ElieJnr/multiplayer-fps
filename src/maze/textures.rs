@@ -171,35 +171,29 @@ pub fn rotate_sky(time: Res<Time>, mut query: Query<&mut Transform, With<Sky>>) 
 }
 
 // permet de créer un arc en utilisant des piliers et un arc supérieur
-pub fn create_arch(commands: &mut Commands, _meshes: &mut ResMut<Assets<Mesh>>, arch_mesh: Handle<Mesh>, sup_arch_mesh: Handle<Mesh>, arch_material: Handle<StandardMaterial>, arch: Entity, pillar_height: f32, arch_radius: f32, i: f32, j: f32, obstacle_positions: &mut Vec<Vec<bool>>) {
-    let mut obstacles_pillar = Vec::new();
-    
+pub fn create_arch(commands: &mut Commands, _meshes: &mut ResMut<Assets<Mesh>>, arch_mesh: Handle<Mesh>, sup_arch_mesh: Handle<Mesh>, arch_material: Handle<StandardMaterial>, arch: Entity, pillar_height: f32, i: f32, j: f32) {
 
+    println!("i {} j {}", i, j);
+    let mut arch_radius = 2.25;
+    
     let transform = if i == 29.0 && j == 22.0 {
-        obstacle_positions[(i + 0.5) as usize][(j-0.26) as usize] = true;
+        arch_radius = 1.3;
         Transform::from_xyz(j - 0.26, 0.0, i + 0.5)
             .with_rotation(Quat::from_rotation_y(PI / 2.0))
     } else if i == 30.0 && j == 22.0 {
-        obstacle_positions[(i - 0.5) as usize][(j+0.26) as usize] = true;
+        arch_radius = 1.3;
         Transform::from_xyz(j + 0.26, 0.0, i - 0.5)
             .with_rotation(Quat::from_rotation_y(PI / 2.0))
+    } else if i == 20.0 && j == 31.0 {
+        Transform::from_xyz(j + 0.5, 0.0, i - 0.26)
     } else {
-        obstacle_positions[(i + 0.28) as usize][(j-0.5) as usize] = true;
-        Transform::from_xyz(j - 0.5, 0.0, i + 0.28)
-            .with_rotation(Quat::from_rotation_y(PI * 2.0))
+        Transform::from_xyz(j - 2.0 + 0.5 , 0.0, i + 0.26  )
     };
 
     commands.entity(arch).insert(transform);
 
     // Piliers
     for x in [-arch_radius, arch_radius] {
-        let pillar_position = Vec3::new(x, pillar_height / 2.0, 0.0);
-        let pillar_size = Vec3::new(0.8, pillar_height, 0.8); 
-        obstacles_pillar.push(Pillar {
-            position: pillar_position,
-            size: pillar_size,
-        });
-        
 
         commands.spawn((
             PbrBundle {
@@ -211,10 +205,6 @@ pub fn create_arch(commands: &mut Commands, _meshes: &mut ResMut<Assets<Mesh>>, 
             ColliderPillar,
         )).set_parent(arch);
     }
-
-    // 
-
-    println!("{:?}", obstacles_pillar);
 
     // Arc supérieur
     let segments = 16;
@@ -234,6 +224,7 @@ pub fn create_arch(commands: &mut Commands, _meshes: &mut ResMut<Assets<Mesh>>, 
             .set_parent(arch);
     }
 }
+
 // permet de créer une maison en utilisant 4 facades de mur
 pub fn create_house(commands: &mut Commands, meshes: Handle<Mesh>, house_materials: &HouseMaterials, position: Vec3) {
     let wall_size = Vec3::new(3.0, 2.5, 0.1);

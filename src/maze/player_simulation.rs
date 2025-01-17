@@ -56,7 +56,7 @@ pub fn create_player(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>,
     player
 }
 
-pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>>, mut motion_evr: EventReader<MouseMotion>, mut query: Query<&mut Transform, With<Player>>, collider_query: Query<&Transform, (With<Collider>, Without<Player>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Player>)>,pillar_query: Query<&Transform, (With<ColliderPillar>, Without<Player>)>, movement: Res<PlayerMovement>, _obstacle_positions: Res<ObstaclePositions>) {
+pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>>, mut motion_evr: EventReader<MouseMotion>, mut query: Query<&mut Transform, With<Player>>, collider_query: Query<&Transform, (With<Collider>, Without<Player>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Player>)>, movement: Res<PlayerMovement>, _obstacle_positions: Res<ObstaclePositions>) {
     let mut mouse_delta = Vec2::ZERO;
 
     for event in motion_evr.read() {
@@ -76,10 +76,8 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
             new_translation += forward * movement.speed * time.delta_seconds();
         }
 
-        if !check_collisions(&Transform { translation: new_translation, ..*transform }, &collider_query, &house_collider_query, &pillar_query) {
-        //    if !check_collisions_with_pillar(&obstacle_positions, new_translation.z as usize, new_translation.x as usize, *transform.forward(), movement.speed * time.delta_seconds()) {
+        if !check_collisions(&Transform { translation: new_translation, ..*transform }, &collider_query, &house_collider_query) {
             transform.translation = new_translation;
-        //    }
         }
 
         if mouse_delta.length_squared() > 0.0 {
@@ -123,7 +121,7 @@ pub fn toggle_cursor_lock(keyboard_input: Res<ButtonInput<KeyCode>>, mut windows
     }
 }
 
-pub fn check_collisions(player_transform: &Transform, collider_query: &Query<&Transform, (With<Collider>, Without<Player>)>, house_collider_query: &Query<&Transform, (With<ColliderHouse>, Without<Player>)>, pillar_query: &Query<&Transform, (With<ColliderPillar>, Without<Player>)>) -> bool {
+pub fn check_collisions(player_transform: &Transform, collider_query: &Query<&Transform, (With<Collider>, Without<Player>)>, house_collider_query: &Query<&Transform, (With<ColliderHouse>, Without<Player>)>) -> bool {
     for collider_transform in collider_query.iter() {
         if collide(player_transform.translation, Vec3::new(0.6, 1.0, 0.6), collider_transform.translation, Vec3::new(1.0, 1.0, 1.0))
         .is_some()
@@ -140,19 +138,7 @@ pub fn check_collisions(player_transform: &Transform, collider_query: &Query<&Tr
         }
     }
 
-    for pillar_transform in pillar_query.iter() {
-        if let Some(_) = collide(player_transform.translation, Vec3::new(0.6, 1.0, 0.6), pillar_transform.translation, Vec3::new(0.8, 1.0, 0.8)) {
-            return true;
-        }
-    }
-
     false
-}
-
-pub fn check_collisions_with_pillar(obstacle_positions: &Res<ObstaclePositions>, z: usize, x: usize, direction: Vec3, distance: f32) -> bool {
-    let new_z = (z as f32 + direction.z * distance).round() as usize;
-    let new_x = (x as f32 + direction.x * distance).round() as usize;
-    obstacle_positions.positions.get(new_z).and_then(|row| row.get(new_x)).copied().unwrap_or(false)
 }
 
 fn collide(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
