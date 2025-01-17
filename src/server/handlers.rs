@@ -3,6 +3,8 @@ use std::{
     net::{SocketAddr, UdpSocket},
 };
 
+
+
 use crate::{
     client::player::{add_player, Player},
     common::{constant::MIN_PLAYERS, protocol::*},
@@ -11,7 +13,14 @@ use crate::{
     utils::logger::*,
 };
 
-pub fn handle_message(
+use std::sync::Mutex;
+use lazy_static::lazy_static;
+use rand::Rng;
+use bevy::math::vec3;
+use bevy::math::Vec3;
+
+pub fn 
+handle_message(
     server_socket: &UdpSocket,
     players: &mut HashMap<String, Player>,
     message: GameMessage,
@@ -38,8 +47,9 @@ fn handle_new_connection(
     message: GameMessage,
     src: SocketAddr,
     state: &mut PlayerCountState,
-) {
-    add_player(players, message.sender.clone(), src);
+    ) {
+    let initial_position= choose_place(& ALL_POSITION, & IS_OCCUPED);
+    add_player(players, message.sender.clone(), src, initial_position);
     state.player_count = players.len();
     
     let has_enough = players.len() >= MIN_PLAYERS;
@@ -77,6 +87,7 @@ fn send_wait_for_players_message(server_socket: &UdpSocket, players: &mut HashMa
         sender: "server".to_string(),
         content: MessageContent::WaitForPlayers {
             msg: "Please wait for other players...".to_string(),
+            players:players.clone(),
         },
     };
 
@@ -91,6 +102,7 @@ fn start_game(server_socket: &UdpSocket, players: &mut HashMap<String, Player>) 
         sender: "server".to_string(),
         content: MessageContent::StartGame {
             msg: "Ready for the game".to_string(),
+            players: players.clone()
         },
     };
 
@@ -163,9 +175,10 @@ fn handle_game_update(
     players: &mut HashMap<String, Player>,
     message: GameMessage,
 ) {
+    println!("message-server {:#?}", message);
     let update_msg = GameMessage {
         message_type: MessageType::GameUpdate,
-        sender: "server".to_string(),
+        sender: message.sender.to_string(),
         content: message.content.clone(),
     };
 
@@ -175,4 +188,79 @@ fn handle_game_update(
     };
 
     broadcast_message(server_socket, &players, msg_json, None, true);
+}
+
+lazy_static! {
+    pub static ref ALL_POSITION: Mutex<HashMap<String, Vec<f32>>> = {
+        let mut map = HashMap::new();
+        map.insert("1".to_string(), vec![20.0, 1.0, 37.0]);
+        map.insert("2".to_string(), vec![24.29, 1.0, 25.13]);
+        map.insert("3".to_string(), vec![15.84, 1.0, 19.92]);
+        map.insert("4".to_string(), vec![25.97, 1.0, 18.76]);
+        map.insert("5".to_string(), vec![37.70, 1.0, 21.66]);
+        map.insert("6".to_string(), vec![24.14, 1.0, 1.41]);
+        map.insert("7".to_string(), vec![37.0, 1.0, 35.0]);
+        map.insert("8".to_string(), vec![37.4, 1.0, 1.2]);
+        map.insert("9".to_string(), vec![1.27, 1.0, 5.63]);
+        map.insert("10".to_string(), vec![1.68, 1.0, 18.91]);
+        Mutex::new(map)
+    };
+
+    pub static ref IS_OCCUPED: Mutex<HashMap<String, bool>> = {
+        let mut map = HashMap::new();
+        map.insert("1".to_string(), false);
+        map.insert("2".to_string(), false);
+        map.insert("3".to_string(), false);
+        map.insert("4".to_string(), false);
+        map.insert("5".to_string(), false);
+        map.insert("6".to_string(), false);
+        map.insert("7".to_string(), false);
+        map.insert("8".to_string(), false);
+        map.insert("9".to_string(), false);
+        map.insert("10".to_string(), false);
+        Mutex::new(map)
+    };
+}
+
+pub fn set_is_occupied(key: &str, value: bool) {
+    let mut is_occuped = IS_OCCUPED.lock().unwrap();
+    if let Some(entry) = is_occuped.get_mut(key) {
+        *entry = value;
+    }
+}
+
+fn choose_place(
+    all_position: &Mutex<HashMap<String, Vec<f32>>>, is_occuped: &Mutex<HashMap<String, bool>>
+) -> Vec3 {
+    let all_position_locked= all_position.lock().unwrap();
+    let mut is_occuped_locked=is_occuped.lock().unwrap();
+    let mut rng = rand::thread_rng();
+    
+    // Générer un index aléatoire basé sur la longueur de name_position
+    let random_number = rng.gen_range(0..all_position_locked.len());
+    
+    // Obtenir la clé correspondant à l'index aléatoire
+    let random_key = all_position_locked.keys().nth(random_number).unwrap().clone();
+    
+    // Vérifier si la clé existe dans bool_position
+    match is_occuped_locked.get_mut(&random_key) {
+        Some(bool_value) => {
+            // Vérifier si le lieu a déjà été choisi (i.e., si la valeur booléenne est true)
+            if *bool_value {
+                // Si déjà choisi, on rappelle la fonction pour essayer de choisir un autre lieu
+                return choose_place(all_position, is_occuped);
+            } else {
+                // Marquer le lieu comme choisi (mettre la valeur à true)
+                *bool_value = true;
+                
+                // Retourner la valeur correspondante de name_position
+                let position= all_position_locked.get(&random_key).unwrap().clone();
+                return vec3(position[0], position[1], position[2])
+            }
+        },
+        None => {
+            // Si la clé n'existe pas dans bool_position, on rappelle la fonction pour essayer encore
+            return choose_place(all_position, is_occuped);
+        }
+    }
 }

@@ -1,6 +1,11 @@
+// use bevy::scene::ron::de::Position;
+
 use crate::graphics::resources::PlayerCountState;
 use crate::graphics::start::start;
+use crate::maze::maze::PosStruct;
 use crate::{common::protocol::*, utils::logger::*};
+
+// use super::player::Players;
 pub fn handle_disconnect(content: MessageContent) {
     if let MessageContent::Disconnect { reason } = content {
         display_warning(&format!("[{}]", reason));
@@ -31,15 +36,21 @@ pub fn handle_waiting(
     config: &NetworkConfig,
     state: &mut PlayerCountState,
 ) {
-    if let MessageContent::WaitForPlayers { msg } = content {
+    if let MessageContent::WaitForPlayers { msg, players } = content {
         state.has_enough_players = false;
         display_info(&msg);
+
+        let pos=PosStruct{
+            position: players.get(&config.player_name.clone()).unwrap().movement.position,
+        };
+
         unsafe {
             start(
                 config.player_name.clone(),
                 config.server_address.clone(),
                 config.client_socket.clone(),
                 state.clone(),
+                pos,
             );
             GAME_STARTED = true;
         }
@@ -49,9 +60,13 @@ pub fn handle_waiting(
 }
 
 pub fn handle_start(content: MessageContent, config: &NetworkConfig, state: &mut PlayerCountState) {
-    if let MessageContent::StartGame { msg } = content {
+    if let MessageContent::StartGame { msg ,players} = content {
         state.has_enough_players = true;
         display_info(&msg);
+
+        let pos=PosStruct{
+            position: players.get(&config.player_name.clone()).unwrap().movement.position,
+        };
 
         unsafe {
             start(
@@ -59,6 +74,7 @@ pub fn handle_start(content: MessageContent, config: &NetworkConfig, state: &mut
                 config.server_address.clone(),
                 config.client_socket.clone(),
                 state.clone(),
+                pos,
             );
             GAME_STARTED = true;
         }

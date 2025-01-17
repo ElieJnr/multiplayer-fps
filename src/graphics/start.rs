@@ -4,7 +4,8 @@ use super::{map::MazePlugin, resources::PlayerCountState, systems::setup::minima
 use crate::{
     client::player::*,
     common::{protocol::NetworkConfig, sync::NetworkPlugin},
-    graphics::{resources::Map, states::GameState, systems::menu::menu_plugin}, maze::minimap::minimap::{load_minimap_textures, read_maze},
+    graphics::{resources::Map, states::GameState, systems::menu::menu_plugin},
+    maze::{maze::PosStruct, minimap::minimap::{load_minimap_textures, read_maze}},
 };
 use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*, render::settings::WgpuSettings};
 
@@ -13,6 +14,7 @@ pub fn start(
     server_address: String,
     client_socket: Arc<UdpSocket>,
     player_count_state: PlayerCountState,
+    initial_position:PosStruct
 ) {
     let mut app = App::new();
 
@@ -34,6 +36,7 @@ pub fn start(
         })
         .insert_resource(Players(HashMap::new()))
         .insert_resource(player_count_state)
+        .insert_resource(initial_position)
         .insert_resource(MyWgpuSettings::new())
         .init_state::<GameState>();
 
@@ -45,8 +48,6 @@ pub fn start(
 
     app.run();
 }
-
-
 
 #[derive(Resource)]
 pub struct MyWgpuSettings(WgpuSettings);

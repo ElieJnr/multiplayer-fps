@@ -2,6 +2,8 @@ use crate::utils::logger::*;
 use bevy::prelude::Resource;
 use serde::{Deserialize, Serialize};
 use std::{net::{SocketAddr, UdpSocket}, sync::Arc};
+use std::collections::HashMap;
+use crate::client::player::Player;
 
 #[derive(Resource, Debug)]
 pub struct NetworkConfig {
@@ -45,8 +47,8 @@ pub enum MessageContent {
     PlayerAction { action: String },
     ServerInfo { server_status: String },
     Disconnect { reason: String },
-    WaitForPlayers { msg: String },
-    StartGame { msg: String },
+    WaitForPlayers { msg: String, players:HashMap<String, Player> },
+    StartGame { msg: String, players:HashMap<String, Player> },
 }
 
 pub fn serialize_message(message: &GameMessage) -> Option<Vec<u8>> {
