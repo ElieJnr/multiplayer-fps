@@ -1,13 +1,12 @@
 use bevy::prelude::*;
 use super::textures::*;
 use super::models::*;
-use super::player_simulation::*;
 use serde_json::Value;
 use crate::graphics::map::MazeState;
-
+use crate::player::player::{create_players, PlayerAnimations, PreloadedPlayerAnimations};
 
 // permet d'appeler les fonctions pour la creation de la scène
-pub fn maze_setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>, asset_server: Res<AssetServer>, params: Res<TreeParams>, mut maze_state: ResMut<MazeState>) {
+pub fn maze_setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>, asset_server: Res<AssetServer>, params: Res<TreeParams>, mut maze_state: ResMut<MazeState>, preloaded_animations: Res<PreloadedPlayerAnimations>, player_animations: Res<PlayerAnimations>) {
     let map_data = include_str!("../maze/maze.json");
     let map: Value = serde_json::from_str(map_data).unwrap();
     let maze = map["maze-1"].as_array().unwrap();
@@ -19,7 +18,6 @@ pub fn maze_setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut 
     create_surface(&mut commands, floor_mesh, floor_material, width, height);
     create_sky(&mut commands, &mut meshes, &mut materials, textures.sky_texture);
     create_lights(&mut commands, width, height);
-    // create_camera(&mut commands, Vec3::new(26.5, 1.0, 10.45), Vec3::ZERO, width, height);
 
     for (i, row) in maze.iter().enumerate() {
         let row = row.as_array().unwrap();
@@ -38,6 +36,6 @@ pub fn maze_setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut 
         }
     }
     
-    create_player(&mut commands, &mut meshes, &mut materials, width, height);
+    create_players(&mut commands, preloaded_animations, player_animations, width, height);
     maze_state.is_ready = true;
 }

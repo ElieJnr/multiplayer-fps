@@ -12,7 +12,6 @@ use bevy::{
 use serde::Deserialize;
 use crate::maze::{player_simulation::{camera_view_toggle, player_movement, PlayerMovement}, textures::rotate_sky};
 use crate::maze::maze::maze_setup;
-// use crate::maze::player_simulation::camera_controller;
 use crate::maze::models::{CameraState, TreeParams};
 
 use super::{show_fps::{setup_fps_ui, update_fps_ui}, states::GameState};

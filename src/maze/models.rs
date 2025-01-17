@@ -16,7 +16,7 @@ pub struct Arch;
 pub struct PlayerCamera;
 
 #[derive(Component)]
-pub struct Player;
+pub struct Players;
 
 #[derive(Default, Resource)]
 pub struct CameraState {

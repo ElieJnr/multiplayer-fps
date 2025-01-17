@@ -14,7 +14,7 @@ impl Default for PlayerMovement {
     fn default() -> Self {
         Self {
             speed: 5.0,
-            mouse_sensitivity: 0.003, // Ajustez cette valeur selon vos besoins
+            mouse_sensitivity: 0.003,
             ground_level: 1.0,
         }
     }
@@ -34,7 +34,7 @@ pub fn create_player(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>,
             transform: Transform::from_xyz(width / 2.0, 1.0, height - 5.0),
             ..default()
         },
-        Player,
+        // Players,
     )).id();
 
     commands.spawn((
@@ -52,7 +52,7 @@ pub fn player_movement(
     time: Res<Time>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut motion_evr: EventReader<MouseMotion>,
-    mut query: Query<&mut Transform, With<Player>>,
+    mut query: Query<&mut Transform, With<Players>>,
     movement: Res<PlayerMovement>
 ) {
     let mut mouse_delta = Vec2::ZERO;
@@ -64,7 +64,7 @@ pub fn player_movement(
         // Avancer uniquement avec ArrowUp
         if keyboard_input.pressed(KeyCode::ArrowUp) {
             let forward = transform.forward();
-            transform.translation -= forward * movement.speed * time.delta_seconds();
+            transform.translation += forward * movement.speed * time.delta_seconds();
         }
         
         // Rotation avec la souris
@@ -78,8 +78,8 @@ pub fn player_movement(
 
 pub fn camera_view_toggle(
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut _player_query: Query<&mut Transform, With<Player>>,
-    mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<Player>)>,
+    mut _player_query: Query<&mut Transform, With<Players>>,
+    mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<Players>)>,
     mut camera_state: ResMut<CameraState>
 ) {
     if keyboard_input.just_pressed(KeyCode::KeyV) {
