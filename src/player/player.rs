@@ -1,5 +1,6 @@
 use bevy::gltf::GltfAssetLabel;
 use bevy::prelude::*;
+use serde_json::Value;
 use std::{collections::HashMap, time::Duration};
 
 pub struct PlayerBuild;
@@ -72,21 +73,21 @@ pub fn setup_player(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    // Lumière
-    commands.spawn(DirectionalLightBundle {
-        transform: Transform::from_xyz(1.0, 20.0, 20.0).looking_at(Vec3::ZERO, Vec3::Y),
-        directional_light: DirectionalLight {
-            illuminance: 50000.,
-            ..Default::default()
-        },
-        ..default()
-    });
+    // // Lumière
+    // commands.spawn(DirectionalLightBundle {
+    //     transform: Transform::from_xyz(1.0, 20.0, 20.0).looking_at(Vec3::ZERO, Vec3::Y),
+    //     directional_light: DirectionalLight {
+    //         illuminance: 50000.,
+    //         ..Default::default()
+    //     },
+    //     ..default()
+    // });
 
-    // Caméra
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(0.0, 2.4, 0.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ..default()
-    });
+    // // Caméra
+    // commands.spawn(Camera3dBundle {
+    //     transform: Transform::from_xyz(0.0, 2.4, 0.0).looking_at(Vec3::ZERO, Vec3::Y),
+    //     ..default()
+    // });
 
     // Plan
     commands.spawn(PbrBundle {
@@ -226,13 +227,21 @@ pub fn preload_player_assets(
     }
 
     let graph_handle = animation_graphs.add(graph);
-
+    let map_data = include_str!("../maze/maze.json");
+    let map: Value = serde_json::from_str(map_data).unwrap();
+    let maze = map["maze-1"].as_array().unwrap();
+    let height = maze.len() as f32;
+    let width = maze[0].as_array().unwrap().len() as f32;
     info!("Spawning player entity");
     let player_entity = commands
         .spawn((
             SceneBundle {
                 scene: model.clone(),
-                transform: Transform::from_xyz(0.0, 0.0, 1.0),
+                transform: Transform {
+                    translation: Vec3::new(width / 2.0, 0.0, height - 5.0),
+                    scale: Vec3::splat(0.5), 
+                    ..default()
+                },
                 ..default()
             },
             Player,
