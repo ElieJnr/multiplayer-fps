@@ -1,25 +1,19 @@
+use crate::common::protocol::{serialize_message, GameMessage, MessageContent, MessageType, NetworkConfig};
+use crate::common::sync::NetworkMessages;
+
+use super::models::*;
 use bevy::asset::Assets;
 use bevy::color::Color;
 use bevy::input::mouse::MouseMotion;
 use bevy::input::ButtonInput;
+use bevy::math::primitives::Cylinder;
 use bevy::math::{Quat, Vec2, Vec3};
 use bevy::pbr::{PbrBundle, StandardMaterial};
-use bevy::prelude::{
-    BuildChildren, Camera3d, Camera3dBundle, Commands, Cylinder, Entity, EventReader, KeyCode,
-    Mesh, Query, Res, ResMut, Resource, Transform, With, Without,
-};
+use bevy::prelude::{BuildChildren, Camera3d, Camera3dBundle, Commands, Entity, EventReader, KeyCode, Mesh, Query, Res, ResMut, Resource, Transform, With, Without};
 use bevy::time::Time;
-use bevy::utils::default;
 use bevy::window::{CursorGrabMode, Window};
 
-use crate::common::protocol::{
-    serialize_message, GameMessage, MessageContent, MessageType, NetworkConfig,
-};
-use crate::common::sync::NetworkMessages;
-
-use super::models::*;
-
-#[derive(Resource, Debug, Clone,serde::Deserialize,serde::Serialize)]
+#[derive(Resource, Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct PlayerMovement {
     pub speed: f32,
     pub mouse_sensitivity: f32,
@@ -57,11 +51,11 @@ pub fn create_player(
     let cylinder_mesh = meshes.add(Mesh::from(Cylinder {
         radius: 0.4,
         half_height: 0.5,
-        ..default()
+        ..Default::default()
     }));
     let cylinder_material = materials.add(StandardMaterial {
         base_color: Color::srgb(0.8, 0.7, 0.6),
-        ..default()
+        ..Default::default()
     });
 
     let player = commands
@@ -70,9 +64,10 @@ pub fn create_player(
                 mesh: cylinder_mesh,
                 material: cylinder_material,
                 transform: Transform::from_xyz(pos[0], pos[1], pos[2]),
-                ..default()
+                ..Default::default()
             },
             Player,
+            Collider,
         ))
         .id();
 
@@ -80,7 +75,7 @@ pub fn create_player(
         .spawn((Camera3dBundle {
             transform: Transform::from_xyz(0.0, 0.5, 0.0)
                 .looking_at(Vec3::new(0.0, 0.5, 0.1), Vec3::Y),
-            ..default()
+            ..Default::default()
         },))
         .set_parent(player);
 
@@ -92,10 +87,14 @@ pub fn player_movement(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut motion_evr: EventReader<MouseMotion>,
     mut query: Query<&mut Transform, With<Player>>,
+    collider_query: Query<&Transform, (With<Collider>, Without<Player>)>,
+    house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Player>)>,
     mut movement: ResMut<PlayerMovement>,
+    _obstacle_positions: Res<ObstaclePositions>,
     network: Option<Res<NetworkConfig>>,
 ) {
     let mut mouse_delta = Vec2::ZERO;
+
     for event in motion_evr.read() {
         mouse_delta += event.delta;
     }
@@ -103,16 +102,29 @@ pub fn player_movement(
     for mut transform in query.iter_mut() {
         let mut moved = false;
 
+        let mut new_translation = transform.translation;
+
         if keyboard_input.pressed(KeyCode::ArrowUp) {
             let forward = transform.forward();
-            transform.translation -= forward * movement.speed * time.delta_seconds();
+            new_translation -= forward * movement.speed * time.delta_seconds();
             moved = true;
         }
 
         if keyboard_input.pressed(KeyCode::ArrowDown) {
             let forward = transform.forward();
-            transform.translation += forward * movement.speed * time.delta_seconds();
+            new_translation += forward * movement.speed * time.delta_seconds();
             moved = true;
+        }
+
+        if !check_collisions(
+            &Transform {
+                translation: new_translation,
+                ..*transform
+            },
+            &collider_query,
+            &house_collider_query,
+        ) {
+            transform.translation = new_translation;
         }
 
         if mouse_delta.length_squared() > 0.0 {
@@ -121,7 +133,7 @@ pub fn player_movement(
         }
 
         transform.translation.y = movement.ground_level;
-        
+
         if moved {
             movement.set_position(transform.translation);
 
@@ -184,6 +196,52 @@ pub fn toggle_cursor_lock(
     }
 }
 
+pub fn check_collisions(
+    player_transform: &Transform,
+    collider_query: &Query<&Transform, (With<Collider>, Without<Player>)>,
+    house_collider_query: &Query<&Transform, (With<ColliderHouse>, Without<Player>)>,
+) -> bool {
+    for collider_transform in collider_query.iter() {
+        if collide(
+            player_transform.translation,
+            Vec3::new(0.6, 1.0, 0.6),
+            collider_transform.translation,
+            Vec3::new(1.0, 1.0, 1.0),
+        )
+        .is_some()
+        {
+            return true;
+        }
+    }
+
+    for house_collider_transform in house_collider_query.iter() {
+        if collide(
+            player_transform.translation,
+            Vec3::new(0.6, 1.0, 0.6),
+            house_collider_transform.translation,
+            Vec3::new(3.0, 2.5, 3.0),
+        )
+        .is_some()
+        {
+            return true;
+        }
+    }
+
+    false
+}
+
+fn collide(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
+    let collision_x = (pos1.x - pos2.x).abs() < (size1.x + size2.x) / 2.0;
+    let collision_y = (pos1.y - pos2.y).abs() < (size1.y + size2.y) / 2.0;
+    let collision_z = (pos1.z - pos2.z).abs() < (size1.z + size2.z) / 2.0;
+
+    if collision_x && collision_y && collision_z {
+        Some(())
+    } else {
+        None
+    }
+}
+
 pub fn manage_remote_players(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -216,14 +274,14 @@ pub fn manage_remote_players(
                             mesh: meshes.add(Mesh::from(Cylinder {
                                 radius: 0.4,
                                 half_height: 0.5,
-                                ..default()
+                                ..Default::default()
                             })),
                             material: materials.add(StandardMaterial {
                                 base_color: Color::srgb(1.0, 0.0, 0.0),
-                                ..default()
+                                ..Default::default()
                             }),
                             transform: Transform::from_xyz(*x, 1.0, *z),
-                            ..default()
+                            ..Default::default()
                         },
                         RemotePlayer {
                             name: player_name.clone(),

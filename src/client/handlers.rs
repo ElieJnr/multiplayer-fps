@@ -6,6 +6,7 @@ use crate::maze::maze::PosStruct;
 use crate::{common::protocol::*, utils::logger::*};
 
 // use super::player::Players;
+
 pub fn handle_disconnect(content: MessageContent) {
     if let MessageContent::Disconnect { reason } = content {
         display_warning(&format!("[{}]", reason));
@@ -38,6 +39,7 @@ pub fn handle_waiting(
 ) {
     if let MessageContent::WaitForPlayers { msg, players } = content {
         state.has_enough_players = false;
+
         display_info(&msg);
 
         let pos=PosStruct{
@@ -61,7 +63,9 @@ pub fn handle_waiting(
 
 pub fn handle_start(content: MessageContent, config: &NetworkConfig, state: &mut PlayerCountState) {
     if let MessageContent::StartGame { msg ,players} = content {
-        state.has_enough_players = true;
+        if msg == "start" {
+            state.has_enough_players = true;
+        }
         display_info(&msg);
 
         let pos=PosStruct{

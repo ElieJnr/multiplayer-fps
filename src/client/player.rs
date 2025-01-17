@@ -10,11 +10,13 @@ use crate::{
 #[derive(Resource, Debug)]
 pub struct Players(pub HashMap<String, Player>);
 
-#[derive(Debug, Clone,serde::Deserialize,serde::Serialize)]
+// #[derive(Debug, Clone, Resource)]
+#[derive(Debug, Clone, Resource, serde::Deserialize, serde::Serialize)]
 pub struct Player {
     pub name: String,
     pub address: SocketAddr,
     pub health: u32,
+    pub ready: bool,
     pub movement: PlayerMovement,
 }
 
@@ -22,7 +24,7 @@ pub fn add_player(
     players: &mut HashMap<String, Player>,
     name: String,
     address: SocketAddr,
-    initial_position:Vec3
+    initial_position: Vec3,
 ) {
     if players.contains_key(&name) {
         display_warning(&format!("Player '{}' is already connected.", name));
@@ -33,6 +35,7 @@ pub fn add_player(
                 name: name.clone(),
                 address,
                 health: 3,
+                ready: false,
                 movement: PlayerMovement {
                     speed: 5.0,
                     mouse_sensitivity: 0.003,
