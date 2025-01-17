@@ -130,8 +130,8 @@
  ## tsk1: 
   ☐ synchronisation debut de jeu pour tous les players @lino
   ☐ Initialisation de la position des joueurs et placement du player puis des ennemis (serveur) @Ousmasene et @emalo 
-  ☐ deplacement du joueur avec les touches du clavier et de la camera avec la souris (client)  @babacar 
-  ☐ Synchroniser le mouvement avec la position dans la mini-carte (client) @jgoudj
+  ✔ deplacement du joueur avec les touches du clavier et de la camera avec la souris (client)  @babacar @done(25-01-17 13:19)
+  ✔ Synchroniser le mouvement avec la position dans la mini-carte (client) @jgoudj @done(25-01-17 13:19)
   ☐ Synchroniser ces actions entre le client et le serveur. (position du joueur, vie, ...) @kendi
   ☐ Assurer que chaque joueur voit les mouvements des autres en temps réel (client et serveur)
 

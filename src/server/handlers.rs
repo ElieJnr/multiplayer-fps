@@ -74,20 +74,6 @@ fn send_wait_for_players_message(server_socket: &UdpSocket, players: &mut HashMa
     }
 }
 
-// fn start_game(server_socket: &UdpSocket, players: &mut HashMap<String, Player>) {
-//     let msg = GameMessage {
-//         message_type: MessageType::StartGame,
-//         sender: "server".to_string(),
-//         content: MessageContent::StartGame {
-//             msg: "Ready for the game".to_string(),
-//         },
-//     };
-
-//     if let Some(msg_json) = serialize_message(&msg) {
-//         broadcast_message(server_socket, players, msg_json, None, true);
-//     }
-// }
-
 fn handle_disconnect(
     server_socket: &UdpSocket,
     players: &mut HashMap<String, Player>,
@@ -145,7 +131,6 @@ fn handle_disconnect(
 
 pub fn handle_player_action(
     message: GameMessage,
-    // src: SocketAddr,
     players: &mut HashMap<String, Player>,
     server_socket: &UdpSocket,
 ) {
@@ -169,22 +154,12 @@ pub fn handle_player_action(
                     },
                 };
 
-                let serialized_msg = match serialize_message(&start_game_msg) {
-                    Some(msg) => msg,
-                    None => {
-                        display_error("Failed to serialize start game message.");
-                        return;
-                    }
+                let msg_json = match serialize_message(&start_game_msg) {
+                    Some(bytes) => bytes,
+                    None => return,
                 };
 
-                for player in players.values() {
-                    if let Err(err) = server_socket.send_to(&serialized_msg, player.address) {
-                        display_error(&format!(
-                            "Failed to send start game message to {}: {}",
-                            player.name, err
-                        ));
-                    }
-                }
+                broadcast_message(server_socket, players, msg_json, None, true);
             }
         }
     }
