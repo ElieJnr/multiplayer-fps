@@ -136,7 +136,7 @@
   ☐ Assurer que chaque joueur voit les mouvements des autres en temps réel (client et serveur)
 
   ## tsk2:
-  ☐ Collision  (client)
+  ✔ Collision  (client) @done(25-01-17 15:40)
   ☐ update de la position du joueur (client)
   ☐ placement crosshair (client)
   ☐ Tir et impact (client)
