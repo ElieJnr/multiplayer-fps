@@ -1,7 +1,10 @@
-use crate::utils::logger::*;
+use crate:: utils::logger::*;
 use bevy::prelude::Resource;
 use serde::{Deserialize, Serialize};
-use std::{net::{SocketAddr, UdpSocket}, sync::Arc};
+use std::{
+    net::{SocketAddr, UdpSocket},
+    sync::Arc,
+};
 
 #[derive(Resource, Debug)]
 pub struct NetworkConfig {
@@ -15,7 +18,7 @@ impl NetworkConfig {
         NetworkConfig {
             player_name,
             server_address,
-            client_socket: Arc::new(socket), 
+            client_socket: Arc::new(socket),
         }
     }
 }
@@ -97,13 +100,40 @@ pub fn send_disconnect_message(config: &NetworkConfig, player_name: &str, reason
             reason: reason.to_string(),
         },
     };
-    
+
     let serialized_msg = match serialize_message(&disconnect_message) {
         Some(msg) => msg,
         None => return display_error("Failed to serialize disconnect message."),
     };
-    
-    if let Err(err) = config.client_socket.send_to(&serialized_msg, config.server_address.clone()) {
+
+    if let Err(err) = config
+        .client_socket
+        .send_to(&serialized_msg, config.server_address.clone())
+    {
+        display_error(&format!("Failed to send disconnect message: {}", err));
+    } else {
+        display_info(&format!("{} is disconnected successfully.", player_name));
+    }
+}
+
+pub fn send_ready_msg(config: &NetworkConfig, player_name: &str) {
+    let ready_msg = GameMessage {
+        message_type: MessageType::PlayerAction,
+        sender: player_name.to_string(),
+        content: MessageContent::PlayerAction {
+            action: "ready".to_string(),
+        },
+    };
+
+    let serialized_msg = match serialize_message(&ready_msg) {
+        Some(msg) => msg,
+        None => return display_error("Failed to serialize disconnect message."),
+    };
+
+    if let Err(err) = config
+        .client_socket
+        .send_to(&serialized_msg, config.server_address.clone())
+    {
         display_error(&format!("Failed to send disconnect message: {}", err));
     } else {
         display_info(&format!("{} is disconnected successfully.", player_name));
