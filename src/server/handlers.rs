@@ -4,27 +4,36 @@ use std::{
 };
 
 use crate::{
-    client::player::{add_player, Player}, common::{constant::MIN_PLAYERS, protocol::*}, maze::player_simulation::PlayerInput, server::udp::broadcast_message, utils::logger::*
+    client::player::{add_player, Player},
+    common::{constant::PlayerCount, protocol::*},
+    maze::player_simulation::PlayerInput,
+    server::udp::broadcast_message,
+    utils::logger::*,
 };
 
-use std::sync::Mutex;
+use bevy::math::Vec3;
+use bevy::{
+    math::{vec3, Quat},
+    prelude::Transform,
+};
 use lazy_static::lazy_static;
 use rand::Rng;
-use bevy::{math::{vec3, Quat}, prelude::Transform};
-use bevy::math::Vec3;
+use std::sync::Mutex;
 
-pub fn 
-handle_message(
+pub fn handle_message(
     server_socket: &UdpSocket,
     players: &mut HashMap<String, Player>,
     message: GameMessage,
     src: SocketAddr,
+    player_count: &PlayerCount,
 ) {
     match message.message_type {
         MessageType::NewConnection => {
             handle_new_connection(server_socket, players, message, src);
         }
-        MessageType::PlayerAction => handle_player_action(server_socket, players, message),
+        MessageType::PlayerAction => {
+            handle_player_action(server_socket, players, message, &player_count)
+        }
         MessageType::GameUpdate => handle_game_update(server_socket, players, message),
         MessageType::Disconnect => handle_disconnect(server_socket, players, message, src),
         _ => display_error(&format!(
@@ -39,8 +48,8 @@ fn handle_new_connection(
     players: &mut HashMap<String, Player>,
     message: GameMessage,
     src: SocketAddr,
-    ) {
-    let initial_position= choose_place(& ALL_POSITION, & IS_OCCUPED);
+) {
+    let initial_position = choose_place(&ALL_POSITION, &IS_OCCUPED);
     add_player(players, message.sender.clone(), src, initial_position);
 
     send_new_connection_message(server_socket, players, &message.sender);
@@ -71,7 +80,7 @@ fn send_wait_for_players_message(server_socket: &UdpSocket, players: &mut HashMa
         sender: "server".to_string(),
         content: MessageContent::WaitForPlayers {
             msg: "Please wait for other players...".to_string(),
-            players:players.clone(),
+            players: players.clone(),
         },
     };
 
@@ -139,29 +148,47 @@ pub fn handle_player_action(
     server_socket: &UdpSocket,
     players: &mut HashMap<String, Player>,
     message: GameMessage,
+    player_count: &PlayerCount,
 ) {
-    if let MessageContent::PlayerAction { action, sequence_number, timestamp } = message.content {
+    if let MessageContent::PlayerAction {
+        action,
+        sequence_number,
+        timestamp,
+    } = message.content
+    {
         if let Some(player) = players.get_mut(&message.sender) {
             if action.ready {
-                handle_ready_state(server_socket, players, &message.sender);
+                handle_ready_state(server_socket, players, &message.sender, &player_count);
                 return;
             }
 
             update_player_movement(player, &action);
 
             let player = players.get(&message.sender).unwrap();
-            broadcast_game_update(server_socket, players, &message.sender, sequence_number, timestamp, player);
+            broadcast_game_update(
+                server_socket,
+                players,
+                &message.sender,
+                sequence_number,
+                timestamp,
+                player,
+            );
         }
     }
 }
 
-fn handle_ready_state(server_socket: &UdpSocket, players: &mut HashMap<String, Player>, player_name: &str) {
+fn handle_ready_state(
+    server_socket: &UdpSocket,
+    players: &mut HashMap<String, Player>,
+    player_name: &str,
+    player_count: &PlayerCount
+) {
     if let Some(player) = players.get_mut(player_name) {
         player.ready = true;
         display_info(&format!("Player {} is ready.", player.name));
 
         // Vérifier si tous les joueurs sont prêts
-        if players.values().all(|p| p.ready) && players.len() == MIN_PLAYERS {
+        if players.values().all(|p| p.ready) && players.len() == player_count.get_min_players() {
             display_info("All players are ready. Starting game...");
 
             let start_game_msg = GameMessage {
@@ -206,7 +233,7 @@ fn broadcast_game_update(
     player_name: &str,
     sequence_number: u32,
     timestamp: f64,
-    player: &Player
+    player: &Player,
 ) {
     let update_msg = GameMessage {
         message_type: MessageType::GameUpdate,
@@ -258,7 +285,6 @@ lazy_static! {
         map.insert("10".to_string(), vec![1.68, 1.0, 18.91]);
         Mutex::new(map)
     };
-
     pub static ref IS_OCCUPED: Mutex<HashMap<String, bool>> = {
         let mut map = HashMap::new();
         map.insert("1".to_string(), false);
@@ -283,18 +309,23 @@ pub fn set_is_occupied(key: &str, value: bool) {
 }
 
 fn choose_place(
-    all_position: &Mutex<HashMap<String, Vec<f32>>>, is_occuped: &Mutex<HashMap<String, bool>>
+    all_position: &Mutex<HashMap<String, Vec<f32>>>,
+    is_occuped: &Mutex<HashMap<String, bool>>,
 ) -> Vec3 {
-    let all_position_locked= all_position.lock().unwrap();
-    let mut is_occuped_locked=is_occuped.lock().unwrap();
+    let all_position_locked = all_position.lock().unwrap();
+    let mut is_occuped_locked = is_occuped.lock().unwrap();
     let mut rng = rand::thread_rng();
-    
+
     // Générer un index aléatoire basé sur la longueur de name_position
     let random_number = rng.gen_range(0..all_position_locked.len());
-    
+
     // Obtenir la clé correspondant à l'index aléatoire
-    let random_key = all_position_locked.keys().nth(random_number).unwrap().clone();
-    
+    let random_key = all_position_locked
+        .keys()
+        .nth(random_number)
+        .unwrap()
+        .clone();
+
     // Vérifier si la clé existe dans bool_position
     match is_occuped_locked.get_mut(&random_key) {
         Some(bool_value) => {
@@ -305,12 +336,12 @@ fn choose_place(
             } else {
                 // Marquer le lieu comme choisi (mettre la valeur à true)
                 *bool_value = true;
-                
+
                 // Retourner la valeur correspondante de name_position
-                let position= all_position_locked.get(&random_key).unwrap().clone();
-                return vec3(position[0], position[1], position[2])
+                let position = all_position_locked.get(&random_key).unwrap().clone();
+                return vec3(position[0], position[1], position[2]);
             }
-        },
+        }
         None => {
             // Si la clé n'existe pas dans bool_position, on rappelle la fonction pour essayer encore
             return choose_place(all_position, is_occuped);
