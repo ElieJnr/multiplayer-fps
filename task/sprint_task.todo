@@ -121,3 +121,8 @@
     
   ---
  
+
+// Cli pour definir le nombre de players au moment de creer la partie pour remplacer 
+le minuteur pour le waiting room.
+
+// ajoutez un curseur sur la tête du joueur avec son nom.
