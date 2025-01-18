@@ -1,26 +1,31 @@
 use std::{collections::HashMap, net::SocketAddr};
 
-use bevy::prelude::Resource;
+use bevy::{math::Vec3, prelude::Resource};
 
-use crate::utils::logger::{display_info, display_warning};
+use crate::{
+    maze::player_simulation::PlayerMovement,
+    utils::logger::{display_info, display_warning},
+};
 
 #[derive(Resource, Debug)]
 pub struct Players(pub HashMap<String, Player>);
 
-#[derive(Debug, Clone, Resource)]
+// #[derive(Debug, Clone, Resource)]
+#[derive(Debug, Clone, Resource, serde::Deserialize, serde::Serialize)]
 pub struct Player {
     pub name: String,
     pub address: SocketAddr,
     pub health: u32,
     pub ready: bool,
+    pub movement: PlayerMovement,
 }
 
-#[derive(Debug, Clone, Resource, Default)]
-pub struct AllPlayers {
-    pub players: HashMap<String, Player>,
-}
-
-pub fn add_player(players: &mut HashMap<String, Player>, name: String, address: SocketAddr) {
+pub fn add_player(
+    players: &mut HashMap<String, Player>,
+    name: String,
+    address: SocketAddr,
+    initial_position: Vec3,
+) {
     if players.contains_key(&name) {
         display_warning(&format!("Player '{}' is already connected.", name));
     } else {
@@ -31,6 +36,15 @@ pub fn add_player(players: &mut HashMap<String, Player>, name: String, address: 
                 address,
                 health: 3,
                 ready: false,
+                movement: PlayerMovement {
+                    speed: 5.0,
+                    mouse_sensitivity: 0.003,
+                    ground_level: 1.0,
+                    position: initial_position,
+                    rotation: Default::default(),
+                    last_processed_input: Default::default(),
+                    input_buffer: Default::default(),
+                },
             },
         );
         display_info(&format!("{} has joined", name.clone()));

@@ -1,14 +1,47 @@
+use crate::common::protocol::{serialize_message, GameMessage, MessageContent, MessageType, NetworkConfig};
+use crate::common::sync::NetworkMessages;
+use std::collections::VecDeque;
 use super::models::*;
+use bevy::asset::Assets;
+use bevy::color::Color;
 use bevy::input::mouse::MouseMotion;
+use bevy::input::ButtonInput;
 use bevy::math::primitives::Cylinder;
-use bevy::prelude::*;
-use bevy::window::CursorGrabMode;
+use bevy::math::{Quat, Vec2, Vec3};
+use bevy::pbr::{PbrBundle, StandardMaterial};
+use bevy::prelude::{
+    BuildChildren, Camera3d, Camera3dBundle, Commands, Entity, EventReader, KeyCode,
+    Local, Mesh, Query, Res, ResMut, Resource, Transform, With, Without,
+};
+use bevy::time::Time;
+use bevy::utils::default;
+use bevy::window::{CursorGrabMode, Window};
+use serde::{Deserialize, Serialize};
 
-#[derive(Resource)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct PlayerInput {
+    pub arrow_up: bool,
+    pub arrow_down: bool,
+    pub mouse_delta: Vec2,
+    pub ready: bool,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct InputSequence {
+    pub sequence_number: u32,
+    pub timestamp: f64,
+    pub input: PlayerInput,
+}
+
+#[derive(Resource, Debug, Clone, Deserialize, Serialize)]
 pub struct PlayerMovement {
     pub speed: f32,
     pub mouse_sensitivity: f32,
     pub ground_level: f32,
+    pub position: Vec3,
+    pub rotation: Vec2,
+    pub last_processed_input: u32,
+    pub input_buffer: VecDeque<InputSequence>,
 }
 
 impl Default for PlayerMovement {
@@ -17,19 +50,38 @@ impl Default for PlayerMovement {
             speed: 5.0,
             mouse_sensitivity: 0.003,
             ground_level: 1.0,
+            position: Vec3::ZERO,
+            rotation: Vec2::ZERO,
+            last_processed_input: 0,
+            input_buffer: VecDeque::new(),
         }
     }
 }
 
-pub fn create_player(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, width: f32, height: f32) -> Entity {
+impl PlayerMovement {
+    pub fn get_position(&self) -> Vec3 {
+        self.position
+    }
+
+    pub fn set_position(&mut self, new_position: Vec3) {
+        self.position = new_position;
+    }
+}
+
+pub fn create_player(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
+    pos:Vec3
+) -> Entity {
     let cylinder_mesh = meshes.add(Mesh::from(Cylinder {
         radius: 0.4,
         half_height: 0.5,
-        ..default()
+        ..Default::default()
     }));
     let cylinder_material = materials.add(StandardMaterial {
         base_color: Color::srgb(0.8, 0.7, 0.6),
-        ..default()
+        ..Default::default()
     });
 
     let player = commands
@@ -37,8 +89,8 @@ pub fn create_player(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>,
             PbrBundle {
                 mesh: cylinder_mesh,
                 material: cylinder_material,
-                transform: Transform::from_xyz(width / 2.0, 1.0, height - 5.0),
-                ..default()
+                transform: Transform::from_xyz(pos[0], pos[1], pos[2]),
+                ..Default::default()
             },
             Player,
             Collider,
@@ -49,47 +101,116 @@ pub fn create_player(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>,
         .spawn((Camera3dBundle {
             transform: Transform::from_xyz(0.0, 0.5, 0.0)
                 .looking_at(Vec3::new(0.0, 0.5, 0.1), Vec3::Y),
-            ..default()
+            ..Default::default()
         },))
         .set_parent(player);
 
     player
 }
 
-pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>>, mut motion_evr: EventReader<MouseMotion>, mut query: Query<&mut Transform, With<Player>>, collider_query: Query<&Transform, (With<Collider>, Without<Player>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Player>)>, movement: Res<PlayerMovement>, _obstacle_positions: Res<ObstaclePositions>) {
+pub fn player_movement(
+    time: Res<Time>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut motion_evr: EventReader<MouseMotion>,
+    mut movement: ResMut<PlayerMovement>,
+    _obstacle_positions: Res<ObstaclePositions>,
+    network: Option<Res<NetworkConfig>>,
+    mut sequence_number: Local<u32>,
+    mut query: Query<&mut Transform, With<Player>>,
+    collider_query: Query<&Transform, (With<Collider>, Without<Player>)>,
+    house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Player>)>,
+    maze_state: Res<MazeState>,
+) {
+    if !maze_state.is_ready {
+        return;
+    }
+
     let mut mouse_delta = Vec2::ZERO;
 
     for event in motion_evr.read() {
         mouse_delta += event.delta;
     }
 
-    for mut transform in query.iter_mut() {
-        let mut new_translation = transform.translation;
-        
-        if keyboard_input.pressed(KeyCode::ArrowUp) {
-            let forward = transform.forward();
-            new_translation -= forward * movement.speed * time.delta_seconds();
-        }
+    let input = PlayerInput {
+        arrow_up: keyboard_input.pressed(KeyCode::ArrowUp),
+        arrow_down: keyboard_input.pressed(KeyCode::ArrowDown),
+        mouse_delta,
+        ready: false,
+    };
 
-        if keyboard_input.pressed(KeyCode::ArrowDown) {
-            let forward = transform.forward();
-            new_translation += forward * movement.speed * time.delta_seconds();
-        }
+    if input.arrow_up || input.arrow_down || mouse_delta != Vec2::ZERO {
+        *sequence_number += 1;
+        let delta_time = time.delta_seconds();
 
-        if !check_collisions(&Transform { translation: new_translation, ..*transform }, &collider_query, &house_collider_query) {
-            transform.translation = new_translation;
-        }
+        if let Ok(mut transform) = query.get_single_mut() {
+            let new_transform = transform.clone();
+            
+            apply_input(&mut transform, &input, &movement, delta_time);
+            
+            if check_collisions(&transform, &collider_query, &house_collider_query) {
+                *transform = new_transform;
+            } else {
+                movement.position = transform.translation;
+                movement.rotation.y = transform.rotation.y;
 
-        if mouse_delta.length_squared() > 0.0 {
-            transform.rotate_y(-mouse_delta.x * movement.mouse_sensitivity);
-        }
+                let input_sequence = InputSequence {
+                    sequence_number: *sequence_number,
+                    timestamp: time.elapsed_seconds_f64(),
+                    input,
+                };
 
-        transform.translation.y = movement.ground_level;
+                movement.input_buffer.push_back(input_sequence.clone());
+
+                if let Some(network) = network.as_ref() {
+                    let message = GameMessage {
+                        message_type: MessageType::GameUpdate,
+                        sender: network.player_name.clone(),
+                        content: MessageContent::GameUpdate {
+                            position: (transform.translation.x, transform.translation.z),
+                            rotation: movement.rotation,
+                            sequence_number: *sequence_number,
+                            timestamp: time.elapsed_seconds_f64(),
+                        },
+                    };
+
+                    if let Some(msg_bytes) = serialize_message(&message) {
+                        let _ = network.client_socket.send(&msg_bytes);
+                    }
+                }
+            }
+        }
     }
 }
 
+pub fn apply_input(
+    transform: &mut Transform,
+    input: &PlayerInput,
+    movement: &PlayerMovement,
+    delta_time: f32,
+) {
+    let forward = transform.forward();
+
+    if input.arrow_up {
+        transform.translation -= forward * movement.speed * delta_time;
+    }
+    if input.arrow_down {
+        transform.translation += forward * movement.speed * delta_time;
+    }
+    if input.mouse_delta.length_squared() > 0.0 {
+        transform.rotate_y(-input.mouse_delta.x * movement.mouse_sensitivity);
+    }
+
+    transform.translation.y = movement.ground_level;
+}
+
+
 // permet de changer la vue de la camera
-pub fn camera_view_toggle(keyboard_input: Res<ButtonInput<KeyCode>>, mut _player_query: Query<&mut Transform, With<Player>>, mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<Player>)>, mut camera_state: ResMut<CameraState>) {
+pub fn camera_view_toggle(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut _player_query: Query<&mut Transform, With<Player>>,
+    mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<Player>)>,
+    mut camera_state: ResMut<CameraState>,
+) {
     if keyboard_input.just_pressed(KeyCode::KeyV) {
         camera_state.is_top_view = !camera_state.is_top_view;
 
@@ -107,7 +228,10 @@ pub fn camera_view_toggle(keyboard_input: Res<ButtonInput<KeyCode>>, mut _player
 }
 
 // permet de rendre visible et invisible la souris avec la touche space
-pub fn toggle_cursor_lock(keyboard_input: Res<ButtonInput<KeyCode>>, mut windows: Query<&mut Window>) {
+pub fn toggle_cursor_lock(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut windows: Query<&mut Window>,
+) {
     if keyboard_input.just_pressed(KeyCode::Space) {
         if let Ok(mut window) = windows.get_single_mut() {
             if window.cursor.grab_mode == CursorGrabMode::Locked {
@@ -121,9 +245,18 @@ pub fn toggle_cursor_lock(keyboard_input: Res<ButtonInput<KeyCode>>, mut windows
     }
 }
 
-pub fn check_collisions(player_transform: &Transform, collider_query: &Query<&Transform, (With<Collider>, Without<Player>)>, house_collider_query: &Query<&Transform, (With<ColliderHouse>, Without<Player>)>) -> bool {
+pub fn check_collisions(
+    player_transform: &Transform,
+    collider_query: &Query<&Transform, (With<Collider>, Without<Player>)>,
+    house_collider_query: &Query<&Transform, (With<ColliderHouse>, Without<Player>)>,
+) -> bool {
     for collider_transform in collider_query.iter() {
-        if collide(player_transform.translation, Vec3::new(0.6, 1.0, 0.6), collider_transform.translation, Vec3::new(1.0, 1.0, 1.0))
+        if collide(
+            player_transform.translation,
+            Vec3::new(0.6, 1.0, 0.6),
+            collider_transform.translation,
+            Vec3::new(1.0, 1.0, 1.0),
+        )
         .is_some()
         {
             return true;
@@ -131,7 +264,12 @@ pub fn check_collisions(player_transform: &Transform, collider_query: &Query<&Tr
     }
 
     for house_collider_transform in house_collider_query.iter() {
-        if collide(player_transform.translation, Vec3::new(0.6, 1.0, 0.6), house_collider_transform.translation, Vec3::new(3.0, 2.5, 3.0))
+        if collide(
+            player_transform.translation,
+            Vec3::new(0.6, 1.0, 0.6),
+            house_collider_transform.translation,
+            Vec3::new(3.0, 2.5, 3.0),
+        )
         .is_some()
         {
             return true;
@@ -150,5 +288,57 @@ fn collide(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
         Some(())
     } else {
         None
+    }
+}
+
+pub fn manage_remote_players(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut remote_players: ResMut<RemotePlayers>,
+    network: Res<NetworkConfig>,
+    mut messages: ResMut<NetworkMessages>,
+    mut query: Query<&mut Transform>,
+) {
+    while let Some(message) = messages.0.pop_front() {
+        if let MessageContent::GameUpdate { position: (x, z), rotation, .. } = &message.content {
+            let player_name = &message.sender;
+            if player_name == &network.player_name {
+                continue;
+            }
+
+            if let Some(&entity) = remote_players.0.get(player_name) {
+                if let Ok(mut transform) = query.get_mut(entity) {
+                    transform.translation.x = *x;
+                    transform.translation.z = *z;
+                    transform.translation.y = 1.0;
+                    
+                    transform.rotation = Quat::from_rotation_y(rotation.y);
+                }
+            } else {
+                let remote_player = commands
+                    .spawn((
+                        PbrBundle {
+                            mesh: meshes.add(Mesh::from(Cylinder {
+                                radius: 0.4,
+                                half_height: 0.5,
+                                ..Default::default()
+                            })),
+                            material: materials.add(StandardMaterial {
+                                base_color: Color::srgb(1.0, 0.0, 0.0),
+                                ..Default::default()
+                            }),
+                            transform: Transform::from_xyz(*x, 1.0, *z)
+                                .with_rotation(Quat::from_rotation_y(rotation.y)),
+                            ..default()
+                        },
+                        RemotePlayer {
+                            name: player_name.clone(),
+                        },
+                    ))
+                    .id();
+                remote_players.0.insert(player_name.clone(), remote_player);
+            }
+        }
     }
 }

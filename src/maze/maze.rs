@@ -3,7 +3,13 @@ use super::player_simulation::*;
 use super::textures::*;
 use bevy::prelude::*;
 
-pub fn maze_setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>, asset_server: Res<AssetServer>, params: Res<TreeParams>, mut maze_state: ResMut<MazeState>, maze: Res<Maze>) {
+#[derive(Default, Resource)]
+pub struct PosStruct {
+    pub position: Vec3,
+}
+
+pub fn maze_setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>, asset_server: Res<AssetServer>, params: Res<TreeParams>, mut maze_state: ResMut<MazeState>, maze: Res<Maze>,
+    pos_struct: Res<PosStruct>,) {
     let map = &maze.maze_1;
     let (height, width) = calculate_maze_dimensions(map);
     let textures = load_textures(&asset_server);
@@ -29,7 +35,12 @@ pub fn maze_setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut 
         }
     }
 
-    create_player(&mut commands, &mut meshes, &mut materials, width, height);
+    create_player(
+        &mut commands,
+        &mut meshes,
+        &mut materials,
+        pos_struct.position,
+    );
     maze_state.is_ready = true;
 }
 

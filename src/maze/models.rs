@@ -1,5 +1,7 @@
+use std::collections::HashMap;
+
 use bevy::prelude::*;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Component)]
 pub struct ProceduralTree;
@@ -122,3 +124,18 @@ pub struct MinimapTextures {
     pub floor_texture: Handle<Image>,
     pub player_texture: Handle<Image>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlayerPosition {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+}
+
+#[derive(Default, Component, Resource)]
+pub struct RemotePlayer {
+    pub name: String,
+}
+
+#[derive(Resource)]
+pub struct RemotePlayers(pub HashMap<String, Entity>);

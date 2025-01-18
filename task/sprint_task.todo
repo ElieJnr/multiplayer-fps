@@ -9,7 +9,7 @@
     
   ---
     
-  ## `Sprint 1 : Infrastructure de Base (Semaine 1)`
+  ✔ ## `Sprint 1 : Infrastructure de Base (Semaine 1)` @done(24-12-19 13:25)
     
   1. `Dev 1 : Serveur`  @elie
      ✔ Implémenter un serveur UDP qui peut accepter des connexions multiples. @done(24-12-18 12:12)
@@ -43,19 +43,20 @@
      ✔ Ajouter des fonctions pour envoyer la structure du labyrinthe au client. @done(25-01-10 13:54)
      ☐ Implémenter la logique pour transmettre la position initiale des joueurs.  
     
-  2. `Dev 2 : Client : Labyrinthe et Position`  
+  2. `Dev 2 : Client : Labyrinthe et Position`  @babacandiaye
      ✔ Créer une interface graphique basique utilisant une bibliothèque graphique (ex. SDL, SFML). @done(25-01-10 13:54)
      ✔ Afficher le labyrinthe reçu depuis le serveur. @done(25-01-10 13:55)
     
-  3. `Dev 3 Affichage des FPS`  
+  3. `Dev 3 Affichage des FPS`  @jgoudiab
      ✔ Intégrer un compteur FPS dans l’interface graphique. @done(25-01-10 13:55)
      ☐ Assurer une mise à jour fluide et précise.  
+     ☐ Creer un compteur qui affiche le nombre de joueur restant par rapport au nombre de joueur total.
     
-  4. `Dev 4 : Améliorations Visuelles`  
+  4. `Dev 4 : Améliorations Visuelles`  @aliouniang
      ✔ Concevoir un système de transitions visuelles pour l'interface. @done(25-01-10 13:55)
      ☐ Ajouter des effets visuels comme des animations de menus et des transitions entre les écrans.  
     
-  5 `.Dev 5 : Animation des Mouvements`  
+  5 `.Dev 5 : Animation des Mouvements`  @elie
      ☐ Implémenter le mouvement du joueur dans le labyrinthe avec une vue dynamique.  
      ☐ Synchroniser le mouvement avec la position dans la mini-carte.  
     
@@ -121,6 +122,9 @@
     
   ---
  
+@Gaby(ajout superfétatoire)
+☐ // Cli pour definir le nombre de players au moment de creer la partie pour remplacer le minuteur pour le waiting room.
+☐ // ajoutez un curseur sur la tête du joueur avec son nom.
 
   //================================================================================================
 
