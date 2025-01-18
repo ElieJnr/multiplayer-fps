@@ -41,6 +41,9 @@ pub fn add_player(
                     mouse_sensitivity: 0.003,
                     ground_level: 1.0,
                     position: initial_position,
+                    rotation: Default::default(),
+                    last_processed_input: Default::default(),
+                    input_buffer: Default::default(),
                 },
             },
         );

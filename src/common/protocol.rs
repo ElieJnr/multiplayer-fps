@@ -1,14 +1,12 @@
+use crate::client::player::Player;
 use crate::{maze::player_simulation::PlayerInput, utils::logger::*};
 use bevy::{math::Vec2, prelude::Resource};
-use crate:: utils::logger::*;
-use bevy::prelude::Resource;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::{
     net::{SocketAddr, UdpSocket},
     sync::Arc,
 };
-use std::collections::HashMap;
-use crate::client::player::Player;
 
 #[derive(Resource, Debug)]
 pub struct NetworkConfig {
@@ -47,7 +45,9 @@ pub enum MessageType {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub enum MessageContent {
-    NewConnection { name: String },
+    NewConnection {
+        name: String,
+    },
     GameUpdate {
         position: (f32, f32),
         rotation: Vec2,
@@ -59,10 +59,20 @@ pub enum MessageContent {
         sequence_number: u32,
         timestamp: f64,
     },
-    ServerInfo { server_status: String },
-    Disconnect { reason: String },
-    WaitForPlayers { msg: String, players:HashMap<String, Player> },
-    StartGame { msg: String, players:HashMap<String, Player> },
+    ServerInfo {
+        server_status: String,
+    },
+    Disconnect {
+        reason: String,
+    },
+    WaitForPlayers {
+        msg: String,
+        players: HashMap<String, Player>,
+    },
+    StartGame {
+        msg: String,
+        players: HashMap<String, Player>,
+    },
 }
 
 pub fn serialize_message(message: &GameMessage) -> Option<Vec<u8>> {
@@ -134,9 +144,14 @@ pub fn send_ready_msg(config: &NetworkConfig, player_name: &str) {
         message_type: MessageType::PlayerAction,
         sender: player_name.to_string(),
         content: MessageContent::PlayerAction {
-            action: "ready".to_string(),
-            sequence_number: todo!(),
-            timestamp: todo!(),
+            action: PlayerInput {
+                arrow_up: false,
+                arrow_down: false,
+                mouse_delta: Vec2::default(),
+                ready: true,
+            },
+            sequence_number: Default::default(),
+            timestamp: Default::default(),
         },
     };
 

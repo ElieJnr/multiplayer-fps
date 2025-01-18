@@ -4,16 +4,13 @@ use std::{
 };
 
 use crate::{
-    client::player::{add_player, Player},
-    common::{constant::MIN_PLAYERS, protocol::*},
-    server::udp::broadcast_message,
-    utils::logger::*,
+    client::player::{add_player, Player}, common::{constant::MIN_PLAYERS, protocol::*}, maze::player_simulation::PlayerInput, server::udp::broadcast_message, utils::logger::*
 };
 
 use std::sync::Mutex;
 use lazy_static::lazy_static;
 use rand::Rng;
-use bevy::math::vec3;
+use bevy::{math::{vec3, Quat}, prelude::Transform};
 use bevy::math::Vec3;
 
 pub fn 
@@ -145,13 +142,14 @@ pub fn handle_player_action(
 ) {
     if let MessageContent::PlayerAction { action, sequence_number, timestamp } = message.content {
         if let Some(player) = players.get_mut(&message.sender) {
-            if action == "ready" {
+            if action.ready {
                 handle_ready_state(server_socket, players, &message.sender);
                 return;
             }
 
             update_player_movement(player, &action);
 
+            let player = players.get(&message.sender).unwrap();
             broadcast_game_update(server_socket, players, &message.sender, sequence_number, timestamp, player);
         }
     }
@@ -182,7 +180,7 @@ fn handle_ready_state(server_socket: &UdpSocket, players: &mut HashMap<String, P
     }
 }
 
-fn update_player_movement(player: &mut Player, action: &PlayerAction) {
+fn update_player_movement(player: &mut Player, action: &PlayerInput) {
     let mut transform = Transform::from_translation(player.movement.position);
     transform.rotation = Quat::from_rotation_y(player.movement.rotation.y);
 
@@ -207,7 +205,7 @@ fn broadcast_game_update(
     players: &HashMap<String, Player>,
     player_name: &str,
     sequence_number: u32,
-    timestamp: u64,
+    timestamp: f64,
     player: &Player
 ) {
     let update_msg = GameMessage {

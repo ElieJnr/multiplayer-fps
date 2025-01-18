@@ -18,11 +18,12 @@ use bevy::utils::default;
 use bevy::window::{CursorGrabMode, Window};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct PlayerInput {
     pub arrow_up: bool,
     pub arrow_down: bool,
     pub mouse_delta: Vec2,
+    pub ready: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -134,6 +135,7 @@ pub fn player_movement(
         arrow_up: keyboard_input.pressed(KeyCode::ArrowUp),
         arrow_down: keyboard_input.pressed(KeyCode::ArrowDown),
         mouse_delta,
+        ready: false,
     };
 
     if input.arrow_up || input.arrow_down || mouse_delta != Vec2::ZERO {
