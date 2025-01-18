@@ -113,7 +113,7 @@ pub fn handle_keyboard_animation(keyboard: Res<ButtonInput<KeyCode>>, mut query:
 
 pub fn setup_player_animation(mut commands: Commands, mut animations: ResMut<PlayerAnimations>, mut animation_players: Query<(Entity, &mut AnimationPlayer), Added<AnimationPlayer>>) { 
     for (entity, mut player) in &mut animation_players {
-        info!("Setting up animation for player entity: {:?}", entity);
+        // info!("Setting up animation for player entity: {:?}", entity);
         let transitions = AnimationTransitions::new();
         if let Some(&idle_animation) = animations.animations.get("idle") {
             transitions
@@ -132,7 +132,7 @@ pub fn preload_player_assets(mut commands: Commands, asset_server: Res<AssetServ
     let path = format!("{}/assets/", default_path);
     let root = format!("{}player.glb", path);
 
-    info!("Loading model from: {}", root);
+    // info!("Loading model from: {}", root);
 
     let model = asset_server.load(GltfAssetLabel::Scene(0).from_asset(root.clone()));
 
@@ -140,7 +140,7 @@ pub fn preload_player_assets(mut commands: Commands, asset_server: Res<AssetServ
     let animation_names = ["idle", "run", "backward_run", "shoot", "reload"];
 
     for (i, &name) in animation_names.iter().enumerate() {
-        info!("Loading animation: {} at index {}", name, i);
+        // info!("Loading animation: {} at index {}", name, i);
         animations.insert(
             name.to_string(),
             asset_server.load(GltfAssetLabel::Animation(i).from_asset(root.clone())),
@@ -151,7 +151,7 @@ pub fn preload_player_assets(mut commands: Commands, asset_server: Res<AssetServ
     let mut animation_indices = HashMap::new();
 
     for (name, clip) in animations.iter() {
-        info!("Adding animation {} to graph", name);
+        // info!("Adding animation {} to graph", name);
         let node_index = graph.add_clip(clip.clone(), 1.0, graph.root);
         animation_indices.insert(name.clone(), node_index);
     }
@@ -167,18 +167,18 @@ pub fn preload_player_assets(mut commands: Commands, asset_server: Res<AssetServ
         graph: graph_handle,
     });
 
-    info!("Player assets preloaded");
+    // info!("Player assets preloaded");
 }
 
 pub fn create_players(commands: &mut Commands, preloaded_animations: Res<PreloadedPlayerAnimations>, player_animations: Res<PlayerAnimations>, width: f32, height: f32) {
-    info!("Spawning player entity");
+    // info!("Spawning player entity");
     let player_entity = commands
         .spawn((
             SceneBundle {
                 scene: preloaded_animations.model.clone(),
                 transform: Transform {
-                    translation: Vec3::new(width / 2.0, 0.0, height - 5.0),
-                    scale: Vec3::splat(0.5), 
+                    translation: Vec3::new(width / 2.0, 0.0, height - 5.0), 
+                    scale: Vec3::splat(0.5),
                     ..default()
                 },
                 ..default()
@@ -191,10 +191,29 @@ pub fn create_players(commands: &mut Commands, preloaded_animations: Res<Preload
         ))
         .id();
 
+        // [DON'T DELETE] : vue de haut du joueur
+        // commands.spawn((
+        //     Camera3dBundle {
+        //         transform: Transform::from_xyz(0.0, 4.0, 0.0).looking_at(Vec3::Y, Vec3::Y), 
+        //         ..default()
+                
+        //     },
+        // )).set_parent(player_entity);
+
+
+        // [DON'T DELETE] : vue arme
+        // commands.spawn((
+        //     Camera3dBundle {
+        //         transform: Transform::from_xyz(0.0, 1.7, 0.0) 
+        //             .looking_at(Vec3::new(0.0, 1.7, -2.0), Vec3::Y), 
+        //         ..default()
+        //     },
+        // )).set_parent(player_entity);
+
         commands.spawn((
             Camera3dBundle {
-                transform: Transform::from_xyz(0.0, 0.5, 0.0)
-                    .looking_at(Vec3::new(0.0, 0.5, 0.1), Vec3::Y), 
+                transform: Transform::from_xyz(0.0, 2.0, 0.0) 
+                    .looking_at(Vec3::new(0.0, 2.0, -3.0), Vec3::Y), 
                 ..default()
             },
         )).set_parent(player_entity);

@@ -1,6 +1,6 @@
 use super::models::*;
 use bevy::input::mouse::MouseMotion;
-use bevy::math::primitives::Cylinder;
+// use bevy::math::primitives::Cylinder;
 use bevy::prelude::*;
 use bevy::window::CursorGrabMode;
 
@@ -21,40 +21,40 @@ impl Default for PlayerMovement {
     }
 }
 
-pub fn create_player(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, width: f32, height: f32) -> Entity {
-    let cylinder_mesh = meshes.add(Mesh::from(Cylinder {
-        radius: 0.4,
-        half_height: 0.5,
-        ..default()
-    }));
-    let cylinder_material = materials.add(StandardMaterial {
-        base_color: Color::srgb(0.8, 0.7, 0.6),
-        ..default()
-    });
+// pub fn create_player(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, width: f32, height: f32) -> Entity {
+//     let cylinder_mesh = meshes.add(Mesh::from(Cylinder {
+//         radius: 0.4,
+//         half_height: 0.5,
+//         ..default()
+//     }));
+//     let cylinder_material = materials.add(StandardMaterial {
+//         base_color: Color::srgb(0.8, 0.7, 0.6),
+//         ..default()
+//     });
 
-    let player = commands
-        .spawn((
-            PbrBundle {
-                mesh: cylinder_mesh,
-                material: cylinder_material,
-                transform: Transform::from_xyz(width / 2.0, 1.0, height - 5.0),
-                ..default()
-            },
-            Players,
-            Collider,
-        ))
-        .id();
+//     let player = commands
+//         .spawn((
+//             PbrBundle {
+//                 mesh: cylinder_mesh,
+//                 material: cylinder_material,
+//                 transform: Transform::from_xyz(width / 2.0, 1.0, height - 5.0),
+//                 ..default()
+//             },
+//             Players,
+//             Collider,
+//         ))
+//         .id();
 
-    commands
-        .spawn((Camera3dBundle {
-            transform: Transform::from_xyz(0.0, 0.5, 0.0)
-                .looking_at(Vec3::new(0.0, 0.5, 0.1), Vec3::Y),
-            ..default()
-        },))
-        .set_parent(player);
+//     commands
+//         .spawn((Camera3dBundle {
+//             transform: Transform::from_xyz(0.0, 0.5, 0.0)
+//                 .looking_at(Vec3::new(0.0, 0.5, 0.1), Vec3::Y),
+//             ..default()
+//         },))
+//         .set_parent(player);
 
-    player
-}
+//     player
+// }
 
 pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>>, mut motion_evr: EventReader<MouseMotion>, mut query: Query<&mut Transform, With<Players>>, collider_query: Query<&Transform, (With<Collider>, Without<Players>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Players>)>, movement: Res<PlayerMovement>, _obstacle_positions: Res<ObstaclePositions>) {
     let mut mouse_delta = Vec2::ZERO;
@@ -68,12 +68,12 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
         
         if keyboard_input.pressed(KeyCode::ArrowUp) {
             let forward = transform.forward();
-            new_translation -= forward * movement.speed * time.delta_seconds();
+            new_translation += forward * movement.speed * time.delta_seconds();
         }
 
         if keyboard_input.pressed(KeyCode::ArrowDown) {
             let forward = transform.forward();
-            new_translation += forward * movement.speed * time.delta_seconds();
+            new_translation -= forward * movement.speed * time.delta_seconds();
         }
 
         if !check_collisions(&Transform { translation: new_translation, ..*transform }, &collider_query, &house_collider_query) {
@@ -89,18 +89,25 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
 }
 
 // permet de changer la vue de la camera
-pub fn camera_view_toggle(keyboard_input: Res<ButtonInput<KeyCode>>, mut _player_query: Query<&mut Transform, With<Players>>, mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<Players>)>, mut camera_state: ResMut<CameraState>) {
+pub fn camera_view_toggle(
+    keyboard_input: Res<ButtonInput<KeyCode>>, 
+    mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<Players>)>, 
+    mut camera_state: ResMut<CameraState>
+) {
     if keyboard_input.just_pressed(KeyCode::KeyV) {
         camera_state.is_top_view = !camera_state.is_top_view;
 
         if let Ok(mut camera_transform) = camera_query.get_single_mut() {
             if camera_state.is_top_view {
+                // Vue de haut
                 camera_transform.translation = Vec3::new(0.0, 50.0, 0.0);
                 camera_transform.rotation = Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2);
             } else {
-                camera_transform.translation = Vec3::new(0.0, 0.5, 0.0);
-                camera_transform.rotation = Quat::IDENTITY;
-                camera_transform.look_at(Vec3::new(0.0, 0.5, 0.1), Vec3::Y);
+                // Retour à la vue FPS initiale
+                camera_transform.translation = Vec3::new(0.0, 2.0, 0.0);
+                camera_transform.rotation = Transform::from_xyz(0.0, 2.0, 0.0)
+                    .looking_at(Vec3::new(0.0, 2.0, -3.0), Vec3::Y)
+                    .rotation;
             }
         }
     }
