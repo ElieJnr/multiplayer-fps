@@ -77,13 +77,13 @@ fn check_network_messages(
 fn handle_game_message(message: GameMessage, state: &mut PlayerCountState) {
     match message.message_type {
         MessageType::StartGame => {
-            if let MessageContent::StartGame { msg } = message.content {
+            if let MessageContent::StartGame { msg, .. } = message.content {
                 state.has_enough_players = true;
                 display_info(&msg);
             }
         }
         MessageType::WaitForPlayers => {
-            if let MessageContent::WaitForPlayers { msg } = message.content {
+            if let MessageContent::WaitForPlayers { msg , .. } = message.content {
                 state.has_enough_players = false;
                 display_info(&msg);
             }

@@ -1,12 +1,14 @@
-use bevy::prelude::*;
+use std::time::Duration;
 
-use crate::graphics::resources::PlayerCountState;
+use bevy::prelude::*;
+use bevy_tweening::{lens::TransformScaleLens, Animator, EaseFunction, Tween};
+
 
 use super::menu::NORMAL_BUTTON_COLOR;
 
 #[derive(Component, Debug)]
 pub enum MenuButtonAction {
-    Play(bool),
+    Play,
     Options,
     Quit,
 }
@@ -14,7 +16,7 @@ pub enum MenuButtonAction {
 impl MenuButtonAction {
     pub fn from_label(label: &str) -> Self {
         match label {
-            "Play" => MenuButtonAction::Play(false),
+            "Play" => MenuButtonAction::Play,
             "Options" => MenuButtonAction::Options,
             "Quit" => MenuButtonAction::Quit,
             _ => panic!("Invalid button label"),
@@ -48,29 +50,13 @@ pub fn spawn_menu_button(parent: &mut ChildBuilder, label: &str, assets_server: 
                     color: Color::BLACK,
                 },
             ));
-        });
-}
-
-pub fn update_play_button(
-    player_count: Res<PlayerCountState>,
-    mut query: Query<(&mut MenuButtonAction, &Children), With<Button>>,
-    mut text_query: Query<&mut Text>,
-) {
-    let has_enough = player_count.has_enough_players;
-    for (mut action, children) in query.iter_mut() {
-        if let MenuButtonAction::Play(_) = *action {
-            *action = MenuButtonAction::Play(has_enough);
-
-            for &child in children.iter() {
-                if let Ok(mut text) = text_query.get_mut(child) {
-                    let label = if has_enough {
-                        "Play"
-                    } else {
-                        "Waiting..."
-                    };
-                    text.sections[0].value = label.to_string();
-                }
-            }
-        }
-    }
+        })
+        .insert(Animator::new(Tween::new(
+            EaseFunction::BounceInOut,
+            Duration::from_millis(300),
+            TransformScaleLens {
+                start: Vec3::new(1.0, 1.0, 1.0),
+                end: Vec3::new(1.2, 1.2, 1.0),
+            },
+        )));
 }

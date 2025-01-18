@@ -26,6 +26,26 @@ pub struct CameraState {
     pub is_top_view: bool,
 }
 
+#[derive(Debug)]
+pub struct Pillar {
+    pub position: Vec3,
+    pub size: Vec3,
+}
+
+#[derive(Component)]
+pub struct Collider;
+
+#[derive(Component)]
+pub struct ColliderHouse;
+
+#[derive(Component)]
+pub struct ColliderPillar;
+
+#[derive(Default, Resource, Clone)]
+pub struct ObstaclePositions {
+    pub positions: Vec<Vec<bool>>,
+}
+
 #[derive(Deserialize, Resource)]
 pub struct Maze {
     #[serde(rename = "maze-1")]
