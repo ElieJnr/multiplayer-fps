@@ -9,7 +9,7 @@ use crate::{
     client::player::*,
     common::{protocol::NetworkConfig, sync::NetworkPlugin},
     graphics::{resources::Map, states::GameState, systems::menu::menu_plugin},
-   
+    player::player::PlayerPlugin,
     maze::{maze::PosStruct, minimap::minimap::{load_minimap_textures, read_maze}},
 };
 use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*, render::settings::WgpuSettings};
@@ -51,6 +51,7 @@ pub fn start(
         // .add_plugins(SoundPlugin)
         .add_plugins(FrameTimeDiagnosticsPlugin)
         .add_plugins(NetworkPlugin)
+        .add_plugins(PlayerPlugin)
         .add_plugins(WaittingRoomPlugin);
 
     app.run();
@@ -71,3 +72,4 @@ impl MyWgpuSettings {
         &self.0
     }
 }
+

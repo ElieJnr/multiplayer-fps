@@ -10,7 +10,7 @@ use bevy::{
 use crate::{
     maze::{
         maze::calculate_maze_dimensions,
-        models::{Maze, MinimapPlayer, Player},
+        models::{Maze, MinimapPlayer, Players},
     },
     utils::utils::get_window_dimensions,
 };
@@ -47,7 +47,7 @@ pub fn spawn_minimap_player(
 
 pub fn update_minimap_player(
     mut minimap_query: Query<&mut Transform, With<MinimapPlayer>>,
-    player_query: Query<&Transform, (With<Player>, Without<MinimapPlayer>)>,
+    player_query: Query<&Transform, (With<Players>, Without<MinimapPlayer>)>,
     windows: Query<&Window, With<PrimaryWindow>>,
     map: Res<Maze>,
 ) {
@@ -95,8 +95,7 @@ fn calculate_player_minimap_position(
     (player_minimap_x, player_minimap_y)
 }
 
-fn update_player_minimap_rotation(
-    minimap_transform: &mut Transform,
+fn update_player_minimap_rotation(minimap_transform: &mut Transform,
     player_minimap_x: f32,
     player_minimap_y: f32,
     player_transform: &Transform,

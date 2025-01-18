@@ -68,12 +68,7 @@ impl PlayerMovement {
     }
 }
 
-pub fn create_player(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<StandardMaterial>>,
-    pos:Vec3
-) -> Entity {
+pub fn create_player(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, pos:Vec3) -> Entity {
     let cylinder_mesh = meshes.add(Mesh::from(Cylinder {
         radius: 0.4,
         half_height: 0.5,
@@ -92,7 +87,7 @@ pub fn create_player(
                 transform: Transform::from_xyz(pos[0], pos[1], pos[2]),
                 ..Default::default()
             },
-            Player,
+            Players,
             Collider,
         ))
         .id();
@@ -108,19 +103,7 @@ pub fn create_player(
     player
 }
 
-pub fn player_movement(
-    time: Res<Time>,
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut motion_evr: EventReader<MouseMotion>,
-    mut movement: ResMut<PlayerMovement>,
-    _obstacle_positions: Res<ObstaclePositions>,
-    network: Option<Res<NetworkConfig>>,
-    mut sequence_number: Local<u32>,
-    mut query: Query<&mut Transform, With<Player>>,
-    collider_query: Query<&Transform, (With<Collider>, Without<Player>)>,
-    house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Player>)>,
-    maze_state: Res<MazeState>,
-) {
+pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>>, mut motion_evr: EventReader<MouseMotion>, mut movement: ResMut<PlayerMovement>, _obstacle_positions: Res<ObstaclePositions>, network: Option<Res<NetworkConfig>>, mut sequence_number: Local<u32>, mut query: Query<&mut Transform, With<Players>>, collider_query: Query<&Transform, (With<Collider>, Without<Players>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Players>)>, maze_state: Res<MazeState>) {
     if !maze_state.is_ready {
         return;
     }
@@ -182,19 +165,14 @@ pub fn player_movement(
     }
 }
 
-pub fn apply_input(
-    transform: &mut Transform,
-    input: &PlayerInput,
-    movement: &PlayerMovement,
-    delta_time: f32,
-) {
+pub fn apply_input(transform: &mut Transform, input: &PlayerInput, movement: &PlayerMovement, delta_time: f32) {
     let forward = transform.forward();
 
     if input.arrow_up {
-        transform.translation -= forward * movement.speed * delta_time;
+        transform.translation += forward * movement.speed * delta_time;
     }
     if input.arrow_down {
-        transform.translation += forward * movement.speed * delta_time;
+        transform.translation -= forward * movement.speed * delta_time;
     }
     if input.mouse_delta.length_squared() > 0.0 {
         transform.rotate_y(-input.mouse_delta.x * movement.mouse_sensitivity);
@@ -203,35 +181,29 @@ pub fn apply_input(
     transform.translation.y = movement.ground_level;
 }
 
-
 // permet de changer la vue de la camera
-pub fn camera_view_toggle(
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut _player_query: Query<&mut Transform, With<Player>>,
-    mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<Player>)>,
-    mut camera_state: ResMut<CameraState>,
-) {
+pub fn camera_view_toggle(keyboard_input: Res<ButtonInput<KeyCode>>, mut _player_query: Query<&mut Transform, With<Players>>, mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<Players>)>, mut camera_state: ResMut<CameraState>) {
     if keyboard_input.just_pressed(KeyCode::KeyV) {
         camera_state.is_top_view = !camera_state.is_top_view;
 
         if let Ok(mut camera_transform) = camera_query.get_single_mut() {
             if camera_state.is_top_view {
+                // Vue de haut
                 camera_transform.translation = Vec3::new(0.0, 50.0, 0.0);
                 camera_transform.rotation = Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2);
             } else {
-                camera_transform.translation = Vec3::new(0.0, 0.5, 0.0);
-                camera_transform.rotation = Quat::IDENTITY;
-                camera_transform.look_at(Vec3::new(0.0, 0.5, 0.1), Vec3::Y);
+                // Retour à la vue FPS initiale
+                camera_transform.translation = Vec3::new(0.0, 2.0, 0.0);
+                camera_transform.rotation = Transform::from_xyz(0.0, 2.0, 0.0)
+                    .looking_at(Vec3::new(0.0, 2.0, -3.0), Vec3::Y)
+                    .rotation;
             }
         }
     }
 }
 
 // permet de rendre visible et invisible la souris avec la touche space
-pub fn toggle_cursor_lock(
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut windows: Query<&mut Window>,
-) {
+pub fn toggle_cursor_lock(keyboard_input: Res<ButtonInput<KeyCode>>, mut windows: Query<&mut Window>) {
     if keyboard_input.just_pressed(KeyCode::Space) {
         if let Ok(mut window) = windows.get_single_mut() {
             if window.cursor.grab_mode == CursorGrabMode::Locked {
@@ -245,11 +217,7 @@ pub fn toggle_cursor_lock(
     }
 }
 
-pub fn check_collisions(
-    player_transform: &Transform,
-    collider_query: &Query<&Transform, (With<Collider>, Without<Player>)>,
-    house_collider_query: &Query<&Transform, (With<ColliderHouse>, Without<Player>)>,
-) -> bool {
+pub fn check_collisions(player_transform: &Transform, collider_query: &Query<&Transform, (With<Collider>, Without<Players>)>, house_collider_query: &Query<&Transform, (With<ColliderHouse>, Without<Players>)>) -> bool {
     for collider_transform in collider_query.iter() {
         if collide(
             player_transform.translation,
@@ -291,15 +259,7 @@ fn collide(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
     }
 }
 
-pub fn manage_remote_players(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut remote_players: ResMut<RemotePlayers>,
-    network: Res<NetworkConfig>,
-    mut messages: ResMut<NetworkMessages>,
-    mut query: Query<&mut Transform>,
-) {
+pub fn manage_remote_players(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>, mut remote_players: ResMut<RemotePlayers>, network: Res<NetworkConfig>, mut messages: ResMut<NetworkMessages>, mut query: Query<&mut Transform>) {
     while let Some(message) = messages.0.pop_front() {
         if let MessageContent::GameUpdate { position: (x, z), rotation, .. } = &message.content {
             let player_name = &message.sender;
