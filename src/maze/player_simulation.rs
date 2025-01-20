@@ -280,7 +280,7 @@ pub fn manage_remote_players(mut commands: Commands, preloaded_animations: Res<P
                 if let Ok(mut transform) = query.get_mut(entity) {
                     transform.translation.x = *x;
                     transform.translation.z = *z;
-                    transform.translation.y = 1.0;
+                    transform.translation.y = 0.0;
                     transform.rotation = Quat::from_rotation_y(rotation.y);
                 }
             } else {
@@ -289,7 +289,7 @@ pub fn manage_remote_players(mut commands: Commands, preloaded_animations: Res<P
                         SceneBundle {
                             scene: preloaded_animations.model.clone(),
                             transform: Transform {
-                                translation: Vec3::new(*x, 1.0, *z),
+                                translation: Vec3::new(*x, 0.0, *z),
                                 rotation: Quat::from_rotation_y(rotation.y),
                                 scale: Vec3::splat(0.5),
                                 ..default()
