@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::maze::barre_etat::GameStatusPlugin;
 use crate::maze::maze::{maze_setup, setup_crosshair, PosStruct};
 use crate::maze::minimap::minimap::{display_minimap, update_minimap};
 use crate::maze::minimap::minimap_player::update_minimap_player;
@@ -11,7 +12,7 @@ use crate::maze::{
 };
 
 use bevy::{
-    app::{App, Plugin, Startup, Update},
+    app::{App, Plugin, Update},
     prelude::{
         Commands, DespawnRecursiveExt, Entity, IntoSystemConfigs, OnEnter, OnExit, Query, With,
     },
@@ -20,10 +21,7 @@ use bevy::{
 };
 // use crate::maze::player_simulation::camera_controller;
 
-use super::{
-    show_fps::{setup_fps_ui, update_fps_ui},
-    states::GameState,
-};
+use super::states::GameState;
 
 pub struct MazePlugin;
 impl Plugin for MazePlugin {
@@ -49,8 +47,9 @@ impl Plugin for MazePlugin {
                 ),
             )
             .add_systems(OnExit(GameState::Game), cleanup_maze)
-            .add_systems(Startup, setup_fps_ui)
-            .add_systems(Update, (update_fps_ui, update_minimap, toggle_cursor_lock));
+            .add_systems(Update, (update_minimap, toggle_cursor_lock));
+
+        app.add_plugins(GameStatusPlugin);
     }
 }
 

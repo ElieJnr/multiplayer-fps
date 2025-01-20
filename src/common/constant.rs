@@ -1,8 +1,10 @@
+use bevy::prelude::Resource;
+
 pub const PORT: &str = "8080";
 // pub const MIN_PLAYERS: usize = 1; 
 
 pub const DEFAULT_MIN_PLAYERS: usize = 2;
-#[derive(Debug)]
+#[derive(Debug, Resource, Default)]
 pub struct PlayerCount {
     min_players: usize,
 }
