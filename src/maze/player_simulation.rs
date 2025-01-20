@@ -1,7 +1,9 @@
-use crate::common::protocol::{serialize_message, GameMessage, MessageContent, MessageType, NetworkConfig};
-use crate::common::sync::NetworkMessages;
-use std::collections::VecDeque;
 use super::models::*;
+use crate::common::protocol::{
+    serialize_message, GameMessage, MessageContent, MessageType, NetworkConfig,
+};
+use crate::common::sync::NetworkMessages;
+use crate::player::player::{AnimationState, PlayerAnimations, PreloadedPlayerAnimations};
 use bevy::asset::Assets;
 use bevy::color::Color;
 use bevy::input::mouse::MouseMotion;
@@ -10,13 +12,15 @@ use bevy::math::primitives::Cylinder;
 use bevy::math::{Quat, Vec2, Vec3};
 use bevy::pbr::{PbrBundle, StandardMaterial};
 use bevy::prelude::{
-    BuildChildren, Camera3d, Camera3dBundle, Commands, Entity, EventReader, KeyCode,
-    Local, Mesh, Query, Res, ResMut, Resource, Transform, With, Without,
+    AnimationPlayer, BuildChildren, Camera3d, Camera3dBundle, Commands, Entity, EventReader,
+    KeyCode, Local, Mesh, Query, Res, ResMut, Resource, Transform, With, Without,
 };
+use bevy::scene::SceneBundle;
 use bevy::time::Time;
 use bevy::utils::default;
 use bevy::window::{CursorGrabMode, Window};
 use serde::{Deserialize, Serialize};
+use std::collections::VecDeque;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct PlayerInput {
@@ -68,7 +72,7 @@ impl PlayerMovement {
     }
 }
 
-pub fn create_player(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, pos:Vec3) -> Entity {
+pub fn create_player(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, pos: Vec3) -> Entity {
     let cylinder_mesh = meshes.add(Mesh::from(Cylinder {
         radius: 0.4,
         half_height: 0.5,
@@ -127,9 +131,9 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
 
         if let Ok(mut transform) = query.get_single_mut() {
             let new_transform = transform.clone();
-            
+
             apply_input(&mut transform, &input, &movement, delta_time);
-            
+
             if check_collisions(&transform, &collider_query, &house_collider_query) {
                 *transform = new_transform;
             } else {
@@ -259,9 +263,14 @@ fn collide(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
     }
 }
 
-pub fn manage_remote_players(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>, mut remote_players: ResMut<RemotePlayers>, network: Res<NetworkConfig>, mut messages: ResMut<NetworkMessages>, mut query: Query<&mut Transform>) {
+pub fn manage_remote_players(mut commands: Commands, preloaded_animations: Res<PreloadedPlayerAnimations>, player_animations: Res<PlayerAnimations>, mut remote_players: ResMut<RemotePlayers>, network: Res<NetworkConfig>, mut messages: ResMut<NetworkMessages>, mut query: Query<&mut Transform>) {
     while let Some(message) = messages.0.pop_front() {
-        if let MessageContent::GameUpdate { position: (x, z), rotation, .. } = &message.content {
+        if let MessageContent::GameUpdate {
+            position: (x, z),
+            rotation,
+            ..
+        } = &message.content
+        {
             let player_name = &message.sender;
             if player_name == &network.player_name {
                 continue;
@@ -272,29 +281,27 @@ pub fn manage_remote_players(mut commands: Commands, mut meshes: ResMut<Assets<M
                     transform.translation.x = *x;
                     transform.translation.z = *z;
                     transform.translation.y = 1.0;
-                    
                     transform.rotation = Quat::from_rotation_y(rotation.y);
                 }
             } else {
                 let remote_player = commands
                     .spawn((
-                        PbrBundle {
-                            mesh: meshes.add(Mesh::from(Cylinder {
-                                radius: 0.4,
-                                half_height: 0.5,
-                                ..Default::default()
-                            })),
-                            material: materials.add(StandardMaterial {
-                                base_color: Color::srgb(1.0, 0.0, 0.0),
-                                ..Default::default()
-                            }),
-                            transform: Transform::from_xyz(*x, 1.0, *z)
-                                .with_rotation(Quat::from_rotation_y(rotation.y)),
+                        SceneBundle {
+                            scene: preloaded_animations.model.clone(),
+                            transform: Transform {
+                                translation: Vec3::new(*x, 1.0, *z),
+                                rotation: Quat::from_rotation_y(rotation.y),
+                                scale: Vec3::splat(0.5),
+                                ..default()
+                            },
                             ..default()
                         },
                         RemotePlayer {
                             name: player_name.clone(),
                         },
+                        AnimationPlayer::default(),
+                        player_animations.graph.clone(),
+                        AnimationState::default(),
                     ))
                     .id();
                 remote_players.0.insert(player_name.clone(), remote_player);
