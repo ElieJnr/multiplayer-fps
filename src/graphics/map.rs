@@ -1,12 +1,15 @@
-use crate::maze::maze::maze_setup;
+use std::collections::HashMap;
+
+use crate::maze::maze::{maze_setup, PosStruct};
 use crate::maze::minimap::minimap::{display_minimap, update_minimap};
 use crate::maze::minimap::minimap_player::update_minimap_player;
-use crate::maze::models::{CameraState, MazeState, ObstaclePositions, TreeParams};
-use crate::maze::player_simulation::toggle_cursor_lock;
+use crate::maze::models::{CameraState, MazeState, RemotePlayers, ObstaclePositions, TreeParams};
+use crate::maze::player_simulation::{manage_remote_players, toggle_cursor_lock};
 use crate::maze::{
     player_simulation::{camera_view_toggle, player_movement, PlayerMovement},
     textures::rotate_sky,
 };
+
 use bevy::{
     app::{App, Plugin, Startup, Update},
     prelude::{
@@ -15,6 +18,8 @@ use bevy::{
     sprite::Sprite,
     window::{CursorGrabMode, Window},
 };
+// use crate::maze::player_simulation::camera_controller;
+
 use super::{
     show_fps::{setup_fps_ui, update_fps_ui},
     states::GameState,
@@ -27,11 +32,22 @@ impl Plugin for MazePlugin {
             .init_resource::<CameraState>()
             .init_resource::<MazeState>()
             .init_resource::<PlayerMovement>()
+            .init_resource::<PosStruct>()
+            .insert_resource(RemotePlayers(HashMap::new()))
             .init_resource::<ObstaclePositions>()
             .add_systems(OnEnter(GameState::Game), setup_mouse)
             .add_systems(OnEnter(GameState::Game), maze_setup)
             .add_systems(OnEnter(GameState::Game), display_minimap.after(maze_setup))
-            .add_systems(Update, (player_movement, camera_view_toggle, rotate_sky, update_minimap_player).chain())
+            .add_systems(
+                Update,
+                (
+                    player_movement,
+                    manage_remote_players,
+                    camera_view_toggle,
+                    rotate_sky,
+                    update_minimap_player,
+                )
+            )
             .add_systems(OnExit(GameState::Game), cleanup_maze)
             .add_systems(Startup, setup_fps_ui)
             .add_systems(Update, (update_fps_ui, update_minimap, toggle_cursor_lock));

@@ -9,7 +9,11 @@ use crate::{
     graphics::resources::PlayerCountState,
     utils::{logger::*, server_utils::*, utils::*},
 };
-use std::{collections::HashMap, net::UdpSocket};
+use std::{collections::HashMap, io::{self, Write}, net::UdpSocket};
+use bevy::math::bool;
+
+
+
 
 pub fn run_socket() {
     let mut state: PlayerCountState = PlayerCountState::default();
@@ -26,19 +30,35 @@ pub fn run_socket() {
     }
 }
 
-fn handle_server_mode(
-    players: &mut HashMap<String, Player>,
-) {
+fn handle_server_mode(players: &mut HashMap<String, Player>) {
+    let player_count = get_min_players_from_user(); 
+
     match get_local_ipv4() {
         Some(ip) => {
             if let Some(socket) = create_server_socket(ip, PORT) {
                 display_info(&format!("Server is running on {}:{}", ip, PORT));
-                server(socket, players);
+                server(socket, players, &player_count);
             } else {
                 display_error("Failed to create server socket.");
             }
         }
         None => display_error("Unable to determine local IP address."),
+    }
+}
+
+fn get_min_players_from_user() -> PlayerCount {
+    print!("Enter the number of players: ");
+    io::stdout().flush().unwrap();
+    
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    
+    match input.trim().parse::<usize>() {
+        Ok(num) => PlayerCount::new(num),
+        Err(_) => {
+            display_error("Invalid input. Using default value.");
+            PlayerCount::new(DEFAULT_MIN_PLAYERS)
+        }
     }
 }
 
@@ -51,13 +71,17 @@ fn handle_client_mode(state: &mut PlayerCountState) {
 pub fn server(
     server_socket: UdpSocket,
     players: &mut HashMap<String, Player>,
+    player_count: &PlayerCount
 ) {
+    
+
     let mut buf = [0; 1024];
+
     loop {
         match receive_data_from_socket(&server_socket, &mut buf) {
             Some((data, Some(src))) => match deserialize_message(&data) {
                 Some(message) => {
-                    handle_message(&server_socket, players, message, src)
+                    handle_message(&server_socket, players, message, src, &player_count)
                 }
                 None => display_error("Erreur lors de la désérialisation"),
             },
@@ -86,3 +110,5 @@ pub fn broadcast_message(
         }
     }
 }
+
+

@@ -1,9 +1,15 @@
 use super::models::*;
-use super::player_simulation::*;
+// use super::player_simulation::create_player;
 use super::textures::*;
 use bevy::prelude::*;
+use crate::player::player::{create_players, PlayerAnimations, PreloadedPlayerAnimations};
 
-pub fn maze_setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>, asset_server: Res<AssetServer>, params: Res<TreeParams>, mut maze_state: ResMut<MazeState>, maze: Res<Maze>) {
+#[derive(Default, Resource)]
+pub struct PosStruct {
+    pub position: Vec3,
+}
+
+pub fn maze_setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>, asset_server: Res<AssetServer>, params: Res<TreeParams>, mut maze_state: ResMut<MazeState>, maze: Res<Maze>, preloaded_animations: Res<PreloadedPlayerAnimations>, player_animations: Res<PlayerAnimations>, pos_struct: Res<PosStruct>,) {
     let map = &maze.maze_1;
     let (height, width) = calculate_maze_dimensions(map);
     let textures = load_textures(&asset_server);
@@ -18,7 +24,6 @@ pub fn maze_setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut 
             match cell {
                 1 => create_walls(&mut commands, wall_mesh.clone(), wall_material.clone(), i, j),
                 2 => { 
-                    // obstacle_positions[i][j] = true;
                     let arch = commands.spawn(SpatialBundle::default()).insert(Arch).id();
                     create_arch(&mut commands, &mut meshes, arch_mesh.clone(), sup_arch_mesh.clone(), arch_material.clone(), arch, 2.0, i as f32, j as f32); }
                 3 => create_procedural_tree(&mut commands, &mut meshes, &mut materials, &params, Vec3::new(j as f32, 0.0, i as f32), branch_material.clone(), leaf_material.clone(), branch_mesh.clone(), leaf_mesh.clone()),
@@ -29,7 +34,7 @@ pub fn maze_setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut 
         }
     }
 
-    create_player(&mut commands, &mut meshes, &mut materials, width, height);
+    create_players(&mut commands, preloaded_animations, player_animations, pos_struct.position);
     maze_state.is_ready = true;
 }
 
