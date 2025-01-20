@@ -39,7 +39,7 @@ pub fn add_player(
                 movement: PlayerMovement {
                     speed: 5.0,
                     mouse_sensitivity: 0.003,
-                    ground_level: 1.0,
+                    ground_level: 0.0,
                     position: initial_position,
                     rotation: Default::default(),
                     last_processed_input: Default::default(),
