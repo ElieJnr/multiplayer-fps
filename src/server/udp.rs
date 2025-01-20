@@ -17,12 +17,13 @@ pub fn run_socket() {
     let mut players: HashMap<String, Player> = HashMap::new();
 
     // match get_models(MODEL_URL, PATH_FOR_MODEL) {
-    //     Ok(_) => {}
+    //     Ok(_) => {
+    //         display_info("Model downloaded successfully.");
+    //     }
     //     Err(_) => {
     //         display_error("Failed to download model.");
     //     }
     // };
-    display_info("Model downloaded successfully.");
 
     match get_user_choice() {
         Some(1) => {
