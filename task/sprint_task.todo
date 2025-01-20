@@ -132,17 +132,20 @@
   task/sprint_task.todo
 
  ## tsk1: 
-  ☐ synchronisation debut de jeu pour tous les players @lino
-  ☐ Initialisation de la position des joueurs et placement du player puis des ennemis (serveur) @Ousmasene et @emalo 
+  ✔ synchronisation debut de jeu pour tous les players @lino @done(25-01-20 15:18)
+  ✔ Initialisation de la position des joueurs et placement du player puis des ennemis (serveur) @Ousmasene et @emalo @done(25-01-20 15:18)
   ✔ deplacement du joueur avec les touches du clavier et de la camera avec la souris (client)  @babacar @done(25-01-17 13:19)
   ✔ Synchroniser le mouvement avec la position dans la mini-carte (client) @jgoudj @done(25-01-17 13:19)
-  ☐ Synchroniser ces actions entre le client et le serveur. (position du joueur, vie, ...) @kendi
-  ☐ Assurer que chaque joueur voit les mouvements des autres en temps réel (client et serveur)
+  ✔ Synchroniser ces actions entre le client et le serveur. (position du joueur, vie, ...) @kendi @done(25-01-20 15:20)
+  ✔ Assurer que chaque joueur voit les mouvements des autres en temps réel (client et serveur) @done(25-01-20 15:38)
 
   ## tsk2:
   ✔ Collision  (client) @done(25-01-17 15:40)
-  ☐ update de la position du joueur (client)
-  ☐ placement crosshair (client)
-  ☐ Tir et impact (client)
-  ☐ Créer une barre d’état affichant des informations comme le nombre de vie (client)
-  ☐ Image lorsque tu perds la Game et image lorsque tu gagnes la game (client et serveur pour synchroniser avec les autres joueurs)
+  ✔ update de la position du joueur (client) @done(25-01-20 15:38)
+  ✔ placement crosshair (client) @done(25-01-20 15:39)
+  ☐ Tir et impact (client) @edieng
+  ☐ synchronisation animation player mouvement, tir (client) @emalo
+  ☐ gestion sons (client) @aliouniang
+  ☐ placement player (client) @babacar
+  ☐ Créer une barre d’état affichant des informations comme le nombre de vie (client) @jgoudiab
+  ☐ Game logique  lorsque tu perds la Game et image lorsque tu gagnes la game (client et serveur pour synchroniser avec les autres joueurs) @ousmasene
