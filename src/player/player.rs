@@ -171,14 +171,14 @@ pub fn preload_player_assets(mut commands: Commands, asset_server: Res<AssetServ
 }
 
 pub fn create_players(commands: &mut Commands, preloaded_animations: Res<PreloadedPlayerAnimations>, player_animations: Res<PlayerAnimations>, pos:Vec3) {
-    // info!("Spawning player entity");
+
     let player_entity = commands
         .spawn((
             SceneBundle {
                 scene: preloaded_animations.model.clone(),
                 transform: Transform {
-                    translation: Vec3::new(pos[0], 0.0, pos[2]), 
-                    scale: Vec3::splat(0.5),
+                    translation: Vec3::new(pos[0], 0.0, pos[2]), // Mettre le joueur à hauteur 1.0
+                    scale: Vec3::splat(0.25),
                     ..default()
                 },
                 ..default()
@@ -190,25 +190,6 @@ pub fn create_players(commands: &mut Commands, preloaded_animations: Res<Preload
             AnimationState::default(),
         ))
         .id();
-
-        // [DON'T DELETE] : vue de haut du joueur
-        // commands.spawn((
-        //     Camera3dBundle {
-        //         transform: Transform::from_xyz(0.0, 4.0, 0.0).looking_at(Vec3::Y, Vec3::Y), 
-        //         ..default()
-                
-        //     },
-        // )).set_parent(player_entity);
-
-
-        // [DON'T DELETE] : vue arme
-        // commands.spawn((
-        //     Camera3dBundle {
-        //         transform: Transform::from_xyz(0.0, 1.7, 0.0) 
-        //             .looking_at(Vec3::new(0.0, 1.7, -2.0), Vec3::Y), 
-        //         ..default()
-        //     },
-        // )).set_parent(player_entity);
 
         commands.spawn((
             Camera3dBundle {

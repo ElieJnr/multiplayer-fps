@@ -197,6 +197,7 @@ pub fn camera_view_toggle(keyboard_input: Res<ButtonInput<KeyCode>>, mut _player
                 camera_transform.rotation = Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2);
             } else {
                 // Retour à la vue FPS initiale
+                println!("here");
                 camera_transform.translation = Vec3::new(0.0, 2.0, 0.0);
                 camera_transform.rotation = Transform::from_xyz(0.0, 2.0, 0.0)
                     .looking_at(Vec3::new(0.0, 2.0, -3.0), Vec3::Y)
