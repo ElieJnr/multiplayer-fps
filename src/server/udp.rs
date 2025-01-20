@@ -1,10 +1,6 @@
-
 use super::handlers::handle_message;
 use crate::{
-    client::{
-        player:: Player,
-        udp::client_udp,
-    },
+    client::{player::Player, udp::client_udp},
     common::{constant::*, protocol::*},
     graphics::resources::PlayerCountState,
     utils::{logger::*, server_utils::*, utils::*},
@@ -18,6 +14,12 @@ use bevy::math::bool;
 pub fn run_socket() {
     let mut state: PlayerCountState = PlayerCountState::default();
     let mut players: HashMap<String, Player> = HashMap::new();
+
+   match  get_models(MODEL_URL, PATH_FOR_MODEL){
+        Ok(_) => {}
+        Err(_) => {display_error("Failed to download model."); return;},
+   };
+    display_info("Model downloaded successfully.");
 
     match get_user_choice() {
         Some(1) => {
