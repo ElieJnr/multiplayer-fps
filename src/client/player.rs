@@ -7,11 +7,17 @@ use crate::utils::logger::{display_info, display_warning};
 #[derive(Resource, Debug)]
 pub struct Players(pub HashMap<String, Player>);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Resource)]
 pub struct Player {
     pub name: String,
     pub address: SocketAddr,
     pub health: u32,
+    pub ready: bool,
+}
+
+#[derive(Debug, Clone, Resource, Default)]
+pub struct AllPlayers {
+    pub players: HashMap<String, Player>,
 }
 
 pub fn add_player(players: &mut HashMap<String, Player>, name: String, address: SocketAddr) {
@@ -24,6 +30,7 @@ pub fn add_player(players: &mut HashMap<String, Player>, name: String, address: 
                 name: name.clone(),
                 address,
                 health: 3,
+                ready: false,
             },
         );
         display_info(&format!("{} has joined", name.clone()));

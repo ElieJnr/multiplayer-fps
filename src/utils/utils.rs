@@ -1,3 +1,5 @@
+use bevy::prelude::{Query, With};
+use bevy::window::{PrimaryWindow, Window};
 use colored::{Color, Colorize};
 use std::io::{self, stdin, Write};
 use std::{thread, time::Duration};
@@ -97,4 +99,9 @@ pub fn get_user_input() -> Option<(String, String)> {
     );
 
     Some((name, ip))
+}
+
+pub fn get_window_dimensions(windows: &Query<&Window, With<PrimaryWindow>>) -> (f32, f32) {
+    let window = windows.single();
+    (window.width(), window.height())
 }
