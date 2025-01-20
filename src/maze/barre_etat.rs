@@ -71,7 +71,7 @@ fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                 padding: UiRect::horizontal(Val::Px(20.0)),
                 ..default()
             },
-            background_color: BackgroundColor(Color::srgba(0.0, 0.0, 0.5, 0.5)),
+            background_color: BackgroundColor(Color::srgba(0.0, 0.0, 0.5, 0.7)),
             ..default()
         })
         .with_children(|parent| {
@@ -135,10 +135,10 @@ fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                             height: Val::Px(20.0),
                             border: UiRect::all(Val::Px(2.0)),
                             margin: UiRect {
-                                left: Val::Auto,
-                                right: Val::Auto,
-                                top: Val::Px(20.0), 
-                                bottom: Val::Px(0.0),
+                                left: Val::Px(50.0),
+                                right: Val::Px(20.0),
+                                top: Val::Auto, 
+                                bottom: Val::Auto,
                             },
                             ..default()
                         },
