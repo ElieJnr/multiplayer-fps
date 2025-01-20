@@ -173,7 +173,7 @@ pub fn rotate_sky(time: Res<Time>, mut query: Query<&mut Transform, With<Sky>>) 
 // permet de créer un arc en utilisant des piliers et un arc supérieur
 pub fn create_arch(commands: &mut Commands, _meshes: &mut ResMut<Assets<Mesh>>, arch_mesh: Handle<Mesh>, sup_arch_mesh: Handle<Mesh>, arch_material: Handle<StandardMaterial>, arch: Entity, pillar_height: f32, i: f32, j: f32) {
 
-    println!("i {} j {}", i, j);
+    // println!("i {} j {}", i, j);
     let mut arch_radius = 2.25;
     
     let transform = if i == 29.0 && j == 22.0 {
