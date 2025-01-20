@@ -5,20 +5,23 @@ use crate::{
     graphics::resources::PlayerCountState,
     utils::{logger::*, server_utils::*, utils::*},
 };
-use std::{collections::HashMap, io::{self, Write}, net::UdpSocket};
 use bevy::math::bool;
-
-
-
+use std::{
+    collections::HashMap,
+    io::{self, Write},
+    net::UdpSocket,
+};
 
 pub fn run_socket() {
     let mut state: PlayerCountState = PlayerCountState::default();
     let mut players: HashMap<String, Player> = HashMap::new();
 
-   match  get_models(MODEL_URL, PATH_FOR_MODEL){
-        Ok(_) => {}
-        Err(_) => {display_error("Failed to download model."); return;},
-   };
+    // match get_models(MODEL_URL, PATH_FOR_MODEL) {
+    //     Ok(_) => {}
+    //     Err(_) => {
+    //         display_error("Failed to download model.");
+    //     }
+    // };
     display_info("Model downloaded successfully.");
 
     match get_user_choice() {
@@ -33,7 +36,7 @@ pub fn run_socket() {
 }
 
 fn handle_server_mode(players: &mut HashMap<String, Player>) {
-    let player_count = get_min_players_from_user(); 
+    let player_count = get_min_players_from_user();
 
     match get_local_ipv4() {
         Some(ip) => {
@@ -51,10 +54,10 @@ fn handle_server_mode(players: &mut HashMap<String, Player>) {
 fn get_min_players_from_user() -> PlayerCount {
     print!("Enter the number of players: ");
     io::stdout().flush().unwrap();
-    
+
     let mut input = String::new();
     io::stdin().read_line(&mut input).unwrap();
-    
+
     match input.trim().parse::<usize>() {
         Ok(num) => PlayerCount::new(num),
         Err(_) => {
@@ -73,10 +76,8 @@ fn handle_client_mode(state: &mut PlayerCountState) {
 pub fn server(
     server_socket: UdpSocket,
     players: &mut HashMap<String, Player>,
-    player_count: &PlayerCount
+    player_count: &PlayerCount,
 ) {
-    
-
     let mut buf = [0; 1024];
 
     loop {
@@ -112,5 +113,3 @@ pub fn broadcast_message(
         }
     }
 }
-
-
