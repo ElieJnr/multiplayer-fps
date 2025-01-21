@@ -1,11 +1,9 @@
 use bevy::prelude::{Query, With};
 use bevy::window::{PrimaryWindow, Window};
 use colored::{Color, Colorize};
-use reqwest::blocking::get;
-use std::io::{copy, Read};
-use std::fs::File;
+
 use std::io::{self, stdin, Write};
-// use std::process::Command;
+use std::process::Command;
 use std::{thread, time::Duration};
 
 use super::logger::*;
@@ -109,15 +107,19 @@ pub fn get_window_dimensions(windows: &Query<&Window, With<PrimaryWindow>>) -> (
     let window = windows.single();
     (window.width(), window.height())
 }
+pub fn get_models(url: &str, output_path: &str) -> io::Result<()> {
+    let output = Command::new("wget")
+        .arg("-O")
+        .arg(output_path)
+        .arg(url)
+        .output()?;
 
-// pub fn get_models(url: &str, output_path: &str) -> io::Result<()> {
-//     let response = get(url).map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-//     let mut file = File::create(output_path)?;
-//     let mut content = response;
-//     let mut content_ref = content.take(content.content_length().unwrap_or(0));
-//     copy(
-//         &mut content_ref,
-//         &mut file,
-//     )?;
-//     Ok(())
-// }
+    if output.status.success() {
+        return Err(io::Error::new(
+            io::ErrorKind::Other,
+            "wget failed to download the file",
+        ));
+    }
+
+    Ok(())
+}
