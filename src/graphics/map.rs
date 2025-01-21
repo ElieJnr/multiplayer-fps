@@ -9,7 +9,6 @@ use crate::maze::{
     player_simulation::{camera_view_toggle, player_movement, PlayerMovement},
     textures::rotate_sky,
 };
-
 use bevy::{
     app::{App, Plugin, Startup, Update},
     prelude::{

@@ -4,16 +4,12 @@ use crate::common::protocol::{
 };
 use crate::common::sync::NetworkMessages;
 use crate::player::player::{AnimationState, PlayerAnimations, PreloadedPlayerAnimations};
-use bevy::asset::Assets;
-use bevy::color::Color;
 use bevy::input::mouse::MouseMotion;
 use bevy::input::ButtonInput;
-use bevy::math::primitives::Cylinder;
 use bevy::math::{Quat, Vec2, Vec3};
-use bevy::pbr::{PbrBundle, StandardMaterial};
 use bevy::prelude::{
-    AnimationPlayer, BuildChildren, Camera3d, Camera3dBundle, Commands, Entity, EventReader,
-    KeyCode, Local, Mesh, Query, Res, ResMut, Resource, Transform, With, Without,
+    AnimationPlayer, Camera3d, Commands, EventReader,
+    KeyCode, Local, Query, Res, ResMut, Resource, Transform, With, Without,
 };
 use bevy::scene::SceneBundle;
 use bevy::time::Time;
@@ -26,6 +22,8 @@ use std::collections::VecDeque;
 pub struct PlayerInput {
     pub arrow_up: bool,
     pub arrow_down: bool,
+    pub arrow_left: bool,
+    pub arrow_right: bool,
     pub mouse_delta: Vec2,
     pub ready: bool,
 }
@@ -72,41 +70,6 @@ impl PlayerMovement {
     }
 }
 
-pub fn create_player(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, pos: Vec3) -> Entity {
-    let cylinder_mesh = meshes.add(Mesh::from(Cylinder {
-        radius: 0.4,
-        half_height: 0.5,
-        ..Default::default()
-    }));
-    let cylinder_material = materials.add(StandardMaterial {
-        base_color: Color::srgb(0.8, 0.7, 0.6),
-        ..Default::default()
-    });
-
-    let player = commands
-        .spawn((
-            PbrBundle {
-                mesh: cylinder_mesh,
-                material: cylinder_material,
-                transform: Transform::from_xyz(pos[0], pos[1], pos[2]),
-                ..Default::default()
-            },
-            Players,
-            Collider,
-        ))
-        .id();
-
-    commands
-        .spawn((Camera3dBundle {
-            transform: Transform::from_xyz(0.0, 0.5, 0.0)
-                .looking_at(Vec3::new(0.0, 0.5, 0.1), Vec3::Y),
-            ..Default::default()
-        },))
-        .set_parent(player);
-
-    player
-}
-
 pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>>, mut motion_evr: EventReader<MouseMotion>, mut movement: ResMut<PlayerMovement>, _obstacle_positions: Res<ObstaclePositions>, network: Option<Res<NetworkConfig>>, mut sequence_number: Local<u32>, mut query: Query<&mut Transform, With<Players>>, collider_query: Query<&Transform, (With<Collider>, Without<Players>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Players>)>, maze_state: Res<MazeState>) {
     if !maze_state.is_ready {
         return;
@@ -121,11 +84,13 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
     let input = PlayerInput {
         arrow_up: keyboard_input.pressed(KeyCode::ArrowUp),
         arrow_down: keyboard_input.pressed(KeyCode::ArrowDown),
+        arrow_left: keyboard_input.pressed(KeyCode::ArrowLeft),
+        arrow_right: keyboard_input.pressed(KeyCode::ArrowRight),
         mouse_delta,
         ready: false,
     };
 
-    if input.arrow_up || input.arrow_down || mouse_delta != Vec2::ZERO {
+    if input.arrow_up || input.arrow_down || input.arrow_left || input.arrow_right || mouse_delta != Vec2::ZERO {
         *sequence_number += 1;
         let delta_time = time.delta_seconds();
 
@@ -173,11 +138,18 @@ pub fn apply_input(transform: &mut Transform, input: &PlayerInput, movement: &Pl
     let forward = transform.forward();
 
     if input.arrow_up {
-        transform.translation += forward * movement.speed * delta_time;
-    }
-    if input.arrow_down {
         transform.translation -= forward * movement.speed * delta_time;
     }
+    if input.arrow_down {
+        transform.translation += forward * movement.speed * delta_time;
+    }
+    if input.arrow_left {
+        transform.translation += transform.right() * movement.speed * delta_time;
+    }
+    if input.arrow_right {
+        transform.translation -= transform.right() * movement.speed * delta_time;
+    }
+
     if input.mouse_delta.length_squared() > 0.0 {
         transform.rotate_y(-input.mouse_delta.x * movement.mouse_sensitivity);
     }
@@ -197,10 +169,10 @@ pub fn camera_view_toggle(keyboard_input: Res<ButtonInput<KeyCode>>, mut _player
                 camera_transform.rotation = Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2);
             } else {
                 // Retour à la vue FPS initiale
-                println!("here");
-                camera_transform.translation = Vec3::new(0.0, 2.0, 0.0);
-                camera_transform.rotation = Transform::from_xyz(0.0, 2.0, 0.0)
-                    .looking_at(Vec3::new(0.0, 2.0, -3.0), Vec3::Y)
+                // println!("here");
+                camera_transform.translation = Vec3::new(0.0, 0.5, -0.25);
+                camera_transform.rotation = Transform::from_xyz(0.0, 0.5, -0.25)
+                    .looking_at(Vec3::new(0.0, 0.5, 0.0), Vec3::Y)
                     .rotation;
             }
         }
@@ -264,7 +236,7 @@ fn collide(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
     }
 }
 
-pub fn manage_remote_players(mut commands: Commands, preloaded_animations: Res<PreloadedPlayerAnimations>, player_animations: Res<PlayerAnimations>, mut remote_players: ResMut<RemotePlayers>, network: Res<NetworkConfig>, mut messages: ResMut<NetworkMessages>, mut query: Query<&mut Transform>) {
+pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<PreloadedPlayerAnimations>, enemy_graph: Res<PlayerAnimations>, mut remote_players: ResMut<RemotePlayers>, network: Res<NetworkConfig>, mut messages: ResMut<NetworkMessages>, mut query: Query<&mut Transform>) {
     while let Some(message) = messages.0.pop_front() {
         if let MessageContent::GameUpdate {
             position: (x, z),
@@ -288,7 +260,7 @@ pub fn manage_remote_players(mut commands: Commands, preloaded_animations: Res<P
                 let remote_player = commands
                     .spawn((
                         SceneBundle {
-                            scene: preloaded_animations.model.clone(),
+                            scene: enemy_animations.model.clone(), // Utilise le modèle ennemi
                             transform: Transform {
                                 translation: Vec3::new(*x, 0.0, *z),
                                 rotation: Quat::from_rotation_y(rotation.y),
@@ -301,7 +273,7 @@ pub fn manage_remote_players(mut commands: Commands, preloaded_animations: Res<P
                             name: player_name.clone(),
                         },
                         AnimationPlayer::default(),
-                        player_animations.graph.clone(),
+                        enemy_graph.graph.clone(), 
                         AnimationState::default(),
                     ))
                     .id();

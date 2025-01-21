@@ -147,6 +147,8 @@ pub fn send_ready_msg(config: &NetworkConfig, player_name: &str) {
             action: PlayerInput {
                 arrow_up: false,
                 arrow_down: false,
+                arrow_left: false,
+                arrow_right: false,
                 mouse_delta: Vec2::default(),
                 ready: true,
             },

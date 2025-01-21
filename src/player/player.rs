@@ -26,8 +26,16 @@ pub struct PreloadedPlayerAnimations {
 
 #[derive(Resource)]
 pub struct PlayerAnimations {
-    pub player_entity: Entity,
+    pub player_entity: Entity, 
     pub animation_player_entity: Option<Entity>,
+    pub animations: HashMap<String, AnimationNodeIndex>,
+    pub graph: Handle<AnimationGraph>,
+}
+
+#[derive(Resource)]
+pub struct EnemyAnimations {
+    pub player_entity: Entity,
+    pub animation_player_entity: Option<Entity>, 
     pub animations: HashMap<String, AnimationNodeIndex>,
     pub graph: Handle<AnimationGraph>,
 }
@@ -128,22 +136,37 @@ pub fn setup_player_animation(mut commands: Commands, mut animations: ResMut<Pla
 }
 
 pub fn preload_player_assets(mut commands: Commands, asset_server: Res<AssetServer>, mut animation_graphs: ResMut<Assets<AnimationGraph>>) {
+    preload_assets(
+        &mut commands,
+        &asset_server,
+        &mut animation_graphs,
+        "player.glb",
+        vec!["idle", "run", "backward_run", "shoot", "reload"],
+        "PlayerAnimations",
+    );
+
+    preload_assets(
+        &mut commands,
+        &asset_server,
+        &mut animation_graphs,
+        "player.glb",
+        vec!["idle", "run", "backward_run", "shoot", "reload"],
+        "EnemyAnimations",
+    );
+}
+
+fn preload_assets(commands: &mut Commands, asset_server: &AssetServer, animation_graphs: &mut Assets<AnimationGraph>, model_file: &str, animation_names: Vec<&str>, resource_name: &str) {
     let default_path = format!("{}", env!("CARGO_MANIFEST_DIR"));
     let path = format!("{}/assets/", default_path);
-    let root = format!("{}player.glb", path);
+    let model_path = format!("{}{}", path, model_file);
 
-    // info!("Loading model from: {}", root);
-
-    let model = asset_server.load(GltfAssetLabel::Scene(0).from_asset(root.clone()));
+    let model = asset_server.load(GltfAssetLabel::Scene(0).from_asset(model_path.clone()));
 
     let mut animations = HashMap::new();
-    let animation_names = ["idle", "run", "backward_run", "shoot", "reload"];
-
     for (i, &name) in animation_names.iter().enumerate() {
-        // info!("Loading animation: {} at index {}", name, i);
         animations.insert(
             name.to_string(),
-            asset_server.load(GltfAssetLabel::Animation(i).from_asset(root.clone())),
+            asset_server.load(GltfAssetLabel::Animation(i).from_asset(model_path.clone())),
         );
     }
 
@@ -151,7 +174,6 @@ pub fn preload_player_assets(mut commands: Commands, asset_server: Res<AssetServ
     let mut animation_indices = HashMap::new();
 
     for (name, clip) in animations.iter() {
-        // info!("Adding animation {} to graph", name);
         let node_index = graph.add_clip(clip.clone(), 1.0, graph.root);
         animation_indices.insert(name.clone(), node_index);
     }
@@ -160,24 +182,31 @@ pub fn preload_player_assets(mut commands: Commands, asset_server: Res<AssetServ
 
     commands.insert_resource(PreloadedPlayerAnimations { model, animations });
 
-    commands.insert_resource(PlayerAnimations {
-        player_entity: Entity::from_raw(0),
-        animation_player_entity: None,
-        animations: animation_indices,
-        graph: graph_handle,
-    });
-
-    // info!("Player assets preloaded");
+    if resource_name == "PlayerAnimations" {
+        commands.insert_resource(PlayerAnimations {
+            player_entity: Entity::from_raw(0),
+            animation_player_entity: None,
+            animations: animation_indices,
+            graph: graph_handle,
+        });
+    } else if resource_name == "EnemyAnimations" {
+        commands.insert_resource(PlayerAnimations {
+            player_entity: Entity::from_raw(0),
+            animation_player_entity: None,
+            animations: animation_indices,
+            graph: graph_handle,
+        });
+    }
 }
 
-pub fn create_players(commands: &mut Commands, preloaded_animations: Res<PreloadedPlayerAnimations>, player_animations: Res<PlayerAnimations>, pos:Vec3) {
+pub fn create_players(commands: &mut Commands, player_animations: Res<PreloadedPlayerAnimations>, player_graph: Res<PlayerAnimations>, pos: Vec3) {
 
     let player_entity = commands
         .spawn((
             SceneBundle {
-                scene: preloaded_animations.model.clone(),
+                scene: player_animations.model.clone(),
                 transform: Transform {
-                    translation: Vec3::new(pos[0], 0.0, pos[2]), // Mettre le joueur à hauteur 1.0
+                    translation: Vec3::new(pos[0], 0.0, pos[2]),
                     scale: Vec3::splat(0.25),
                     ..default()
                 },
@@ -186,24 +215,24 @@ pub fn create_players(commands: &mut Commands, preloaded_animations: Res<Preload
             Player,
             Players,
             AnimationPlayer::default(),
-            player_animations.graph.clone(),
+            player_graph.graph.clone(),
             AnimationState::default(),
         ))
         .id();
 
         commands.spawn((
             Camera3dBundle {
-                transform: Transform::from_xyz(0.0, 2.0, 0.0) 
-                    .looking_at(Vec3::new(0.0, 2.0, -3.0), Vec3::Y), 
-                ..default()
+            transform: Transform::from_xyz(0.0, 0.5, -0.25)
+                .looking_at(Vec3::new(0.0, 0.5, 0.0), Vec3::Y),
+            ..default()
             },
         )).set_parent(player_entity);
 
     commands.insert_resource(PlayerAnimations {
         player_entity,
         animation_player_entity: None,
-        animations: player_animations.animations.clone(),
-        graph: player_animations.graph.clone(),
+        animations: player_graph.animations.clone(),
+        graph: player_graph.graph.clone(),
     });
 
 }
