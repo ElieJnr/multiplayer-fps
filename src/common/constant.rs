@@ -1,8 +1,8 @@
 pub const PORT: &str = "8080";
 
-pub const MODEL_URL: &str = "https://cdn.discordapp.com/attachments/1155879899626754200/1330883259739013231/player.glb?ex=678f991f&is=678e479f&hm=1f6c4394321a4fe7bc0045bf6a090424b82cc86417a43aae86c1b73481d702b7&";
+pub const MODEL_URL: &str = "https://download1979.mediafire.com/lezuczltv1ng9_AzAOp6Xk8uYiMANPw6Kd_xDRWm77wt03LbTxuwEe04KOOQJ6Qq4aMsouFtoNLp5ZjEi8hp8Xp7f_U-98lhsnJp2NalDsAEHjDAqF1wNZeCwMxqBOHhw6Bc04tgep-OlcM2z-Gue6aOWD7Ao-UuepkK5SGVA7wSzT4/n6xa7bb1nus2ejq/player.glb";
 
-pub const PATH_FOR_MODEL: &str = "model/player.glb";
+pub const PATH_FOR_MODEL: &str = "assets/player.glb";
 
 pub const DEFAULT_MIN_PLAYERS: usize = 2;
 #[derive(Debug)]
