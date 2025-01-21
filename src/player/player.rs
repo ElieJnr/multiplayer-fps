@@ -25,6 +25,12 @@ pub struct PreloadedPlayerAnimations {
 }
 
 #[derive(Resource)]
+pub struct PreloadedEnemyAnimations {
+    pub model: Handle<Scene>,
+    pub animations: HashMap<String, Handle<AnimationClip>>,
+}
+
+#[derive(Resource)]
 pub struct PlayerAnimations {
     pub player_entity: Entity, 
     pub animation_player_entity: Option<Entity>,
@@ -149,7 +155,7 @@ pub fn preload_player_assets(mut commands: Commands, asset_server: Res<AssetServ
         &mut commands,
         &asset_server,
         &mut animation_graphs,
-        "player.glb",
+        "enemy.glb",
         vec!["idle", "run", "backward_run", "shoot", "reload"],
         "EnemyAnimations",
     );
@@ -180,22 +186,33 @@ fn preload_assets(commands: &mut Commands, asset_server: &AssetServer, animation
 
     let graph_handle = animation_graphs.add(graph);
 
-    commands.insert_resource(PreloadedPlayerAnimations { model, animations });
-
-    if resource_name == "PlayerAnimations" {
-        commands.insert_resource(PlayerAnimations {
-            player_entity: Entity::from_raw(0),
-            animation_player_entity: None,
-            animations: animation_indices,
-            graph: graph_handle,
-        });
-    } else if resource_name == "EnemyAnimations" {
-        commands.insert_resource(PlayerAnimations {
-            player_entity: Entity::from_raw(0),
-            animation_player_entity: None,
-            animations: animation_indices,
-            graph: graph_handle,
-        });
+    // Insérer la ressource appropriée selon le type
+    match resource_name {
+        "PlayerAnimations" => {
+            commands.insert_resource(PreloadedPlayerAnimations { 
+                model: model.clone(), 
+                animations: animations.clone() 
+            });
+            commands.insert_resource(PlayerAnimations {
+                player_entity: Entity::from_raw(0),
+                animation_player_entity: None,
+                animations: animation_indices.clone(),
+                graph: graph_handle.clone(),
+            });
+        },
+        "EnemyAnimations" => {
+            commands.insert_resource(PreloadedEnemyAnimations { 
+                model: model.clone(), 
+                animations: animations.clone() 
+            });
+            commands.insert_resource(EnemyAnimations {
+                player_entity: Entity::from_raw(0),
+                animation_player_entity: None, 
+                animations: animation_indices,
+                graph: graph_handle,
+            });
+        },
+        _ => {}
     }
 }
 

@@ -3,7 +3,7 @@ use crate::common::protocol::{
     serialize_message, GameMessage, MessageContent, MessageType, NetworkConfig,
 };
 use crate::common::sync::NetworkMessages;
-use crate::player::player::{AnimationState, PlayerAnimations, PreloadedPlayerAnimations};
+use crate::player::player::{AnimationState, EnemyAnimations, PreloadedEnemyAnimations};
 use bevy::input::mouse::MouseMotion;
 use bevy::input::ButtonInput;
 use bevy::math::{Quat, Vec2, Vec3};
@@ -236,7 +236,7 @@ fn collide(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
     }
 }
 
-pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<PreloadedPlayerAnimations>, enemy_graph: Res<PlayerAnimations>, mut remote_players: ResMut<RemotePlayers>, network: Res<NetworkConfig>, mut messages: ResMut<NetworkMessages>, mut query: Query<&mut Transform>) {
+pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<PreloadedEnemyAnimations>, enemy_graph: Res<EnemyAnimations>, mut remote_players: ResMut<RemotePlayers>, network: Res<NetworkConfig>, mut messages: ResMut<NetworkMessages>, mut query: Query<&mut Transform>) {
     while let Some(message) = messages.0.pop_front() {
         if let MessageContent::GameUpdate {
             position: (x, z),
@@ -260,7 +260,7 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
                 let remote_player = commands
                     .spawn((
                         SceneBundle {
-                            scene: enemy_animations.model.clone(), // Utilise le modèle ennemi
+                            scene: enemy_animations.model.clone(), 
                             transform: Transform {
                                 translation: Vec3::new(*x, 0.0, *z),
                                 rotation: Quat::from_rotation_y(rotation.y),
