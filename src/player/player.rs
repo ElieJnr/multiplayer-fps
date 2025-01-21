@@ -1,7 +1,7 @@
+use crate::maze::models::Players;
 use bevy::gltf::GltfAssetLabel;
 use bevy::prelude::*;
 use std::{collections::HashMap, time::Duration};
-use crate::maze::models::Players;
 
 pub struct PlayerBuild;
 
@@ -26,7 +26,7 @@ pub struct PreloadedPlayerAnimations {
 
 #[derive(Resource)]
 pub struct PlayerAnimations {
-    pub player_entity: Entity, 
+    pub player_entity: Entity,
     pub animation_player_entity: Option<Entity>,
     pub animations: HashMap<String, AnimationNodeIndex>,
     pub graph: Handle<AnimationGraph>,
@@ -35,7 +35,7 @@ pub struct PlayerAnimations {
 #[derive(Resource)]
 pub struct EnemyAnimations {
     pub player_entity: Entity,
-    pub animation_player_entity: Option<Entity>, 
+    pub animation_player_entity: Option<Entity>,
     pub animations: HashMap<String, AnimationNodeIndex>,
     pub graph: Handle<AnimationGraph>,
 }
@@ -51,10 +51,15 @@ impl Plugin for PlayerPlugin {
     }
 }
 
-pub fn handle_keyboard_animation(keyboard: Res<ButtonInput<KeyCode>>, mut query: Query<(Entity, &mut AnimationState)>, animations: ResMut<PlayerAnimations>, mut animation_players: Query<&mut AnimationPlayer>) {
+pub fn handle_keyboard_animation(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut query: Query<(Entity, &mut AnimationState)>,
+    animations: ResMut<PlayerAnimations>,
+    mut animation_players: Query<&mut AnimationPlayer>,
+) {
     if let Ok((_entity, mut animation_state)) = query.get_single_mut() {
         let new_animation = if keyboard.pressed(KeyCode::KeyW) {
-            "run"
+            "walk"
         } else if keyboard.pressed(KeyCode::KeyS) {
             "backward_run"
         } else if keyboard.pressed(KeyCode::KeyR) {
@@ -62,7 +67,7 @@ pub fn handle_keyboard_animation(keyboard: Res<ButtonInput<KeyCode>>, mut query:
         } else if keyboard.pressed(KeyCode::Space) {
             "shoot"
         } else if keyboard.just_released(KeyCode::KeyW) {
-            "stoprun"
+            "stopwalk"
         } else if keyboard.just_released(KeyCode::KeyS) {
             "stopbackward_run"
         } else if keyboard.just_released(KeyCode::Space) {
@@ -70,7 +75,6 @@ pub fn handle_keyboard_animation(keyboard: Res<ButtonInput<KeyCode>>, mut query:
         } else {
             "idle"
         };
-    
 
         if new_animation == "reload" {
             if new_animation != animation_state.current_animation {
@@ -116,10 +120,14 @@ pub fn handle_keyboard_animation(keyboard: Res<ButtonInput<KeyCode>>, mut query:
                 }
             }
         }
-    } 
+    }
 }
 
-pub fn setup_player_animation(mut commands: Commands, mut animations: ResMut<PlayerAnimations>, mut animation_players: Query<(Entity, &mut AnimationPlayer), Added<AnimationPlayer>>) { 
+pub fn setup_player_animation(
+    mut commands: Commands,
+    mut animations: ResMut<PlayerAnimations>,
+    mut animation_players: Query<(Entity, &mut AnimationPlayer), Added<AnimationPlayer>>,
+) {
     for (entity, mut player) in &mut animation_players {
         // info!("Setting up animation for player entity: {:?}", entity);
         let transitions = AnimationTransitions::new();
@@ -130,18 +138,25 @@ pub fn setup_player_animation(mut commands: Commands, mut animations: ResMut<Pla
                 .repeat();
         }
 
-        commands.entity(entity).insert(animations.graph.clone()).insert(transitions.clone());
+        commands
+            .entity(entity)
+            .insert(animations.graph.clone())
+            .insert(transitions.clone());
         animations.animation_player_entity = Some(entity);
     }
 }
 
-pub fn preload_player_assets(mut commands: Commands, asset_server: Res<AssetServer>, mut animation_graphs: ResMut<Assets<AnimationGraph>>) {
+pub fn preload_player_assets(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut animation_graphs: ResMut<Assets<AnimationGraph>>,
+) {
     preload_assets(
         &mut commands,
         &asset_server,
         &mut animation_graphs,
         "player.glb",
-        vec!["idle", "run", "backward_run", "shoot", "reload"],
+        vec!["draw", "idle", "ispect", "walk", "run", "shoot"],
         "PlayerAnimations",
     );
 
@@ -155,7 +170,14 @@ pub fn preload_player_assets(mut commands: Commands, asset_server: Res<AssetServ
     );
 }
 
-fn preload_assets(commands: &mut Commands, asset_server: &AssetServer, animation_graphs: &mut Assets<AnimationGraph>, model_file: &str, animation_names: Vec<&str>, resource_name: &str) {
+fn preload_assets(
+    commands: &mut Commands,
+    asset_server: &AssetServer,
+    animation_graphs: &mut Assets<AnimationGraph>,
+    model_file: &str,
+    animation_names: Vec<&str>,
+    resource_name: &str,
+) {
     let default_path = format!("{}", env!("CARGO_MANIFEST_DIR"));
     let path = format!("{}/assets/", default_path);
     let model_path = format!("{}{}", path, model_file);
@@ -199,8 +221,12 @@ fn preload_assets(commands: &mut Commands, asset_server: &AssetServer, animation
     }
 }
 
-pub fn create_players(commands: &mut Commands, player_animations: Res<PreloadedPlayerAnimations>, player_graph: Res<PlayerAnimations>, pos: Vec3) {
-
+pub fn create_players(
+    commands: &mut Commands,
+    player_animations: Res<PreloadedPlayerAnimations>,
+    player_graph: Res<PlayerAnimations>,
+    pos: Vec3,
+) {
     let player_entity = commands
         .spawn((
             SceneBundle {
@@ -220,13 +246,13 @@ pub fn create_players(commands: &mut Commands, player_animations: Res<PreloadedP
         ))
         .id();
 
-        commands.spawn((
-            Camera3dBundle {
+    commands
+        .spawn((Camera3dBundle {
             transform: Transform::from_xyz(0.0, 0.5, -0.25)
                 .looking_at(Vec3::new(0.0, 0.5, 0.0), Vec3::Y),
             ..default()
-            },
-        )).set_parent(player_entity);
+        },))
+        .set_parent(player_entity);
 
     commands.insert_resource(PlayerAnimations {
         player_entity,
@@ -234,5 +260,4 @@ pub fn create_players(commands: &mut Commands, player_animations: Res<PreloadedP
         animations: player_graph.animations.clone(),
         graph: player_graph.graph.clone(),
     });
-
 }
