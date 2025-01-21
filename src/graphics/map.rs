@@ -19,7 +19,6 @@ use bevy::{
     sprite::Sprite,
     window::{CursorGrabMode, Window},
 };
-// use crate::maze::player_simulation::camera_controller;
 
 use super::states::GameState;
 

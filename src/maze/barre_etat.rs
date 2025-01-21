@@ -3,12 +3,14 @@ use bevy::{
     asset::AssetServer,
     color::Color,
     prelude::{
-        BuildChildren, Commands, Component, NodeBundle, Query, Res, ResMut, Resource, TextBundle,
-        With,
+        BuildChildren, ChildBuilder, Commands, Component, NodeBundle, Query, Res, Resource,
+        TextBundle, With,
     },
     text::{Text, TextStyle},
-    time::Time,
-    ui::{AlignItems, BackgroundColor, Display, JustifyContent, PositionType, Style, UiRect, Val},
+    ui::{
+        AlignItems, BackgroundColor, BorderColor, BorderRadius, Display, FlexDirection,
+        JustifyContent, PositionType, Style, UiImage, UiRect, Val,
+    },
     utils::default,
 };
 
@@ -17,17 +19,19 @@ use crate::{
     graphics::show_fps::{update_fps_ui, FpsText, FpsUpdateTimer},
 };
 
+use super::models::MazeState;
+
 #[derive(Debug, Resource, Default)]
 pub struct GameStatus {
-    pub time: u32,
+    pub num_players: usize,
     pub player_restant: usize,
-    pub player_health: f32, // entre 0.0 et 1.0 donc pour 5 tir on decrementera a chaque tir 0.02
+    pub player_health: f32,
 }
 
 impl GameStatus {
     pub fn new(player_count: &PlayerCount) -> Self {
         Self {
-            time: 60,
+            num_players: player_count.get_min_players(),
             player_restant: player_count.get_min_players(),
             player_health: 1.0,
         }
@@ -49,6 +53,7 @@ impl Plugin for GameStatusPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<GameStatus>()
             .init_resource::<FpsUpdateTimer>()
+            .init_resource::<MazeState>()
             .add_systems(Startup, setup_ui)
             .add_systems(
                 Update,
@@ -62,7 +67,7 @@ fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
         .spawn(NodeBundle {
             style: Style {
                 position_type: PositionType::Absolute,
-                top: Val::Px(10.0),
+                height: Val::Px(65.0),
                 left: Val::Percent(0.0),
                 right: Val::Percent(0.0),
                 display: Display::Flex,
@@ -75,109 +80,148 @@ fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
             ..default()
         })
         .with_children(|parent| {
-            parent
-                .spawn((
-                    NodeBundle {
-                        style: Style {
-                            display: Display::Flex,
-                            justify_content: JustifyContent::SpaceBetween, 
-                            width: Val::Percent(100.0),
-                            ..default()
-                        },
-                        ..default()
-                    },
-                    GameStatusUI,
-                ))
-                .with_children(|status| {
-                    status.spawn((
-                        TextBundle::from_section(
-                            "Players: 5/5",
-                            TextStyle {
-                                font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                                font_size: 30.0,
-                                color: Color::WHITE,
-                            },
-                        ),
-                        GameStatusUI,
-                    ));
-
-                    status.spawn((
-                        TextBundle::from_section(
-                            "FPS: Calculating...",
-                            TextStyle {
-                                font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                                font_size: 30.0,
-                                color: Color::WHITE,
-                            },
-                        ),
-                        FpsText,
-                    ));
-
-                    status.spawn((
-                        TextBundle::from_section(
-                            "Temps: 60s",
-                            TextStyle {
-                                font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                                font_size: 30.0,
-                                color: Color::WHITE,
-                            },
-                        ),
-                        GameStatusUI,
-                    ));
-                });
-
-            // Barre de santé
-            parent
-                .spawn((
-                    NodeBundle {
-                        style: Style {
-                            width: Val::Px(200.0),
-                            height: Val::Px(20.0),
-                            border: UiRect::all(Val::Px(2.0)),
-                            margin: UiRect {
-                                left: Val::Px(50.0),
-                                right: Val::Px(20.0),
-                                top: Val::Auto, 
-                                bottom: Val::Auto,
-                            },
-                            ..default()
-                        },
-                        background_color: BackgroundColor(Color::srgb(1.0, 0.0, 0.0)),
-                        ..default()
-                    },
-                    HealthBarFrame,
-                ))
-                .with_children(|health| {
-                    health.spawn((
-                        NodeBundle {
-                            style: Style {
-                                width: Val::Percent(100.0),
-                                height: Val::Percent(100.0),
-                                ..default()
-                            },
-                            background_color: BackgroundColor(Color::srgb(0.0, 1.0, 0.0)),
-                            ..default()
-                        },
-                        HealthBarFill,
-                    ));
-                });
+            setup_status_ui(parent, &asset_server);
+            setup_health_bar_ui(parent, &asset_server);
         });
 }
 
-fn update_game_status(
-    mut status: ResMut<GameStatus>,
-    time: Res<Time>,
-    mut query: Query<&mut Text, With<GameStatusUI>>,
-) {
-    if status.time > 0 {
-        status.time -= time.delta_seconds() as u32;
-    }
+fn setup_status_ui(parent: &mut ChildBuilder, asset_server: &Res<AssetServer>) {
+    parent
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    display: Display::Flex,
+                    justify_content: JustifyContent::SpaceBetween,
+                    width: Val::Percent(100.0),
+                    ..default()
+                },
+                ..default()
+            },
+            GameStatusUI,
+        ))
+        .with_children(|status| {
+            spawn_player_status(status, asset_server);
+            spawn_fps_status(status, asset_server);
+        });
+}
 
+fn spawn_player_status(parent: &mut ChildBuilder, asset_server: &Res<AssetServer>) {
+    parent.spawn((
+        TextBundle::from_section(
+            "Players: 5/5",
+            create_text_style(asset_server),
+        ),
+        GameStatusUI,
+    ));
+}
+
+fn spawn_fps_status(parent: &mut ChildBuilder, asset_server: &Res<AssetServer>) {
+    parent.spawn((
+        TextBundle::from_section(
+            "FPS: Calculating...",
+            create_text_style(asset_server),
+        ),
+        FpsText,
+    ));
+}
+
+fn create_text_style(asset_server: &Res<AssetServer>) -> TextStyle {
+    TextStyle {
+        font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+        font_size: 30.0,
+        color: Color::WHITE,
+    }
+}
+
+fn setup_health_bar_ui(parent: &mut ChildBuilder, asset_server: &Res<AssetServer>) {
+    parent
+        .spawn(NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::Row,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            ..default()
+        })
+        .with_children(|parent| {
+            spawn_health_icon(parent, asset_server);
+            spawn_health_bar(parent);
+        });
+}
+
+fn spawn_health_icon(parent: &mut ChildBuilder, asset_server: &Res<AssetServer>) {
+    parent.spawn((
+        NodeBundle {
+            style: Style {
+                width: Val::Px(45.0),
+                height: Val::Px(45.0),
+                margin: UiRect {
+                    left: Val::Px(250.0),
+                    ..default()
+                },
+                ..default()
+            },
+            background_color: BackgroundColor(Color::NONE),
+            ..default()
+        },
+        UiImage {
+            texture: asset_server.load("textures/icône_vie.png"),
+            color: Color::WHITE,
+            flip_x: true,
+            flip_y: false,
+        },
+    ));
+}
+
+fn spawn_health_bar(parent: &mut ChildBuilder) {
+    parent
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    width: Val::Px(250.0),
+                    height: Val::Px(25.0),
+                    border: UiRect::all(Val::Px(2.0)),
+                    margin: UiRect {
+                        left: Val::Px(2.),
+                        right: Val::Px(20.0),
+                        ..default()
+                    },
+                    ..default()
+                },
+                border_radius: BorderRadius::all(Val::Px(20.0)),
+                background_color: BackgroundColor(Color::srgb(1.0, 0.0, 0.0)),
+                border_color: BorderColor(Color::srgb(1.0, 0.0, 0.5)),
+                ..default()
+            },
+            HealthBarFrame,
+        ))
+        .with_children(|parent| {
+            spawn_health_fill(parent);
+        });
+}
+
+fn spawn_health_fill(parent: &mut ChildBuilder) {
+    parent.spawn((
+        NodeBundle {
+            style: Style {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                ..default()
+            },
+            border_radius: BorderRadius::all(Val::Px(20.0)),
+            background_color: BackgroundColor(Color::srgb(0.2, 0.8, 0.0)),
+            border_color: BorderColor(Color::srgb(0.0, 1.0, 1.0)),
+            ..default()
+        },
+        HealthBarFill,
+    ));
+}
+
+
+fn update_game_status(status: Res<GameStatus>, mut query: Query<&mut Text, With<GameStatusUI>>) {
     if let Ok(mut text) = query.get_single_mut() {
-        text.sections[0].value = format!(
-            "Temps: {}s | Joueurs: {}/5",
-            status.time, status.player_restant
-        );
+        text.sections[0].value =
+            format!("Player: {}/{}", status.player_restant, status.num_players);
     }
 }
 

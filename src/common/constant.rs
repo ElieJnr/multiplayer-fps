@@ -22,3 +22,4 @@ impl PlayerCount {
         self.min_players = min_players;
     }
 }
+

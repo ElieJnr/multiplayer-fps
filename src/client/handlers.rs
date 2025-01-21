@@ -1,5 +1,3 @@
-// use bevy::scene::ron::de::Position;
-
 use crate::graphics::resources::PlayerCountState;
 use crate::graphics::start::start;
 use crate::maze::maze::PosStruct;
