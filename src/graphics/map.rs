@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::maze::maze::{maze_setup, PosStruct};
+use crate::maze::maze::{maze_setup, setup_crosshair, PosStruct};
 use crate::maze::minimap::minimap::{display_minimap, update_minimap};
 use crate::maze::minimap::minimap_player::update_minimap_player;
 use crate::maze::models::{CameraState, MazeState, ObstaclePositions, TreeParams};
@@ -34,7 +34,7 @@ impl Plugin for MazePlugin {
             .insert_resource(RemotePlayers(HashMap::new()))
             .init_resource::<ObstaclePositions>()
             .add_systems(OnEnter(GameState::Game), setup_mouse)
-            .add_systems(OnEnter(GameState::Game), maze_setup)
+            .add_systems(OnEnter(GameState::Game), (maze_setup, setup_crosshair))
             .add_systems(OnEnter(GameState::Game), display_minimap.after(maze_setup))
             .add_systems(
                 Update,
@@ -44,7 +44,7 @@ impl Plugin for MazePlugin {
                     camera_view_toggle,
                     rotate_sky,
                     update_minimap_player,
-                )
+                ),
             )
             .add_systems(OnExit(GameState::Game), cleanup_maze)
             .add_systems(Startup, setup_fps_ui)
