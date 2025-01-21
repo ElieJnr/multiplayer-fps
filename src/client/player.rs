@@ -3,7 +3,7 @@ use std::{collections::HashMap, net::SocketAddr};
 use bevy::{math::Vec3, prelude::Resource};
 
 use crate::{
-    maze::player_simulation::PlayerMovement,
+    player::model::PlayerMovement,
     utils::logger::{display_info, display_warning},
 };
 

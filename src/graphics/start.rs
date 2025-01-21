@@ -9,11 +9,7 @@ use crate::{
     client::player::*,
     common::{protocol::NetworkConfig, sync::NetworkPlugin},
     graphics::{resources::Map, states::GameState, systems::menu::menu_plugin},
-    maze::{
-        maze::PosStruct,
-        minimap::minimap::{load_minimap_textures, read_maze},
-    },
-    player::player::PlayerPlugin,
+    maze::{maze::PosStruct, minimap::minimap::{load_minimap_textures, read_maze}}, player::model::PlayerPlugin,
 };
 use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*, render::settings::WgpuSettings};
 

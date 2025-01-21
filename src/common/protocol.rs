@@ -1,5 +1,5 @@
 use crate::client::player::Player;
-use crate::{maze::player_simulation::PlayerInput, utils::logger::*};
+use crate::{player::model::PlayerInput, utils::logger::*};
 use bevy::{math::Vec2, prelude::Resource};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -147,6 +147,8 @@ pub fn send_ready_msg(config: &NetworkConfig, player_name: &str) {
             action: PlayerInput {
                 arrow_up: false,
                 arrow_down: false,
+                arrow_left: false,
+                arrow_right: false,
                 mouse_delta: Vec2::default(),
                 ready: true,
             },
