@@ -6,7 +6,7 @@ use bevy::{
         BuildChildren, ChildBuilder, Commands, Component, NodeBundle, Query, Res, Resource,
         TextBundle, With,
     },
-    text::{Text, TextStyle},
+    text::TextStyle,
     ui::{
         AlignItems, BackgroundColor, BorderColor, BorderRadius, Display, FlexDirection,
         JustifyContent, PositionType, Style, UiImage, UiRect, Val,
@@ -14,27 +14,18 @@ use bevy::{
     utils::default,
 };
 
-use crate::{
-    common::constant::{sync_network_to_game_status, PlayerCount},
-    graphics::show_fps::{update_fps_ui, FpsText, FpsUpdateTimer},
-};
+use crate::graphics::show_fps::{update_fps_ui, FpsText, FpsUpdateTimer};
 
 use super::models::MazeState;
 
 #[derive(Debug, Resource, Default)]
 pub struct GameStatus {
-    pub num_players: usize,
-    pub player_restant: usize,
     pub player_health: f32,
 }
 
 impl GameStatus {
-    pub fn new(player_count: &PlayerCount) -> Self {
-        Self {
-            num_players: player_count.get_min_players(),
-            player_restant: player_count.get_min_players(),
-            player_health: 1.0,
-        }
+    pub fn new() -> Self {
+        Self { player_health: 0.6 }
     }
 }
 
@@ -54,16 +45,17 @@ impl Plugin for GameStatusPlugin {
         app.init_resource::<GameStatus>()
             .init_resource::<FpsUpdateTimer>()
             .init_resource::<MazeState>()
-            .init_resource::<NetworkPlayerState>()
             .add_systems(Startup, setup_ui)
             .add_systems(
                 Update,
-                (update_game_status, update_health_bar, update_fps_ui, sync_network_to_game_status),
+                (update_health_bar, update_fps_ui),
             );
     }
 }
 
 fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.insert_resource(GameStatus::new());
+
     commands
         .spawn(NodeBundle {
             style: Style {
@@ -77,7 +69,7 @@ fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                 padding: UiRect::horizontal(Val::Px(20.0)),
                 ..default()
             },
-            background_color: BackgroundColor(Color::srgba(0.0, 0.0, 0.5, 0.7)),
+            background_color: BackgroundColor(Color::srgba(0.0, 0.0, 0.5, 0.5)),
             ..default()
         })
         .with_children(|parent| {
@@ -101,27 +93,13 @@ fn setup_status_ui(parent: &mut ChildBuilder, asset_server: &Res<AssetServer>) {
             GameStatusUI,
         ))
         .with_children(|status| {
-            spawn_player_status(status, asset_server);
             spawn_fps_status(status, asset_server);
         });
 }
 
-fn spawn_player_status(parent: &mut ChildBuilder, asset_server: &Res<AssetServer>) {
-    parent.spawn((
-        TextBundle::from_section(
-            "Players: 5/5",
-            create_text_style(asset_server),
-        ),
-        GameStatusUI,
-    ));
-}
-
 fn spawn_fps_status(parent: &mut ChildBuilder, asset_server: &Res<AssetServer>) {
     parent.spawn((
-        TextBundle::from_section(
-            "FPS: Calculating...",
-            create_text_style(asset_server),
-        ),
+        TextBundle::from_section("FPS: Calculating...", create_text_style(asset_server)),
         FpsText,
     ));
 }
@@ -190,8 +168,8 @@ fn spawn_health_bar(parent: &mut ChildBuilder) {
                     ..default()
                 },
                 border_radius: BorderRadius::all(Val::Px(20.0)),
-                background_color: BackgroundColor(Color::srgb(1.0, 0.0, 0.0)),
-                border_color: BorderColor(Color::srgb(1.0, 0.0, 0.5)),
+                background_color: BackgroundColor(Color::srgb(0.96, 0.7, 0.45)),
+                border_color: BorderColor(Color::srgb(1.0, 0.0, 0.3)),
                 ..default()
             },
             HealthBarFrame,
@@ -205,25 +183,17 @@ fn spawn_health_fill(parent: &mut ChildBuilder) {
     parent.spawn((
         NodeBundle {
             style: Style {
-                width: Val::Percent(100.0),
+                width: Val::Percent(90.0),
                 height: Val::Percent(100.0),
                 ..default()
             },
             border_radius: BorderRadius::all(Val::Px(20.0)),
-            background_color: BackgroundColor(Color::srgb(0.2, 0.8, 0.0)),
+            background_color: BackgroundColor(Color::srgb(1., 0.0, 0.0)),
             border_color: BorderColor(Color::srgb(0.0, 1.0, 1.0)),
             ..default()
         },
         HealthBarFill,
     ));
-}
-
-
-fn update_game_status(status: Res<GameStatus>, mut query: Query<&mut Text, With<GameStatusUI>>) {
-    if let Ok(mut text) = query.get_single_mut() {
-        text.sections[0].value =
-            format!("Player: {}/{}", status.player_restant, status.num_players);
-    }
 }
 
 fn update_health_bar(status: Res<GameStatus>, mut query: Query<&mut Style, With<HealthBarFill>>) {

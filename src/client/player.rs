@@ -7,10 +7,9 @@ use crate::{
     utils::logger::{display_info, display_warning},
 };
 
-#[derive(Resource, Debug)]
+#[derive(Resource, Debug, Default)]
 pub struct Players(pub HashMap<String, Player>);
 
-// #[derive(Debug, Clone, Resource)]
 #[derive(Debug, Clone, Resource, serde::Deserialize, serde::Serialize)]
 pub struct Player {
     pub name: String,
