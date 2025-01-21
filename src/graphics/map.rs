@@ -4,13 +4,11 @@ use crate::maze::barre_etat::GameStatusPlugin;
 use crate::maze::maze::{maze_setup, setup_crosshair, PosStruct};
 use crate::maze::minimap::minimap::{display_minimap, update_minimap};
 use crate::maze::minimap::minimap_player::update_minimap_player;
-use crate::maze::models::{CameraState, MazeState, ObstaclePositions, RemotePlayers, TreeParams};
-use crate::maze::player_simulation::{manage_remote_players, toggle_cursor_lock};
-use crate::maze::{
-    player_simulation::{camera_view_toggle, player_movement, PlayerMovement},
-    textures::rotate_sky,
-};
-
+use crate::maze::models::{CameraState, MazeState, ObstaclePositions, TreeParams};
+use crate::maze::textures::rotate_sky;
+use crate::player::model::RemotePlayers;
+use crate::player::model::PlayerMovement;
+use crate::player::movement::{camera_view_toggle, player_movement, manage_remote_players, toggle_cursor_lock};
 use bevy::{
     app::{App, Plugin, Update},
     prelude::{
