@@ -13,7 +13,7 @@ pub struct AnimationState {
 impl Default for AnimationState {
     fn default() -> Self {
         Self {
-            current_animation: "idle".to_string(),
+            current_animation: "ispect".to_string(),
         }
     }
 }
@@ -58,25 +58,25 @@ pub fn handle_keyboard_animation(
     mut animation_players: Query<&mut AnimationPlayer>,
 ) {
     if let Ok((_entity, mut animation_state)) = query.get_single_mut() {
-        let new_animation = if keyboard.pressed(KeyCode::KeyW) {
+        let new_animation = if keyboard.pressed(KeyCode::ArrowUp) {
             "walk"
-        } else if keyboard.pressed(KeyCode::KeyS) {
-            "backward_run"
+        } else if keyboard.pressed(KeyCode::ArrowDown) {
+            "walk"
         } else if keyboard.pressed(KeyCode::KeyR) {
-            "reload"
+            "reload_fast"
         } else if keyboard.pressed(KeyCode::Space) {
             "shoot"
-        } else if keyboard.just_released(KeyCode::KeyW) {
+        } else if keyboard.just_released(KeyCode::ArrowUp) {
             "stopwalk"
-        } else if keyboard.just_released(KeyCode::KeyS) {
-            "stopbackward_run"
+        } else if keyboard.just_released(KeyCode::ArrowDown) {
+            "stopwalk"
         } else if keyboard.just_released(KeyCode::Space) {
             "stopshoot"
         } else {
-            "idle"
+            "ispect"
         };
 
-        if new_animation == "reload" {
+        if new_animation == "reload_fast" {
             if new_animation != animation_state.current_animation {
                 animation_state.current_animation = new_animation.to_string();
 
@@ -93,7 +93,7 @@ pub fn handle_keyboard_animation(
                     }
                 }
             }
-        } else if !new_animation.starts_with("stop") && new_animation != "reload" {
+        } else if !new_animation.starts_with("stop") && new_animation != "reload_fast" {
             if new_animation != animation_state.current_animation {
                 animation_state.current_animation = new_animation.to_string();
 
@@ -131,7 +131,7 @@ pub fn setup_player_animation(
     for (entity, mut player) in &mut animation_players {
         // info!("Setting up animation for player entity: {:?}", entity);
         let transitions = AnimationTransitions::new();
-        if let Some(&idle_animation) = animations.animations.get("idle") {
+        if let Some(&idle_animation) = animations.animations.get("ispect") {
             transitions
                 .clone()
                 .play(&mut player, idle_animation, Duration::ZERO)
@@ -156,7 +156,16 @@ pub fn preload_player_assets(
         &asset_server,
         &mut animation_graphs,
         "player.glb",
-        vec!["draw", "idle", "ispect", "walk", "run", "shoot"],
+        vec![
+            "static",
+            "arm",
+            "ispect",
+            "reload_fast",
+            "reload_full",
+            "run",
+            "shoot",
+            "walk",
+        ],
         "PlayerAnimations",
     );
 
@@ -165,7 +174,16 @@ pub fn preload_player_assets(
         &asset_server,
         &mut animation_graphs,
         "player.glb",
-        vec!["idle", "run", "backward_run", "shoot", "reload"],
+        vec![
+            "static",
+            "arm",
+            "ispect",
+            "reload_fast",
+            "reload_full",
+            "run",
+            "shoot",
+            "walk",
+        ],
         "EnemyAnimations",
     );
 }
