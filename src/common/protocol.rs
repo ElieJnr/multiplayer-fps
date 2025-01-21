@@ -1,5 +1,5 @@
 use crate::client::player::Player;
-use crate::{maze::player_simulation::PlayerInput, utils::logger::*};
+use crate::{player::model::PlayerInput, utils::logger::*};
 use bevy::{math::Vec2, prelude::Resource};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

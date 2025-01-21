@@ -2,13 +2,8 @@ use std::{
     collections::HashMap,
     net::{SocketAddr, UdpSocket},
 };
-
 use crate::{
-    client::player::{add_player, Player},
-    common::{constant::PlayerCount, protocol::*},
-    maze::player_simulation::PlayerInput,
-    server::udp::broadcast_message,
-    utils::logger::*,
+    client::player::{add_player, Player}, common::{constant::PlayerCount, protocol::*}, player::model::PlayerInput, server::udp::broadcast_message, utils::logger::*
 };
 
 use bevy::math::Vec3;

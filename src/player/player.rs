@@ -2,60 +2,8 @@ use bevy::gltf::GltfAssetLabel;
 use bevy::prelude::*;
 use std::{collections::HashMap, time::Duration};
 use crate::maze::models::Players;
+use super::model::*;
 
-pub struct PlayerBuild;
-
-#[derive(Component)]
-pub struct AnimationState {
-    current_animation: String,
-}
-
-impl Default for AnimationState {
-    fn default() -> Self {
-        Self {
-            current_animation: "idle".to_string(),
-        }
-    }
-}
-
-#[derive(Resource)]
-pub struct PreloadedPlayerAnimations {
-    pub model: Handle<Scene>,
-    pub animations: HashMap<String, Handle<AnimationClip>>,
-}
-
-#[derive(Resource)]
-pub struct PreloadedEnemyAnimations {
-    pub model: Handle<Scene>,
-    pub animations: HashMap<String, Handle<AnimationClip>>,
-}
-
-#[derive(Resource)]
-pub struct PlayerAnimations {
-    pub player_entity: Entity, 
-    pub animation_player_entity: Option<Entity>,
-    pub animations: HashMap<String, AnimationNodeIndex>,
-    pub graph: Handle<AnimationGraph>,
-}
-
-#[derive(Resource)]
-pub struct EnemyAnimations {
-    pub player_entity: Entity,
-    pub animation_player_entity: Option<Entity>, 
-    pub animations: HashMap<String, AnimationNodeIndex>,
-    pub graph: Handle<AnimationGraph>,
-}
-
-#[derive(Component)]
-pub struct Player;
-
-pub struct PlayerPlugin;
-impl Plugin for PlayerPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(Startup, preload_player_assets)
-            .add_systems(Update, (setup_player_animation, handle_keyboard_animation));
-    }
-}
 
 pub fn handle_keyboard_animation(keyboard: Res<ButtonInput<KeyCode>>, mut query: Query<(Entity, &mut AnimationState)>, animations: ResMut<PlayerAnimations>, mut animation_players: Query<&mut AnimationPlayer>) {
     if let Ok((_entity, mut animation_state)) = query.get_single_mut() {
