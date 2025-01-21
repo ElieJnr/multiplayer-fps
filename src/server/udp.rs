@@ -1,23 +1,30 @@
-
 use super::handlers::handle_message;
 use crate::{
-    client::{
-        player:: Player,
-        udp::client_udp,
-    },
+    client::{player::Player, udp::client_udp},
     common::{constant::*, protocol::*},
     graphics::resources::PlayerCountState,
     utils::{logger::*, server_utils::*, utils::*},
 };
-use std::{collections::HashMap, io::{self, Write}, net::UdpSocket};
 use bevy::math::bool;
-
-
-
+use std::{
+    collections::HashMap,
+    io::{self, Write},
+    net::UdpSocket,
+};
 
 pub fn run_socket() {
     let mut state: PlayerCountState = PlayerCountState::default();
     let mut players: HashMap<String, Player> = HashMap::new();
+
+    match get_models(PLAYER_URL, PLAYER_PATH) {
+        Ok(_) => println!("Modèle du joueur téléchargé avec succès"),
+        Err(e) => eprintln!("Erreur lors du téléchargement du joueur: {}", e)
+    }
+     
+    match get_models(ENEMY_URL, ENEMY_PATH) {
+        Ok(_) => println!("Modèle de l'ennemi téléchargé avec succès"),
+        Err(e) => eprintln!("Erreur lors du téléchargement de l'ennemi: {}", e)
+    }
 
     match get_user_choice() {
         Some(1) => {
@@ -31,7 +38,7 @@ pub fn run_socket() {
 }
 
 fn handle_server_mode(players: &mut HashMap<String, Player>) {
-    let player_count = get_min_players_from_user(); 
+    let player_count = get_min_players_from_user();
 
     match get_local_ipv4() {
         Some(ip) => {
@@ -49,10 +56,10 @@ fn handle_server_mode(players: &mut HashMap<String, Player>) {
 fn get_min_players_from_user() -> PlayerCount {
     print!("Enter the number of players: ");
     io::stdout().flush().unwrap();
-    
+
     let mut input = String::new();
     io::stdin().read_line(&mut input).unwrap();
-    
+
     match input.trim().parse::<usize>() {
         Ok(num) => PlayerCount::new(num),
         Err(_) => {
@@ -71,10 +78,8 @@ fn handle_client_mode(state: &mut PlayerCountState) {
 pub fn server(
     server_socket: UdpSocket,
     players: &mut HashMap<String, Player>,
-    player_count: &PlayerCount
+    player_count: &PlayerCount,
 ) {
-    
-
     let mut buf = [0; 1024];
 
     loop {
@@ -110,5 +115,3 @@ pub fn broadcast_message(
         }
     }
 }
-
-

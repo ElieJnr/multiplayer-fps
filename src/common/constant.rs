@@ -1,5 +1,10 @@
 pub const PORT: &str = "8080";
-// pub const MIN_PLAYERS: usize = 1; 
+
+pub const PLAYER_URL: &str = "https://raw.githubusercontent.com/Baabacar/player_model/main/player.glb";
+pub const ENEMY_URL: &str = "https://raw.githubusercontent.com/Baabacar/player_model/main/enemy.glb";
+
+pub const PLAYER_PATH: &str = "assets/player.glb";
+pub const ENEMY_PATH: &str = "assets/enemy.glb";
 
 pub const DEFAULT_MIN_PLAYERS: usize = 2;
 #[derive(Debug)]
