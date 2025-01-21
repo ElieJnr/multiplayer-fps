@@ -25,7 +25,7 @@ pub struct GameStatus {
 
 impl GameStatus {
     pub fn new() -> Self {
-        Self { player_health: 0.6 }
+        Self { player_health: 1. }
     }
 }
 
