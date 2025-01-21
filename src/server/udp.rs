@@ -29,6 +29,10 @@ pub fn run_socket() {
 
 fn handle_server_mode(players: &mut HashMap<String, Player>) {
     let player_count = get_min_players_from_user();
+    let _ = NetworkPlayerState {
+        connected_players: players.clone(),
+        min_players: player_count.get_min_players(),
+    };
 
     match get_local_ipv4() {
         Some(ip) => {

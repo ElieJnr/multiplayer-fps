@@ -15,7 +15,7 @@ use bevy::{
 };
 
 use crate::{
-    common::constant::PlayerCount,
+    common::constant::{sync_network_to_game_status, PlayerCount},
     graphics::show_fps::{update_fps_ui, FpsText, FpsUpdateTimer},
 };
 
@@ -54,10 +54,11 @@ impl Plugin for GameStatusPlugin {
         app.init_resource::<GameStatus>()
             .init_resource::<FpsUpdateTimer>()
             .init_resource::<MazeState>()
+            .init_resource::<NetworkPlayerState>()
             .add_systems(Startup, setup_ui)
             .add_systems(
                 Update,
-                (update_game_status, update_health_bar, update_fps_ui),
+                (update_game_status, update_health_bar, update_fps_ui, sync_network_to_game_status),
             );
     }
 }
