@@ -1,8 +1,11 @@
 use super::models::*;
 // use super::player_simulation::create_player;
 use super::textures::*;
-use crate::player::player::{create_players, PlayerAnimations, PreloadedPlayerAnimations};
 use bevy::prelude::*;
+use model::PlayerAnimations;
+use model::PreloadedPlayerAnimations;
+use player::create_players;
+use crate::player::*;
 
 #[derive(Default, Resource)]
 pub struct PosStruct {
