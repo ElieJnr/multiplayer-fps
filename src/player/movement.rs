@@ -205,7 +205,7 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
                     transform.rotation = Quat::from_euler(
                         EulerRot::XYZ,
                         rotation.x,
-                        rotation.y,
+                        rotation.y + std::f32::consts::PI,
                         0.0
                     );
                 }
