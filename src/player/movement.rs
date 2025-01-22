@@ -7,7 +7,7 @@ use crate::maze::models::{Collider, ColliderHouse, MazeState, ObstaclePositions}
 use crate::player::model::*;
 use bevy::input::mouse::MouseMotion;
 use bevy::input::ButtonInput;
-use bevy::math::{Quat, Vec2, Vec3, Vec4};
+use bevy::math::{EulerRot, Quat, Vec2, Vec3};
 use bevy::prelude::{
     AnimationPlayer, Camera3d, Commands, EventReader,
     KeyCode, Local, Query, Res, ResMut, Transform, With, Without,
@@ -202,7 +202,12 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
                     transform.translation.x = *x;
                     transform.translation.z = *z;
                     transform.translation.y = 0.0;
-                    transform.rotation = Quat::from_vec4(Vec4::new(rotation.x, rotation.y, 0.0, 0.0));
+                    transform.rotation = Quat::from_euler(
+                        EulerRot::XYZ,
+                        rotation.x,
+                        rotation.y + std::f32::consts::PI,
+                        0.0
+                    );
                 }
             } else {
                 let remote_player = commands
