@@ -16,15 +16,7 @@ pub fn run_socket() {
     let mut state: PlayerCountState = PlayerCountState::default();
     let mut players: HashMap<String, Player> = HashMap::new();
 
-    match get_models(PLAYER_URL, PLAYER_PATH) {
-        Ok(_) => println!("Modèle du joueur téléchargé avec succès"),
-        Err(e) => eprintln!("Erreur lors du téléchargement du joueur: {}", e)
-    }
-     
-    match get_models(ENEMY_URL, ENEMY_PATH) {
-        Ok(_) => println!("Modèle de l'ennemi téléchargé avec succès"),
-        Err(e) => eprintln!("Erreur lors du téléchargement de l'ennemi: {}", e)
-    }
+    download_models();
 
     match get_user_choice() {
         Some(1) => {
