@@ -216,7 +216,7 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
                             scene: enemy_animations.model.clone(), 
                             transform: Transform {
                                 translation: Vec3::new(*x, 0.0, *z),
-                                rotation: Quat::from_rotation_y(rotation.y),
+                                rotation: Quat::from_euler(EulerRot::XYZ, 0.0, rotation.y, 0.0),
                                 scale: Vec3::splat(0.5),
                                 ..default()
                             },
