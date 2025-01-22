@@ -1,74 +1,22 @@
-use super::models::*;
+use crate::maze::models::*;
 use crate::common::protocol::{
     serialize_message, GameMessage, MessageContent, MessageType, NetworkConfig,
 };
 use crate::common::sync::NetworkMessages;
-use crate::player::player::{AnimationState, PlayerAnimations, PreloadedPlayerAnimations};
+use crate::maze::models::{Collider, ColliderHouse, MazeState, ObstaclePositions};
+use crate::player::model::*;
 use bevy::input::mouse::MouseMotion;
 use bevy::input::ButtonInput;
 use bevy::math::{Quat, Vec2, Vec3};
 use bevy::prelude::{
     AnimationPlayer, Camera3d, Commands, EventReader,
-    KeyCode, Local, Query, Res, ResMut, Resource, Transform, With, Without,
+    KeyCode, Local, Query, Res, ResMut, Transform, With, Without,
 };
 use bevy::scene::SceneBundle;
 use bevy::time::Time;
 use bevy::utils::default;
 use bevy::window::{CursorGrabMode, Window};
-use serde::{Deserialize, Serialize};
-use std::collections::VecDeque;
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct PlayerInput {
-    pub arrow_up: bool,
-    pub arrow_down: bool,
-    pub arrow_left: bool,
-    pub arrow_right: bool,
-    pub mouse_delta: Vec2,
-    pub ready: bool,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct InputSequence {
-    pub sequence_number: u32,
-    pub timestamp: f64,
-    pub input: PlayerInput,
-}
-
-#[derive(Resource, Debug, Clone, Deserialize, Serialize)]
-pub struct PlayerMovement {
-    pub speed: f32,
-    pub mouse_sensitivity: f32,
-    pub ground_level: f32,
-    pub position: Vec3,
-    pub rotation: Vec2,
-    pub last_processed_input: u32,
-    pub input_buffer: VecDeque<InputSequence>,
-}
-
-impl Default for PlayerMovement {
-    fn default() -> Self {
-        Self {
-            speed: 5.0,
-            mouse_sensitivity: 0.003,
-            ground_level: 1.0,
-            position: Vec3::ZERO,
-            rotation: Vec2::ZERO,
-            last_processed_input: 0,
-            input_buffer: VecDeque::new(),
-        }
-    }
-}
-
-impl PlayerMovement {
-    pub fn get_position(&self) -> Vec3 {
-        self.position
-    }
-
-    pub fn set_position(&mut self, new_position: Vec3) {
-        self.position = new_position;
-    }
-}
 
 pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>>, mut motion_evr: EventReader<MouseMotion>, mut movement: ResMut<PlayerMovement>, _obstacle_positions: Res<ObstaclePositions>, network: Option<Res<NetworkConfig>>, mut sequence_number: Local<u32>, mut query: Query<&mut Transform, With<Players>>, collider_query: Query<&Transform, (With<Collider>, Without<Players>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Players>)>, maze_state: Res<MazeState>) {
     if !maze_state.is_ready {
@@ -236,7 +184,7 @@ fn collide(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
     }
 }
 
-pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<PreloadedPlayerAnimations>, enemy_graph: Res<PlayerAnimations>, mut remote_players: ResMut<RemotePlayers>, network: Res<NetworkConfig>, mut messages: ResMut<NetworkMessages>, mut query: Query<&mut Transform>) {
+pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<PreloadedEnemyAnimations>, enemy_graph: Res<EnemyAnimations>, mut remote_players: ResMut<RemotePlayers>, network: Res<NetworkConfig>, mut messages: ResMut<NetworkMessages>, mut query: Query<&mut Transform>) {
     while let Some(message) = messages.0.pop_front() {
         if let MessageContent::GameUpdate {
             position: (x, z),
@@ -260,7 +208,7 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
                 let remote_player = commands
                     .spawn((
                         SceneBundle {
-                            scene: enemy_animations.model.clone(), // Utilise le modèle ennemi
+                            scene: enemy_animations.model.clone(), 
                             transform: Transform {
                                 translation: Vec3::new(*x, 0.0, *z),
                                 rotation: Quat::from_rotation_y(rotation.y),

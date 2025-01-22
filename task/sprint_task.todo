@@ -146,6 +146,6 @@
   ☐ Tir et impact (client) @edieng
   ☐ synchronisation animation player mouvement, tir (client) @emalo
   ☐ gestion sons (client) @aliouniang
-  ☐ placement player (client) @babacar
+  ✔ placement player (client) @babacar @done(25-01-21 14:33)
   ☐ Créer une barre d’état affichant des informations comme le nombre de vie (client) @jgoudiab
   ☐ Game logique  lorsque tu perds la Game et image lorsque tu gagnes la game (client et serveur pour synchroniser avec les autres joueurs) @ousmasene
