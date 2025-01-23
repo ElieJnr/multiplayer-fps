@@ -172,7 +172,7 @@ pub fn create_players(commands: &mut Commands, player_animations: Res<PreloadedP
                 scene: player_animations.model.clone(),
                 transform: Transform {
                     translation: Vec3::new(pos[0], pos[1], pos[2]),
-                    scale: Vec3::splat(0.25),
+                    scale: Vec3::splat(0.5),
                     ..default()
                 },
                 ..default()
