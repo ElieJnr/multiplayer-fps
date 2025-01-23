@@ -190,8 +190,7 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
             position: (x, z),
             rotation,
             ..
-        } = &message.content
-        {
+        } = &message.content {
             let player_name = &message.sender;
             if player_name == &network.player_name {
                 continue;
@@ -199,33 +198,39 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
 
             if let Some(&entity) = remote_players.0.get(player_name) {
                 if let Ok(mut transform) = query.get_mut(entity) {
+                    // More precise rotation handling
+                    let normalized_rotation_y = rotation.y.rem_euclid(2.0 * std::f32::consts::PI);
+
                     transform.translation.x = *x;
                     transform.translation.z = *z;
                     transform.translation.y = 0.0;
-                    // println!("transform rotation {:?}", transform.rotation.y);
-
-                    let new_rotation_y = (rotation.y + std::f32::consts::PI) % (2.0 * std::f32::consts::PI);
 
                     transform.rotation = Quat::from_euler(
                         EulerRot::XYZ,
                         0.0,
-                        new_rotation_y,
+                        normalized_rotation_y,
                         0.0
                     );
 
                     println!(
-                        "Rotation - x: {}, y: {}, new_rotation_y: {}",
-                        rotation.x, rotation.y, new_rotation_y
+                        "Rotation - x: {}, y: {}, normalized_rotation_y: {}",
+                        rotation.x, rotation.y, normalized_rotation_y
                     );
                 }
             } else {
+                // Remote player spawn logic remains the same
                 let remote_player = commands
                     .spawn((
                         SceneBundle {
                             scene: enemy_animations.model.clone(), 
                             transform: Transform {
                                 translation: Vec3::new(*x, 0.0, *z),
-                                rotation: Quat::from_euler(EulerRot::XYZ, 0.0, rotation.y, 0.0),
+                                rotation: Quat::from_euler(
+                                    EulerRot::XYZ, 
+                                    0.0, 
+                                    rotation.y.rem_euclid(2.0 * std::f32::consts::PI), 
+                                    0.0
+                                ),
                                 scale: Vec3::splat(0.5),
                                 ..default()
                             },
