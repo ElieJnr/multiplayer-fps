@@ -234,7 +234,7 @@ fn broadcast_game_update(
         message_type: MessageType::GameUpdate,
         sender: player_name.to_string(),
         content: MessageContent::GameUpdate {
-            position: (player.movement.position.x, player.movement.position.z),
+            position: (player.movement.position.x, player.movement.position.y, player.movement.position.z),
             rotation: player.movement.rotation,
             sequence_number,
             timestamp,

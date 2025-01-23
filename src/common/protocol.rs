@@ -49,7 +49,7 @@ pub enum MessageContent {
         name: String,
     },
     GameUpdate {
-        position: (f32, f32),
+        position: (f32, f32, f32),
         rotation: Vec2,
         sequence_number: u32,
         timestamp: f64,
