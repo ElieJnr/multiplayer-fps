@@ -139,12 +139,7 @@ fn handle_disconnect(
     }
 }
 
-pub fn handle_player_action(
-    server_socket: &UdpSocket,
-    players: &mut HashMap<String, Player>,
-    message: GameMessage,
-    player_count: &PlayerCount,
-) {
+pub fn handle_player_action(server_socket: &UdpSocket, players: &mut HashMap<String, Player>, message: GameMessage, player_count: &PlayerCount) {
     if let MessageContent::PlayerAction {
         action,
         sequence_number,
@@ -213,6 +208,12 @@ fn update_player_movement(player: &mut Player, action: &PlayerInput) {
     if action.arrow_down {
         transform.translation += forward * player.movement.speed * 0.016;
     }
+    if action.arrow_left {
+        transform.translation -= transform.right() * player.movement.speed * 0.016;
+    }
+    if action.arrow_right {
+        transform.translation += transform.right() * player.movement.speed * 0.016;
+    }
     if action.mouse_delta.length_squared() > 0.0 {
         transform.rotate_y(-action.mouse_delta.x * player.movement.mouse_sensitivity);
     }
@@ -222,14 +223,7 @@ fn update_player_movement(player: &mut Player, action: &PlayerInput) {
     player.movement.rotation.y = transform.rotation.to_euler(EulerRot::XYZ).1;
 }
 
-fn broadcast_game_update(
-    server_socket: &UdpSocket,
-    players: &HashMap<String, Player>,
-    player_name: &str,
-    sequence_number: u32,
-    timestamp: f64,
-    player: &Player,
-) {
+fn broadcast_game_update(server_socket: &UdpSocket, players: &HashMap<String, Player>, player_name: &str, sequence_number: u32, timestamp: f64, player: &Player) {
     let update_msg = GameMessage {
         message_type: MessageType::GameUpdate,
         sender: player_name.to_string(),
