@@ -67,7 +67,7 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
                         sender: network.player_name.clone(),
                         content: MessageContent::GameUpdate {
                             position: (transform.translation.x, transform.translation.z),
-                            rotation: Vec2::new(0.0, transform.rotation.to_euler(EulerRot::XYZ).1),
+                            rotation: Vec2::new(transform.rotation.to_euler(EulerRot::XYZ).0, transform.rotation.to_euler(EulerRot::XYZ).1),
                             sequence_number: *sequence_number,
                             timestamp: time.elapsed_seconds_f64(),
                         },
@@ -205,7 +205,7 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
                     transform.rotation = Quat::from_euler(
                         EulerRot::XYZ,
                         rotation.x,
-                        rotation.y + std::f32::consts::PI,
+                        rotation.y,
                         0.0
                     );
                 }

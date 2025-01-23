@@ -6,7 +6,7 @@ use crate::{
     client::player::{add_player, Player}, common::{constant::PlayerCount, protocol::*}, player::model::PlayerInput, server::udp::broadcast_message, utils::logger::*
 };
 
-use bevy::math::Vec3;
+use bevy::math::{EulerRot, Vec3};
 use bevy::{
     math::{vec3, Quat},
     prelude::Transform,
@@ -219,7 +219,7 @@ fn update_player_movement(player: &mut Player, action: &PlayerInput) {
     transform.translation.y = player.movement.ground_level;
 
     player.movement.position = transform.translation;
-    player.movement.rotation.y = transform.rotation.y;
+    player.movement.rotation.y = transform.rotation.to_euler(EulerRot::XYZ).1;
 }
 
 fn broadcast_game_update(
