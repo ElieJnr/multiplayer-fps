@@ -72,6 +72,7 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
                             timestamp: time.elapsed_seconds_f64(),
                         },
                     };
+
                     if let Some(msg_bytes) = serialize_message(&message) {
                         let _ = network.client_socket.send(&msg_bytes);
                     }
@@ -203,8 +204,8 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
                     transform.translation.y = 0.0;
                     transform.rotation = Quat::from_euler(
                         EulerRot::XYZ,
-                        0.0,
-                        rotation.y,
+                        rotation.x,
+                        rotation.y + std::f32::consts::PI,
                         0.0
                     );
                 }
@@ -215,7 +216,7 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
                             scene: enemy_animations.model.clone(), 
                             transform: Transform {
                                 translation: Vec3::new(*x, 0.0, *z),
-                                rotation: Quat::from_euler(EulerRot::XYZ, 0.0, rotation.y, 0.0),
+                                rotation: Quat::from_euler(EulerRot::XYZ, rotation.x, rotation.y, 0.0),
                                 scale: Vec3::splat(0.5),
                                 ..default()
                             },
