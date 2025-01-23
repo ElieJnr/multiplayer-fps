@@ -112,7 +112,7 @@ fn main_menu_setup(mut commands: Commands, assets_server: Res<AssetServer>) {
                 .with_children(|parent| {
                     // Add buttons
                     spawn_menu_button(parent, "Play", &assets_server);
-                    spawn_menu_button(parent, "Options", &assets_server);
+                    spawn_menu_button(parent, "Helps", &assets_server);
                     spawn_menu_button(parent, "Quit", &assets_server);
                 });
         });

@@ -16,7 +16,7 @@ impl MenuButtonAction {
     pub fn from_label(label: &str) -> Self {
         match label {
             "Play" => MenuButtonAction::Play,
-            "Options" => MenuButtonAction::Options,
+            "Helps" => MenuButtonAction::Options,
             "Quit" => MenuButtonAction::Quit,
             _ => panic!("Invalid button label"),
         }
