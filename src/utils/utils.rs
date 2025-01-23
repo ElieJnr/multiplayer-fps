@@ -2,7 +2,11 @@ use bevy::prelude::{Query, With};
 use bevy::window::{PrimaryWindow, Window};
 use colored::{Color, Colorize};
 use std::io::{self, stdin, Write};
+use std::path::Path;
+use std::process::Command;
 use std::{thread, time::Duration};
+
+use crate::common::constant::{ENEMY_PATH, ENEMY_URL, PLAYER_PATH, PLAYER_URL};
 
 use super::logger::*;
 
@@ -104,4 +108,40 @@ pub fn get_user_input() -> Option<(String, String)> {
 pub fn get_window_dimensions(windows: &Query<&Window, With<PrimaryWindow>>) -> (f32, f32) {
     let window = windows.single();
     (window.width(), window.height())
+}
+
+pub fn get_models(url: &str, output_path: &str) -> io::Result<()> {
+    let output = Command::new("wget")
+        .arg("-O")
+        .arg(output_path)
+        .arg(url)
+        .output()?;
+
+    if !output.status.success() {
+        return Err(io::Error::new(
+            io::ErrorKind::Other,
+            "wget failed to download the file",
+        ));
+    }
+
+    Ok(())
+}
+
+pub fn download_models() {
+    let player_exists = Path::new(PLAYER_PATH).exists();
+    let enemy_exists = Path::new(ENEMY_PATH).exists();
+    
+    if !player_exists {
+        match get_models(PLAYER_URL, PLAYER_PATH) {
+            Ok(_) => println!("Modèle du joueur téléchargé avec succès"),
+            Err(e) => eprintln!("Erreur lors du téléchargement du joueur: {}", e)
+        }
+    }
+    
+    if !enemy_exists {
+        match get_models(ENEMY_URL, ENEMY_PATH) {
+            Ok(_) => println!("Modèle de l'ennemi téléchargé avec succès"), 
+            Err(e) => eprintln!("Erreur lors du téléchargement de l'ennemi: {}", e)
+        }
+    }
 }

@@ -16,6 +16,8 @@ pub fn run_socket() {
     let mut state: PlayerCountState = PlayerCountState::default();
     let mut players: HashMap<String, Player> = HashMap::new();
 
+    download_models();
+    
     match get_user_choice() {
         Some(1) => {
             handle_server_mode(&mut players);
