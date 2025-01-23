@@ -3,7 +3,7 @@ use std::{
     net::{SocketAddr, UdpSocket},
 };
 use crate::{
-    client::player::{add_player, Player}, common::{constant::PlayerCount, protocol::*}, player::model::PlayerInput, server::udp::broadcast_message, utils::logger::*
+    client::{handlers::GAME_STARTED, player::{add_player, Player}}, common::{constant::PlayerCount, protocol::*}, player::model::PlayerInput, server::udp::broadcast_message, utils::logger::*
 };
 
 use bevy::math::Vec3;
@@ -24,7 +24,7 @@ pub fn handle_message(
 ) {
     match message.message_type {
         MessageType::NewConnection => {
-            handle_new_connection(server_socket, players, message, src);
+            handle_new_connection(server_socket, players, message, src, player_count);
         }
         MessageType::PlayerAction => {
             handle_player_action(server_socket, players, message, &player_count)
@@ -43,13 +43,63 @@ fn handle_new_connection(
     players: &mut HashMap<String, Player>,
     message: GameMessage,
     src: SocketAddr,
+    player_count: &PlayerCount,
 ) {
+    if unsafe { GAME_STARTED } {
+        display_warning("Cannot accept new players, the game has already started.");
+        disconnect_player(server_socket, &src, "Game has already started.");
+        return;
+    }
+
+    if message.sender.trim().is_empty() {
+        display_warning("Player name cannot be empty.");
+        disconnect_player(server_socket, &src, "Player name cannot be empty.");
+        return;
+    }
+
+    if players.contains_key(&message.sender) {
+        display_warning(&format!(
+            "Player name '{}' is already taken.",
+            message.sender
+        ));
+        disconnect_player(server_socket, &src, "Player name is already taken.");
+        return;
+    }
+
+    if players.len() >= player_count.get_min_players() {
+        display_warning(
+            "Cannot accept new players, the maximum number of players has been reached.",
+        );
+        disconnect_player(server_socket, &src, "Maximum number of players reached.");
+        return;
+    }
+
     let initial_position = choose_place(&ALL_POSITION, &IS_OCCUPED);
     add_player(players, message.sender.clone(), src, initial_position);
 
     send_new_connection_message(server_socket, players, &message.sender);
     send_wait_for_players_message(server_socket, players);
 }
+
+fn disconnect_player(server_socket: &UdpSocket, address: &SocketAddr, reason: &str) {
+    let disconnect_message = GameMessage {
+        message_type: MessageType::Disconnect,
+        sender: "server".to_string(),
+        content: MessageContent::Disconnect {
+            reason: reason.to_string(),
+        },
+    };
+
+    if let Some(msg_bytes) = serialize_message(&disconnect_message) {
+        if let Err(err) = server_socket.send_to(&msg_bytes, address) {
+            display_error(&format!(
+                "Failed to send disconnect message to {}: {}",
+                address, err
+            ));
+        }
+    }
+}
+
 
 fn send_new_connection_message(
     server_socket: &UdpSocket,

@@ -29,7 +29,7 @@ pub fn handle_new_connection(content: MessageContent) {
     }
 }
 
-static mut GAME_STARTED: bool = false;
+pub static mut GAME_STARTED: bool = false;
 pub fn handle_waiting(
     content: MessageContent,
     config: &NetworkConfig,

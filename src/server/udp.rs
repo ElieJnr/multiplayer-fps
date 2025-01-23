@@ -49,17 +49,11 @@ fn get_min_players_from_user() -> PlayerCount {
 
     let mut input = String::new();
     io::stdin().read_line(&mut input).unwrap();
-    match input.trim().parse::<usize>() {
-        Ok(num) => {
-            let mut player_count = PlayerCount::new(num);
-            player_count.set_min_players(num);
-            player_count
-        },
-        Err(_) => {
-            display_error("Invalid input. Using default value.");
-            let mut player_count = PlayerCount::new(DEFAULT_MIN_PLAYERS);
-            player_count.set_min_players(DEFAULT_MIN_PLAYERS);
-            player_count
+    match input.trim().parse::<usize>().ok().filter(|&num| num >= DEFAULT_MIN_PLAYERS) {
+        Some(num) => PlayerCount::new(num),
+        None => {
+            display_error("Number of players is less than the minimum required. Using default value.");
+            PlayerCount::new(DEFAULT_MIN_PLAYERS)
         }
     }
 }
