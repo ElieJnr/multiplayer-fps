@@ -153,7 +153,7 @@ fn option_menu_setup(mut commands: Commands, _assets_server: Res<AssetServer>) {
 
             parent.spawn(TextBundle {
                 text: Text::from_section(
-                    "1. Use arrow keys to move.\n2. Press 'Space' to  Shoot.\n3. Kill enemy to win.",
+                    "1. Use arrow keys to move.\n2. Use mouse to rotate.\n3. Press 'Space' to  Shoot.\n4. Kill enemy to win.",
                     TextStyle {
                         font: _assets_server.load("fonts/FiraSans-Regular.ttf"),
                         font_size: 20.0,
