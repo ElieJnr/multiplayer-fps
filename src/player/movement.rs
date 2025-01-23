@@ -202,10 +202,14 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
                     transform.translation.x = *x;
                     transform.translation.z = *z;
                     transform.translation.y = 0.0;
+                    // println!("transform rotation {:?}", transform.rotation.y);
+
+                    let new_rotation_y = (rotation.y + std::f32::consts::PI) % (2.0 * std::f32::consts::PI);
+
                     transform.rotation = Quat::from_euler(
                         EulerRot::XYZ,
                         rotation.x,
-                        rotation.y + std::f32::consts::PI,
+                        new_rotation_y,
                         0.0
                     );
                 }
