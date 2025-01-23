@@ -3,8 +3,7 @@ use std::{collections::HashMap, net::SocketAddr};
 use bevy::{math::Vec3, prelude::Resource};
 
 use crate::{
-    player::model::PlayerMovement,
-    utils::logger::{display_info, display_warning},
+    common::constant::HEALTH_NBR, player::model::PlayerMovement, utils::logger::{display_info, display_warning}
 };
 
 #[derive(Resource, Debug, Default)]
@@ -33,7 +32,7 @@ pub fn add_player(
             Player {
                 name: name.clone(),
                 address,
-                health: 3,
+                health: HEALTH_NBR,
                 ready: false,
                 movement: PlayerMovement {
                     speed: 5.0,

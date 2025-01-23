@@ -1,10 +1,11 @@
+use std::collections::HashMap;
+
 use bevy::{
-    app::{App, Plugin, Startup, Update},
+    app::{App, Plugin, Update},
     asset::AssetServer,
     color::Color,
     prelude::{
-        BuildChildren, ChildBuilder, Commands, Component, NodeBundle, Query, Res, Resource,
-        TextBundle, With,
+        BuildChildren, ChildBuilder, Commands, Component, NodeBundle, OnEnter, Query, Res, Resource, State, TextBundle, With
     },
     text::TextStyle,
     ui::{
@@ -14,7 +15,13 @@ use bevy::{
     utils::default,
 };
 
-use crate::graphics::show_fps::{update_fps_ui, FpsText, FpsUpdateTimer};
+use crate::{
+    client::player::Player,
+    graphics::{show_fps::{update_fps_ui, FpsText, FpsUpdateTimer}, states::GameState},
+};
+
+#[derive(Resource)]
+pub struct PlayersResource(pub HashMap<String, Player>);
 
 use super::models::MazeState;
 
@@ -45,15 +52,20 @@ impl Plugin for GameStatusPlugin {
         app.init_resource::<GameStatus>()
             .init_resource::<FpsUpdateTimer>()
             .init_resource::<MazeState>()
-            .add_systems(Startup, setup_ui)
-            .add_systems(
-                Update,
-                (update_health_bar, update_fps_ui),
-            );
+            .add_systems(OnEnter(GameState::Game), setup_ui)
+            .add_systems(Update, (update_health_bar, update_fps_ui));
     }
 }
 
-fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup_ui(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    game_state: Res<State<GameState>>,
+) {
+    if game_state.get() != &GameState::Game {
+        return;
+    }
+    
     commands.insert_resource(GameStatus::new());
 
     commands
@@ -196,8 +208,11 @@ fn spawn_health_fill(parent: &mut ChildBuilder) {
     ));
 }
 
-fn update_health_bar(status: Res<GameStatus>, mut query: Query<&mut Style, With<HealthBarFill>>) {
+fn update_health_bar(
+    game_status: Res<GameStatus>,
+    mut query: Query<&mut Style, With<HealthBarFill>>,
+) {
     if let Ok(mut style) = query.get_single_mut() {
-        style.width = Val::Percent(status.player_health * 100.0);
+        style.width = Val::Percent(game_status.player_health * 100.0);
     }
 }
