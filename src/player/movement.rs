@@ -66,7 +66,7 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
                         message_type: MessageType::GameUpdate,
                         sender: network.player_name.clone(),
                         content: MessageContent::GameUpdate {
-                            position: (transform.translation.x, transform.translation.y, transform.translation.z),
+                            position: (transform.translation.x, transform.translation.z),
                             rotation: Vec2::new(0.0, transform.rotation.to_euler(EulerRot::XYZ).1),
                             sequence_number: *sequence_number,
                             timestamp: time.elapsed_seconds_f64(),
@@ -187,7 +187,7 @@ fn collide(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
 pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<PreloadedEnemyAnimations>, enemy_graph: Res<EnemyAnimations>, mut remote_players: ResMut<RemotePlayers>, network: Res<NetworkConfig>, mut messages: ResMut<NetworkMessages>, mut query: Query<&mut Transform>) {
     while let Some(message) = messages.0.pop_front() {
         if let MessageContent::GameUpdate {
-            position: (x, y, z),
+            position: (x, z),
             rotation,
             ..
         } = &message.content
@@ -201,10 +201,10 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
                 if let Ok(mut transform) = query.get_mut(entity) {
                     transform.translation.x = *x;
                     transform.translation.z = *z;
-                    transform.translation.y = *y;
+                    transform.translation.y = 0.0;
                     transform.rotation = Quat::from_euler(
                         EulerRot::XYZ,
-                        rotation.x  + std::f32::consts::PI,
+                        rotation.x,
                         rotation.y + std::f32::consts::PI,
                         0.0
                     );
