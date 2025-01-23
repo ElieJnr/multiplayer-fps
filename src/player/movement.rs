@@ -206,16 +206,16 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
 
                     let new_rotation_y = (rotation.y + std::f32::consts::PI) % (2.0 * std::f32::consts::PI);
 
-                    println!(
-                        "Rotation - x: {}, y: {}, new_rotation_y: {}",
-                        rotation.x, rotation.y, new_rotation_y
-                    );
-
                     transform.rotation = Quat::from_euler(
                         EulerRot::XYZ,
                         0.0,
                         new_rotation_y,
                         0.0
+                    );
+
+                    println!(
+                        "Rotation - x: {}, y: {}, new_rotation_y: {}",
+                        rotation.x, rotation.y, new_rotation_y
                     );
                 }
             } else {
@@ -225,7 +225,7 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
                             scene: enemy_animations.model.clone(), 
                             transform: Transform {
                                 translation: Vec3::new(*x, 0.0, *z),
-                                rotation: Quat::from_euler(EulerRot::XYZ, rotation.x, rotation.y, 0.0),
+                                rotation: Quat::from_euler(EulerRot::XYZ, 0.0, rotation.y, 0.0),
                                 scale: Vec3::splat(0.5),
                                 ..default()
                             },
