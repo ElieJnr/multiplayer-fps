@@ -15,16 +15,6 @@ use std::{
 pub fn run_socket() {
     let mut state: PlayerCountState = PlayerCountState::default();
     let mut players: HashMap<String, Player> = HashMap::new();
-
-    // match get_models(MODEL_URL, PATH_FOR_MODEL) {
-    //     Ok(_) => {
-    //         display_info("Model downloaded successfully.");
-    //     }
-    //     Err(e) => {
-    //         display_error(&format!("Failed to download model. {}", e));
-    //     }
-    // };
-
     match get_user_choice() {
         Some(1) => {
             handle_server_mode(&mut players);
