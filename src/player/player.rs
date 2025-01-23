@@ -8,9 +8,9 @@ pub fn handle_keyboard_animation(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut query: Query<(Entity, &mut AnimationState)>,
     animations: ResMut<PlayerAnimations>,
-    mut animation_players: Query<&mut AnimationPlayer>,
+    animation_players: Query<&mut AnimationPlayer>,
 ) {
-    if let Ok((_entity, mut animation_state)) = query.get_single_mut() {
+    if let Ok((_entity, animation_state)) = query.get_single_mut() {
         let new_animation = if keyboard.pressed(KeyCode::ArrowUp) {
             "walk"
         } else if keyboard.pressed(KeyCode::ArrowDown) {
@@ -29,50 +29,61 @@ pub fn handle_keyboard_animation(
             "static"
         };
 
-        if new_animation == "reload_fast" {
-            if new_animation != animation_state.current_animation {
-                animation_state.current_animation = new_animation.to_string();
+        animation_to_run(
+            animations,
+            animation_players,
+            new_animation,
+            animation_state,
+        );
+    }
+}
 
-                if let Some(player_entity) = animations.animation_player_entity {
-                    if let Ok(mut player) = animation_players.get_mut(player_entity) {
-                        if let Some(&animation_index) = animations.animations.get(new_animation) {
-                            let mut transitions = AnimationTransitions::new();
-                            transitions.play(
-                                &mut player,
-                                animation_index,
-                                Duration::from_secs_f32(0.2),
-                            );
-                        }
+fn animation_to_run(
+    animations: ResMut<'_, PlayerAnimations>,
+    mut animation_players: Query<'_, '_, &mut AnimationPlayer>,
+    new_animation: &str,
+    mut animation_state: Mut<'_, AnimationState>,
+) {
+    match new_animation {
+        "reload_fast" if new_animation != animation_state.current_animation => {
+            animation_state.current_animation = new_animation.to_string();
+            if let Some(player_entity) = animations.animation_player_entity {
+                if let Ok(mut player) = animation_players.get_mut(player_entity) {
+                    if let Some(&animation_index) = animations.animations.get(new_animation) {
+                        AnimationTransitions::new().play(
+                            &mut player,
+                            animation_index,
+                            Duration::from_secs_f32(0.2),
+                        );
                     }
                 }
             }
-        } else if !new_animation.starts_with("stop") && new_animation != "reload_fast" {
-            if new_animation != animation_state.current_animation {
-                animation_state.current_animation = new_animation.to_string();
-
-                if let Some(player_entity) = animations.animation_player_entity {
-                    if let Ok(mut player) = animation_players.get_mut(player_entity) {
-                        if let Some(&animation_index) = animations.animations.get(new_animation) {
-                            let mut transitions = AnimationTransitions::new();
-                            transitions
-                                .play(&mut player, animation_index, Duration::from_secs_f32(0.2))
-                                .repeat();
-                        }
-                    }
-                }
-            }
-        } else if new_animation.starts_with("stop") {
+        }
+        anim if anim.starts_with("stop") => {
             if let Some(player_entity) = animations.animation_player_entity {
                 if let Ok(mut player) = animation_players.get_mut(player_entity) {
                     if let Some(&run_animation) = animations
                         .animations
-                        .get(new_animation.strip_prefix("stop").unwrap_or(""))
+                        .get(anim.strip_prefix("stop").unwrap_or(""))
                     {
                         player.stop(run_animation);
                     }
                 }
             }
         }
+        anim if anim != "reload_fast" && anim != animation_state.current_animation => {
+            animation_state.current_animation = new_animation.to_string();
+            if let Some(player_entity) = animations.animation_player_entity {
+                if let Ok(mut player) = animation_players.get_mut(player_entity) {
+                    if let Some(&animation_index) = animations.animations.get(new_animation) {
+                        AnimationTransitions::new()
+                            .play(&mut player, animation_index, Duration::from_secs_f32(0.2))
+                            .repeat();
+                    }
+                }
+            }
+        }
+        _ => {} // Ne rien faire pour les autres cas
     }
 }
 pub fn setup_player_animation(
