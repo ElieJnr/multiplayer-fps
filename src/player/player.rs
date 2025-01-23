@@ -1,7 +1,8 @@
 use super::model::*;
 use crate::maze::models::Players;
-use bevy::gltf::GltfAssetLabel;
+use bevy::input::ButtonState;
 use bevy::prelude::*;
+use bevy::{gltf::GltfAssetLabel, input::mouse::MouseButtonInput};
 use std::{collections::HashMap, time::Duration};
 
 pub fn handle_keyboard_animation(
@@ -9,9 +10,10 @@ pub fn handle_keyboard_animation(
     mut query: Query<(Entity, &mut AnimationState)>,
     animations: ResMut<PlayerAnimations>,
     animation_players: Query<&mut AnimationPlayer>,
+    mut mouse_button_events: EventReader<MouseButtonInput>,
 ) {
     if let Ok((_entity, animation_state)) = query.get_single_mut() {
-        let new_animation = if keyboard.pressed(KeyCode::ArrowUp) {
+        let mut new_animation = if keyboard.pressed(KeyCode::ArrowUp) {
             "walk"
         } else if keyboard.pressed(KeyCode::ArrowDown) {
             "walk"
@@ -28,6 +30,14 @@ pub fn handle_keyboard_animation(
         } else {
             "static"
         };
+
+        for event in mouse_button_events.read() {
+            if event.button == MouseButton::Left && event.state.is_pressed() {
+                new_animation = "shoot";
+            } else if event.button == MouseButton::Left && event.state == ButtonState::Released {
+                new_animation = "stopshoot";
+            }
+        }
 
         animation_to_run(
             animations,
