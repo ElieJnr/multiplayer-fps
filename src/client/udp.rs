@@ -6,9 +6,7 @@ use std::net::UdpSocket;
 use std::sync::Arc;
 
 use super::handlers::*;
-pub fn client_udp(
-    state: &mut PlayerCountState,
-) -> Option<NetworkConfig> {
+pub fn client_udp(state: &mut PlayerCountState) -> Option<NetworkConfig> {
     let network_config = initialize_network_config()?;
 
     connect_to_server(&network_config)?;

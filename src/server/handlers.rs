@@ -1,9 +1,13 @@
+use crate::{
+    client::player::{add_player, Player},
+    common::{constant::PlayerCount, protocol::*},
+    player::model::PlayerInput,
+    server::udp::broadcast_message,
+    utils::logger::*,
+};
 use std::{
     collections::HashMap,
     net::{SocketAddr, UdpSocket},
-};
-use crate::{
-    client::player::{add_player, Player}, common::{constant::PlayerCount, protocol::*}, player::model::PlayerInput, server::udp::broadcast_message, utils::logger::*
 };
 
 use bevy::math::Vec3;
@@ -176,7 +180,7 @@ fn handle_ready_state(
     server_socket: &UdpSocket,
     players: &mut HashMap<String, Player>,
     player_name: &str,
-    player_count: &PlayerCount
+    player_count: &PlayerCount,
 ) {
     if let Some(player) = players.get_mut(player_name) {
         player.ready = true;

@@ -3,7 +3,6 @@ use std::time::Duration;
 use bevy::prelude::*;
 use bevy_tweening::{lens::TransformScaleLens, Animator, EaseFunction, Tween};
 
-
 use super::menu::NORMAL_BUTTON_COLOR;
 
 #[derive(Component, Debug)]

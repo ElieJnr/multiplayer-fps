@@ -1,6 +1,5 @@
 pub const PORT: &str = "8080";
 
-
 pub const DEFAULT_MIN_PLAYERS: usize = 2;
 #[derive(Debug)]
 pub struct PlayerCount {
