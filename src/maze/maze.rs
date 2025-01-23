@@ -6,12 +6,10 @@ use model::PlayerAnimations;
 use model::PreloadedPlayerAnimations;
 use player::create_players;
 use crate::player::*;
-
 #[derive(Default, Resource)]
 pub struct PosStruct {
     pub position: Vec3,
 }
-
 pub fn setup_crosshair(mut commands: Commands, asset_server: Res<AssetServer>) {
     let crosshair_texture = asset_server.load("textures/Crosshair.png");
     commands.spawn(ImageBundle {
@@ -22,13 +20,11 @@ pub fn setup_crosshair(mut commands: Commands, asset_server: Res<AssetServer>) {
             left: Val::Percent(50.0),
             width: Val::Px(50.0),
             height: Val::Px(50.0),
-
             ..Default::default()
         },
         ..default()
     });
 }
-
 pub fn maze_setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -75,7 +71,6 @@ pub fn maze_setup(
         textures.sky_texture,
     );
     create_lights(&mut commands, width, height);
-
     for (i, row) in map.iter().enumerate() {
         for (j, cell) in row.iter().enumerate() {
             match cell {
@@ -128,7 +123,6 @@ pub fn maze_setup(
             }
         }
     }
-
     create_players(
         &mut commands,
         preloaded_animations,
@@ -137,7 +131,6 @@ pub fn maze_setup(
     );
     maze_state.is_ready = true;
 }
-
 pub fn calculate_maze_dimensions(maze: &Vec<Vec<i32>>) -> (f32, f32) {
     let height = maze.len();
     let width = maze[0].len();
