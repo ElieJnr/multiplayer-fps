@@ -6,7 +6,7 @@ use crate::{
     client::player::{add_player, Player}, common::{constant::PlayerCount, protocol::*}, player::model::PlayerInput, server::udp::broadcast_message, utils::logger::*
 };
 
-use bevy::math::{EulerRot, Vec3};
+use bevy::math::{Vec2, Vec3};
 use bevy::{
     math::{vec3, Quat},
     prelude::Transform,
@@ -162,6 +162,7 @@ pub fn handle_player_action(server_socket: &UdpSocket, players: &mut HashMap<Str
                 sequence_number,
                 timestamp,
                 player,
+                action.mouse_delta,
             );
         }
     }
@@ -220,10 +221,10 @@ fn update_player_movement(player: &mut Player, action: &PlayerInput) {
     transform.translation.y = player.movement.ground_level;
 
     player.movement.position = transform.translation;
-    player.movement.rotation.y = transform.rotation.to_euler(EulerRot::XYZ).1;
+    // player.movement.rotation.y = transform.rotation.to_euler(EulerRot::XYZ).1;
 }
 
-fn broadcast_game_update(server_socket: &UdpSocket, players: &HashMap<String, Player>, player_name: &str, sequence_number: u32, timestamp: f64, player: &Player) {
+fn broadcast_game_update(server_socket: &UdpSocket, players: &HashMap<String, Player>, player_name: &str, sequence_number: u32, timestamp: f64, player: &Player, mouse_delta: Vec2) {
     let update_msg = GameMessage {
         message_type: MessageType::GameUpdate,
         sender: player_name.to_string(),
@@ -232,6 +233,7 @@ fn broadcast_game_update(server_socket: &UdpSocket, players: &HashMap<String, Pl
             rotation: player.movement.rotation,
             sequence_number,
             timestamp,
+            mouse_delta: (mouse_delta.x, mouse_delta.y).into(),
         },
     };
 

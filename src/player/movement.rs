@@ -47,9 +47,9 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
                 let input_sequence = InputSequence {
                     sequence_number: *sequence_number,
                     timestamp: time.elapsed_seconds_f64(),
-                    input,
+                    input: input.clone(),
                 };
-                movement.input_buffer.push_back(input_sequence.clone());
+                movement.input_buffer.push_back(input_sequence);
                 if let Some(network) = network.as_ref() {
                     let message = GameMessage {
                         message_type: MessageType::GameUpdate,
@@ -59,6 +59,7 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
                             rotation: Vec2::new(transform.rotation.to_euler(EulerRot::XYZ).0, transform.rotation.to_euler(EulerRot::XYZ).1),
                             sequence_number: *sequence_number,
                             timestamp: time.elapsed_seconds_f64(),
+                            mouse_delta: input.mouse_delta,
                         },
                     };
                     if let Some(msg_bytes) = serialize_message(&message) {
@@ -170,6 +171,7 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
         if let MessageContent::GameUpdate {
             position: (x, z),
             rotation,
+            mouse_delta,
             ..
         } = &message.content
         {
@@ -182,18 +184,7 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
                     transform.translation.x = *x;
                     transform.translation.z = *z;
                     transform.translation.y = 0.0;
-                    // println!("transform rotation {:?}", transform.rotation.y);
-                    let new_rotation_y = (rotation.y + std::f32::consts::PI) % (2.0 * std::f32::consts::PI);
-                    transform.rotation = Quat::from_euler(
-                        EulerRot::XYZ,
-                        0.0,
-                        new_rotation_y,
-                        0.0
-                    );
-                    println!(
-                        "Rotation - x: {}, y: {}, new_rotation_y: {}",
-                        rotation.x, rotation.y, new_rotation_y
-                    );
+                    transform.rotate_y(-mouse_delta.x * 0.003);
                 }
             } else {
                 let remote_player = commands
@@ -202,7 +193,7 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
                             scene: enemy_animations.model.clone(), 
                             transform: Transform {
                                 translation: Vec3::new(*x, 0.0, *z),
-                                rotation: Quat::from_euler(EulerRot::XYZ, 0.0, rotation.y, 0.0),
+                                rotation: Quat::from_euler(EulerRot::XYZ, 0.0, rotation.y + std::f32::consts::PI, 0.0),
                                 scale: Vec3::splat(0.5),
                                 ..default()
                             },

@@ -53,6 +53,7 @@ pub enum MessageContent {
         rotation: Vec2,
         sequence_number: u32,
         timestamp: f64,
+        mouse_delta: Vec2,
     },
     PlayerAction {
         action: PlayerInput,
