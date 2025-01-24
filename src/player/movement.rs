@@ -17,18 +17,14 @@ use bevy::time::Time;
 use bevy::utils::default;
 use bevy::window::{CursorGrabMode, Window};
 
-
 pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>>, mut motion_evr: EventReader<MouseMotion>, mut movement: ResMut<PlayerMovement>, _obstacle_positions: Res<ObstaclePositions>, network: Option<Res<NetworkConfig>>, mut sequence_number: Local<u32>, mut query: Query<&mut Transform, With<Players>>, collider_query: Query<&Transform, (With<Collider>, Without<Players>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Players>)>, maze_state: Res<MazeState>) {
     if !maze_state.is_ready {
         return;
     }
-
     let mut mouse_delta = Vec2::ZERO;
-
     for event in motion_evr.read() {
         mouse_delta += event.delta;
     }
-
     let input = PlayerInput {
         arrow_up: keyboard_input.pressed(KeyCode::ArrowUp),
         arrow_down: keyboard_input.pressed(KeyCode::ArrowDown),
@@ -37,30 +33,23 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
         mouse_delta,
         ready: false,
     };
-
     if input.arrow_up || input.arrow_down || input.arrow_left || input.arrow_right || mouse_delta != Vec2::ZERO {
         *sequence_number += 1;
         let delta_time = time.delta_seconds();
-
         if let Ok(mut transform) = query.get_single_mut() {
             let new_transform = transform.clone();
-
             apply_input(&mut transform, &input, &movement, delta_time);
-
             if check_collisions(&transform, &collider_query, &house_collider_query) {
                 *transform = new_transform;
             } else {
                 movement.position = transform.translation;
                 movement.rotation.y = transform.rotation.y;
-
                 let input_sequence = InputSequence {
                     sequence_number: *sequence_number,
                     timestamp: time.elapsed_seconds_f64(),
                     input,
                 };
-
                 movement.input_buffer.push_back(input_sequence.clone());
-
                 if let Some(network) = network.as_ref() {
                     let message = GameMessage {
                         message_type: MessageType::GameUpdate,
@@ -72,7 +61,6 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
                             timestamp: time.elapsed_seconds_f64(),
                         },
                     };
-
                     if let Some(msg_bytes) = serialize_message(&message) {
                         let _ = network.client_socket.send(&msg_bytes);
                     }
@@ -84,7 +72,6 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
 
 pub fn apply_input(transform: &mut Transform, input: &PlayerInput, movement: &PlayerMovement, delta_time: f32) {
     let forward = transform.forward();
-
     if input.arrow_up {
         transform.translation -= forward * movement.speed * delta_time;
     }
@@ -97,11 +84,9 @@ pub fn apply_input(transform: &mut Transform, input: &PlayerInput, movement: &Pl
     if input.arrow_right {
         transform.translation -= transform.right() * movement.speed * delta_time;
     }
-
     if input.mouse_delta.length_squared() > 0.0 {
         transform.rotate_y(-input.mouse_delta.x * movement.mouse_sensitivity);
     }
-
     transform.translation.y = movement.ground_level;
 }
 
@@ -109,7 +94,6 @@ pub fn apply_input(transform: &mut Transform, input: &PlayerInput, movement: &Pl
 pub fn camera_view_toggle(keyboard_input: Res<ButtonInput<KeyCode>>, mut _player_query: Query<&mut Transform, With<Players>>, mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<Players>)>, mut camera_state: ResMut<CameraState>) {
     if keyboard_input.just_pressed(KeyCode::KeyV) {
         camera_state.is_top_view = !camera_state.is_top_view;
-
         if let Ok(mut camera_transform) = camera_query.get_single_mut() {
             if camera_state.is_top_view {
                 // Vue de haut
@@ -155,7 +139,6 @@ pub fn check_collisions(player_transform: &Transform, collider_query: &Query<&Tr
             return true;
         }
     }
-
     for house_collider_transform in house_collider_query.iter() {
         if collide(
             player_transform.translation,
@@ -168,7 +151,6 @@ pub fn check_collisions(player_transform: &Transform, collider_query: &Query<&Tr
             return true;
         }
     }
-
     false
 }
 
@@ -176,7 +158,6 @@ fn collide(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
     let collision_x = (pos1.x - pos2.x).abs() < (size1.x + size2.x) / 2.0;
     let collision_y = (pos1.y - pos2.y).abs() < (size1.y + size2.y) / 2.0;
     let collision_z = (pos1.z - pos2.z).abs() < (size1.z + size2.z) / 2.0;
-
     if collision_x && collision_y && collision_z {
         Some(())
     } else {
@@ -190,47 +171,38 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
             position: (x, z),
             rotation,
             ..
-        } = &message.content {
+        } = &message.content
+        {
             let player_name = &message.sender;
             if player_name == &network.player_name {
                 continue;
             }
-
             if let Some(&entity) = remote_players.0.get(player_name) {
                 if let Ok(mut transform) = query.get_mut(entity) {
-                    // More precise rotation handling
-                    let normalized_rotation_y = rotation.y.rem_euclid(2.0 * std::f32::consts::PI);
-
                     transform.translation.x = *x;
                     transform.translation.z = *z;
                     transform.translation.y = 0.0;
-
+                    // println!("transform rotation {:?}", transform.rotation.y);
+                    let new_rotation_y = (rotation.y + std::f32::consts::PI) % (2.0 * std::f32::consts::PI);
                     transform.rotation = Quat::from_euler(
                         EulerRot::XYZ,
                         0.0,
-                        normalized_rotation_y,
+                        new_rotation_y,
                         0.0
                     );
-
                     println!(
-                        "Rotation - x: {}, y: {}, normalized_rotation_y: {}",
-                        rotation.x, rotation.y, normalized_rotation_y
+                        "Rotation - x: {}, y: {}, new_rotation_y: {}",
+                        rotation.x, rotation.y, new_rotation_y
                     );
                 }
             } else {
-                // Remote player spawn logic remains the same
                 let remote_player = commands
                     .spawn((
                         SceneBundle {
                             scene: enemy_animations.model.clone(), 
                             transform: Transform {
                                 translation: Vec3::new(*x, 0.0, *z),
-                                rotation: Quat::from_euler(
-                                    EulerRot::XYZ, 
-                                    0.0, 
-                                    rotation.y.rem_euclid(2.0 * std::f32::consts::PI), 
-                                    0.0
-                                ),
+                                rotation: Quat::from_euler(EulerRot::XYZ, 0.0, rotation.y, 0.0),
                                 scale: Vec3::splat(0.5),
                                 ..default()
                             },
