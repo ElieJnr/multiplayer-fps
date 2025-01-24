@@ -86,6 +86,7 @@ fn setup_gameplay_track(
 ) {
     let gunshot = asset_server.load::<AudioSource>("sounds/gunshot.ogg");
     let walk = asset_server.load::<AudioSource>("sounds/walk.ogg");
+    let reload = asset_server.load::<AudioSource>("sounds/reload.ogg");
 
     if keyboard_input.just_pressed(KeyCode::Space) {
         commands.spawn((AudioBundle {
@@ -106,6 +107,16 @@ fn setup_gameplay_track(
             settings: PlaybackSettings {
                 mode: bevy::audio::PlaybackMode::Once,
                 volume: bevy::audio::Volume::new(1.0),
+                ..Default::default()
+            },
+        },));
+    } else if keyboard_input.just_pressed(KeyCode::KeyR) {
+        commands.spawn((AudioBundle {
+            source: reload,
+            settings: PlaybackSettings {
+                mode: bevy::audio::PlaybackMode::Once,
+                volume: bevy::audio::Volume::new(1.0),
+                speed: 1.2,
                 ..Default::default()
             },
         },));
