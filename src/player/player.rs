@@ -146,17 +146,8 @@ pub fn preload_player_assets(
         &mut commands,
         &asset_server,
         &mut animation_graphs,
-        "player.glb",
-        vec![
-            "static",
-            "arm",
-            "ispect",
-            "reload_fast",
-            "reload_full",
-            "run",
-            "shoot",
-            "walk",
-        ],
+        "enemy.glb",
+        vec!["static", "run", "b_run", "shoot", "reload_fast"],
         "EnemyAnimations",
     );
 }
@@ -216,6 +207,7 @@ fn preload_assets(
         _ => {}
     }
 }
+
 pub fn create_players(
     commands: &mut Commands,
     player_animations: Res<PreloadedPlayerAnimations>,
