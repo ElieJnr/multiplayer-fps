@@ -20,21 +20,7 @@ use bevy::time::Time;
 use bevy::utils::default;
 use bevy::window::{CursorGrabMode, Window};
 
-pub fn player_movement(
-    time: Res<Time>,
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut motion_evr: EventReader<MouseMotion>,
-    mut movement: ResMut<PlayerMovement>,
-    _obstacle_positions: Res<ObstaclePositions>,
-    network: Option<Res<NetworkConfig>>,
-    mut sequence_number: Local<u32>,
-    mut query: Query<&mut Transform, With<PlayersComponent>>,
-    collider_query: Query<&Transform, (With<Collider>, Without<PlayersComponent>)>,
-    house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<PlayersComponent>)>,
-    maze_state: Res<MazeState>,
-    players: ResMut<Players>,
-    game_status: ResMut<GameStatus>,
-) {
+pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>>, mut motion_evr: EventReader<MouseMotion>, mut movement: ResMut<PlayerMovement>, _obstacle_positions: Res<ObstaclePositions>, network: Option<Res<NetworkConfig>>, mut sequence_number: Local<u32>, mut query: Query<&mut Transform, With<PlayersComponent>>, collider_query: Query<&Transform, (With<Collider>, Without<PlayersComponent>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<PlayersComponent>)>, maze_state: Res<MazeState>, players: ResMut<Players>, game_status: ResMut<GameStatus>) {
     if !maze_state.is_ready {
         return;
     }
@@ -114,7 +100,10 @@ fn simulation_tir(keyboard_input: &Res<'_, ButtonInput<KeyCode>>, network: &Opti
                 player.health -= 1;
                 game_status.player_health -= 0.2;
                 display_info(&format!("Player health after: {}", player.health));
-                display_info(&format!("Game status health: {}", game_status.player_health));
+                display_info(&format!(
+                    "Game status health: {}",
+                    game_status.player_health
+                ));
 
                 if player.health == 0 {
                     // Remove the player
@@ -128,7 +117,10 @@ fn simulation_tir(keyboard_input: &Res<'_, ButtonInput<KeyCode>>, network: &Opti
                             message_type: MessageType::Disconnect,
                             sender: "server".to_string(),
                             content: MessageContent::ServerInfo {
-                                server_status: format!("Player {} has died. Game Over!", player_name),
+                                server_status: format!(
+                                    "Player {} has died. Game Over!",
+                                    player_name
+                                ),
                             },
                         };
 

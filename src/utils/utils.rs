@@ -130,14 +130,14 @@ pub fn get_models(url: &str, output_path: &str) -> io::Result<()> {
 pub fn download_models() {
     let player_exists = Path::new(PLAYER_PATH).exists();
     let enemy_exists = Path::new(ENEMY_PATH).exists();
-    
+
     if !player_exists {
         match get_models(PLAYER_URL, PLAYER_PATH) {
             Ok(_) => display_info(&format!("Player model downloaded successfully")),
             Err(e) => display_info(&format!(" Error downloading player {}", e))
         }
     }
-    
+
     if !enemy_exists {
         match get_models(ENEMY_URL, ENEMY_PATH) {
             Ok(_) => display_info(&format!("Enemy model downloaded successfully")),

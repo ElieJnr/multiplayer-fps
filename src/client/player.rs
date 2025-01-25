@@ -4,7 +4,9 @@ use bevy::{math::Vec3, prelude::Resource};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::constant::HEALTH_NBR, player::model::PlayerMovement, utils::logger::{display_info, display_warning}
+    common::constant::HEALTH_NBR,
+    player::model::PlayerMovement,
+    utils::logger::{display_info, display_warning},
 };
 
 #[derive(Resource, Debug, Default, Clone, Deserialize, Serialize)]

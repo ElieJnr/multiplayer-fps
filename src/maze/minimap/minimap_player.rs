@@ -95,7 +95,8 @@ fn calculate_player_minimap_position(
     (player_minimap_x, player_minimap_y)
 }
 
-fn update_player_minimap_rotation(minimap_transform: &mut Transform,
+fn update_player_minimap_rotation(
+    minimap_transform: &mut Transform,
     player_minimap_x: f32,
     player_minimap_y: f32,
     player_transform: &Transform,

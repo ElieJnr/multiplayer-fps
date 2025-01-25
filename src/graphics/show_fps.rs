@@ -39,4 +39,3 @@ pub fn update_fps_ui(
         }
     }
 }
-

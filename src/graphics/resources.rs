@@ -1,16 +1,12 @@
 use bevy::{
-    app::{App, Plugin},
+    app::{App, Plugin, Update},
     asset::AssetServer,
-    audio::{AudioBundle,  AudioSource, PlaybackSettings},
-    prelude::{
-        Commands, Component, OnEnter, OnExit,  Res, Resource
-    },
+    audio::{AudioBundle, AudioSource, PlaybackSettings},
+    input::ButtonInput,
+    prelude::{Commands, Component, KeyCode, OnEnter, OnExit, Res, Resource},
 };
 
-use super::{
-    states::GameState,
-    systems::menu::despawn_menu,
-};
+use super::{states::GameState, systems::menu::despawn_menu};
 
 #[derive(Debug, Resource, Component, PartialEq, Eq, Clone, Copy, Default)]
 pub enum Map {
@@ -42,7 +38,8 @@ impl Plugin for SoundPlugin {
         app.add_systems(OnEnter(GameState::Menu), setup_menu_track)
             .add_systems(OnEnter(GameState::Waitting), setup_waitting_track)
             .add_systems(OnExit(GameState::Menu), despawn_menu::<MenuTrack>)
-            .add_systems(OnExit(GameState::Waitting), despawn_menu::<WaittingTrack>);
+            .add_systems(OnExit(GameState::Waitting), despawn_menu::<WaittingTrack>)
+            .add_systems(Update, setup_gameplay_track);
     }
 }
 
@@ -80,4 +77,48 @@ fn setup_waitting_track(mut commands: Commands, asset_server: Res<AssetServer>) 
         },
         WaittingTrack,
     ));
+}
+
+fn setup_gameplay_track(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+) {
+    let gunshot = asset_server.load::<AudioSource>("sounds/gunshot.ogg");
+    let walk = asset_server.load::<AudioSource>("sounds/walk.ogg");
+    let reload = asset_server.load::<AudioSource>("sounds/reload.ogg");
+
+    if keyboard_input.just_pressed(KeyCode::Space) {
+        commands.spawn((AudioBundle {
+            source: gunshot,
+            settings: PlaybackSettings {
+                mode: bevy::audio::PlaybackMode::Once,
+                volume: bevy::audio::Volume::new(1.0),
+                ..Default::default()
+            },
+        },));
+    } else if keyboard_input.just_pressed(KeyCode::ArrowUp)
+        || keyboard_input.just_pressed(KeyCode::ArrowLeft)
+        || keyboard_input.just_pressed(KeyCode::ArrowRight)
+        || keyboard_input.just_pressed(KeyCode::ArrowDown)
+    {
+        commands.spawn((AudioBundle {
+            source: walk,
+            settings: PlaybackSettings {
+                mode: bevy::audio::PlaybackMode::Once,
+                volume: bevy::audio::Volume::new(1.0),
+                ..Default::default()
+            },
+        },));
+    } else if keyboard_input.just_pressed(KeyCode::KeyR) {
+        commands.spawn((AudioBundle {
+            source: reload,
+            settings: PlaybackSettings {
+                mode: bevy::audio::PlaybackMode::Once,
+                volume: bevy::audio::Volume::new(1.0),
+                speed: 1.2,
+                ..Default::default()
+            },
+        },));
+    }
 }
