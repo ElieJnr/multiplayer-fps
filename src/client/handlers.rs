@@ -41,7 +41,7 @@ pub fn handle_waiting(
         display_info(&msg);
 
         let pos=PosStruct{
-            position: players.get(&config.player_name.clone()).unwrap().movement.position,
+            position: players.0.get(&config.player_name.clone()).unwrap().movement.position,
         };
 
         unsafe {
@@ -67,7 +67,7 @@ pub fn handle_start(content: MessageContent, config: &NetworkConfig, state: &mut
         display_info(&msg);
 
         let pos=PosStruct{
-            position: players.get(&config.player_name.clone()).unwrap().movement.position,
+            position: players.0.get(&config.player_name.clone()).unwrap().movement.position,
         };
 
         unsafe {
