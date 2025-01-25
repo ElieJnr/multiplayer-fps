@@ -13,7 +13,7 @@ use std::{
     net::{SocketAddr, UdpSocket},
 };
 
-use bevy::math::Vec3;
+use bevy::math::{Vec2, Vec3};
 use bevy::{
     math::{vec3, Quat},
     prelude::Transform,
@@ -223,6 +223,7 @@ pub fn handle_player_action(
                 sequence_number,
                 timestamp,
                 player,
+                action.mouse_delta,
             );
         }
     }
@@ -270,13 +271,19 @@ fn update_player_movement(player: &mut Player, action: &PlayerInput) {
     if action.arrow_down {
         transform.translation += forward * player.movement.speed * 0.016;
     }
+    if action.arrow_left {
+        transform.translation -= transform.right() * player.movement.speed * 0.016;
+    }
+    if action.arrow_right {
+        transform.translation += transform.right() * player.movement.speed * 0.016;
+    }
     if action.mouse_delta.length_squared() > 0.0 {
         transform.rotate_y(-action.mouse_delta.x * player.movement.mouse_sensitivity);
     }
     transform.translation.y = player.movement.ground_level;
 
     player.movement.position = transform.translation;
-    player.movement.rotation.y = transform.rotation.y;
+    // player.movement.rotation.y = transform.rotation.to_euler(EulerRot::XYZ).1;
 }
 
 fn broadcast_game_update(
@@ -286,6 +293,7 @@ fn broadcast_game_update(
     sequence_number: u32,
     timestamp: f64,
     player: &Player,
+    mouse_delta: Vec2
 ) {
     let update_msg = GameMessage {
         message_type: MessageType::GameUpdate,
@@ -295,6 +303,7 @@ fn broadcast_game_update(
             rotation: player.movement.rotation,
             sequence_number,
             timestamp,
+            mouse_delta: (mouse_delta.x, mouse_delta.y).into(),
         },
     };
 

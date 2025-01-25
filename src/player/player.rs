@@ -166,7 +166,7 @@ fn preload_assets(
         animation_indices.insert(name.clone(), node_index);
     }
     let graph_handle = animation_graphs.add(graph);
-    // Insérer la ressource appropriée selon le type
+
     match resource_name {
         "PlayerAnimations" => {
             commands.insert_resource(PreloadedPlayerAnimations {
@@ -232,22 +232,21 @@ pub fn create_players(
         animations: player_graph.animations.clone(),
         graph: player_graph.graph.clone(),
     });
+
 }
 
-// #[derive(Component)]
-// struct BloodSplatter;
+pub fn create_bullet(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, position: Vec3) {
+    let bullet_mesh = meshes.add(Mesh::from(Cylinder { radius: 0.1, half_height: 0.5, ..Default::default() }));
+    let bullet_material = materials.add(StandardMaterial {
+        base_color: Color::srgb(0.0, 0.0, 1.0), 
+        ..Default::default()
+    });
 
-// pub fn blood_splatter(mut commands: Commands, asset_server: Res<AssetServer>) {
-//     let blood_texture_handle = asset_server.load("path/to/blood_splatter.png");
-
-//     // Ajouter l'éclat de sang (invisible au début)
-//     commands
-//         .spawn(SpriteBundle {
-//             texture: blood_texture_handle,
-//             transform: Transform::from_xyz(0.0, 0.0, 1.0),
-//             visibility: Visibility::Hidden,
-
-//             ..Default::default()
-//         })
-//         .insert(BloodSplatter);
-// }
+    commands.spawn(PbrBundle {
+        mesh: bullet_mesh,
+        material: bullet_material,
+        transform: Transform::from_translation(position),
+        ..Default::default()
+    });
+}
+    
