@@ -1,9 +1,16 @@
+use crate::{
+    client::{
+        handlers::GAME_STARTED,
+        player::{add_player, Player, Players},
+    },
+    common::{constant::PlayerCount, protocol::*},
+    player::model::PlayerInput,
+    server::udp::broadcast_message,
+    utils::logger::*,
+};
 use std::{
     collections::HashMap,
     net::{SocketAddr, UdpSocket},
-};
-use crate::{
-    client::player::{add_player, Player}, common::{constant::PlayerCount, protocol::*}, player::model::PlayerInput, server::udp::broadcast_message, utils::logger::*
 };
 
 use bevy::math::{Vec2, Vec3};
@@ -17,14 +24,14 @@ use std::sync::Mutex;
 
 pub fn handle_message(
     server_socket: &UdpSocket,
-    players: &mut HashMap<String, Player>,
+    players: &mut Players,
     message: GameMessage,
     src: SocketAddr,
     player_count: &PlayerCount,
 ) {
     match message.message_type {
         MessageType::NewConnection => {
-            handle_new_connection(server_socket, players, message, src);
+            handle_new_connection(server_socket, players, message, src, player_count);
         }
         MessageType::PlayerAction => {
             handle_player_action(server_socket, players, message, &player_count)
@@ -40,10 +47,40 @@ pub fn handle_message(
 
 fn handle_new_connection(
     server_socket: &UdpSocket,
-    players: &mut HashMap<String, Player>,
+    players: &mut Players,
     message: GameMessage,
     src: SocketAddr,
+    player_count: &PlayerCount,
 ) {
+    if unsafe { GAME_STARTED } {
+        display_warning("Cannot accept new players, the game has already started.");
+        disconnect_player(server_socket, &src, "Game has already started.");
+        return;
+    }
+
+    if message.sender.trim().is_empty() {
+        display_warning("Player name cannot be empty.");
+        disconnect_player(server_socket, &src, "Player name cannot be empty.");
+        return;
+    }
+
+    if players.0.contains_key(&message.sender) {
+        display_warning(&format!(
+            "Player name '{}' is already taken.",
+            message.sender
+        ));
+        disconnect_player(server_socket, &src, "Player name is already taken.");
+        return;
+    }
+
+    if players.0.len() >= player_count.get_min_players() {
+        display_warning(
+            "Cannot accept new players, the maximum number of players has been reached.",
+        );
+        disconnect_player(server_socket, &src, "Maximum number of players reached.");
+        return;
+    }
+
     let initial_position = choose_place(&ALL_POSITION, &IS_OCCUPED);
     add_player(players, message.sender.clone(), src, initial_position);
 
@@ -51,9 +88,28 @@ fn handle_new_connection(
     send_wait_for_players_message(server_socket, players);
 }
 
+fn disconnect_player(server_socket: &UdpSocket, address: &SocketAddr, reason: &str) {
+    let disconnect_message = GameMessage {
+        message_type: MessageType::Disconnect,
+        sender: "server".to_string(),
+        content: MessageContent::Disconnect {
+            reason: reason.to_string(),
+        },
+    };
+
+    if let Some(msg_bytes) = serialize_message(&disconnect_message) {
+        if let Err(err) = server_socket.send_to(&msg_bytes, address) {
+            display_error(&format!(
+                "Failed to send disconnect message to {}: {}",
+                address, err
+            ));
+        }
+    }
+}
+
 fn send_new_connection_message(
     server_socket: &UdpSocket,
-    players: &mut HashMap<String, Player>,
+    players: &mut Players,
     player_name: &str,
 ) {
     let msg = GameMessage {
@@ -65,11 +121,11 @@ fn send_new_connection_message(
     };
 
     if let Some(msg_json) = serialize_message(&msg) {
-        broadcast_message(server_socket, players, msg_json, None, true);
+        broadcast_message(server_socket, players.clone(), msg_json, None, true);
     }
 }
 
-fn send_wait_for_players_message(server_socket: &UdpSocket, players: &mut HashMap<String, Player>) {
+fn send_wait_for_players_message(server_socket: &UdpSocket, players: &mut Players) {
     let msg = GameMessage {
         message_type: MessageType::WaitForPlayers,
         sender: "server".to_string(),
@@ -80,13 +136,13 @@ fn send_wait_for_players_message(server_socket: &UdpSocket, players: &mut HashMa
     };
 
     if let Some(msg_json) = serialize_message(&msg) {
-        broadcast_message(server_socket, players, msg_json, None, true);
+        broadcast_message(server_socket, players.clone(), msg_json, None, true);
     }
 }
 
 fn handle_disconnect(
     server_socket: &UdpSocket,
-    players: &mut HashMap<String, Player>,
+    players: &mut Players,
     message: GameMessage,
     src: SocketAddr,
 ) {
@@ -114,7 +170,7 @@ fn handle_disconnect(
         }
     };
 
-    if let Some(player) = players.remove(&message.sender) {
+    if let Some(player) = players.0.remove(&message.sender) {
         if let Err(err) = server_socket.send_to(&disconnect_msg, player.address) {
             display_error(&format!(
                 "Failed to send disconnect message to {}: {}",
@@ -124,7 +180,7 @@ fn handle_disconnect(
 
         broadcast_message(
             server_socket,
-            players,
+            players.clone(),
             broadcast_bytes,
             Some(&src.to_string()),
             false,
@@ -139,14 +195,19 @@ fn handle_disconnect(
     }
 }
 
-pub fn handle_player_action(server_socket: &UdpSocket, players: &mut HashMap<String, Player>, message: GameMessage, player_count: &PlayerCount) {
+pub fn handle_player_action(
+    server_socket: &UdpSocket,
+    players: &mut Players,
+    message: GameMessage,
+    player_count: &PlayerCount,
+) {
     if let MessageContent::PlayerAction {
         action,
         sequence_number,
         timestamp,
     } = message.content
     {
-        if let Some(player) = players.get_mut(&message.sender) {
+        if let Some(player) = players.0.get_mut(&message.sender) {
             if action.ready {
                 handle_ready_state(server_socket, players, &message.sender, &player_count);
                 return;
@@ -154,7 +215,7 @@ pub fn handle_player_action(server_socket: &UdpSocket, players: &mut HashMap<Str
 
             update_player_movement(player, &action);
 
-            let player = players.get(&message.sender).unwrap();
+            let player = players.0.get(&message.sender).unwrap();
             broadcast_game_update(
                 server_socket,
                 players,
@@ -170,16 +231,16 @@ pub fn handle_player_action(server_socket: &UdpSocket, players: &mut HashMap<Str
 
 fn handle_ready_state(
     server_socket: &UdpSocket,
-    players: &mut HashMap<String, Player>,
+    players: &mut Players,
     player_name: &str,
-    player_count: &PlayerCount
+    player_count: &PlayerCount,
 ) {
-    if let Some(player) = players.get_mut(player_name) {
+    if let Some(player) = players.0.get_mut(player_name) {
         player.ready = true;
         display_info(&format!("Player {} is ready.", player.name));
 
         // Vérifier si tous les joueurs sont prêts
-        if players.values().all(|p| p.ready) && players.len() == player_count.get_min_players() {
+        if players.0.values().all(|p| p.ready) && players.0.len() == player_count.get_min_players() {
             display_info("All players are ready. Starting game...");
 
             let start_game_msg = GameMessage {
@@ -192,7 +253,7 @@ fn handle_ready_state(
             };
 
             if let Some(msg_bytes) = serialize_message(&start_game_msg) {
-                broadcast_message(server_socket, players, msg_bytes, None, true);
+                broadcast_message(server_socket, players.clone(), msg_bytes, None, true);
             }
         }
     }
@@ -224,7 +285,15 @@ fn update_player_movement(player: &mut Player, action: &PlayerInput) {
     // player.movement.rotation.y = transform.rotation.to_euler(EulerRot::XYZ).1;
 }
 
-fn broadcast_game_update(server_socket: &UdpSocket, players: &HashMap<String, Player>, player_name: &str, sequence_number: u32, timestamp: f64, player: &Player, mouse_delta: Vec2) {
+fn broadcast_game_update(
+    server_socket: &UdpSocket,
+    players: &Players,
+    player_name: &str,
+    sequence_number: u32,
+    timestamp: f64,
+    player: &Player,
+    mouse_delta: Vec2
+) {
     let update_msg = GameMessage {
         message_type: MessageType::GameUpdate,
         sender: player_name.to_string(),
@@ -238,15 +307,11 @@ fn broadcast_game_update(server_socket: &UdpSocket, players: &HashMap<String, Pl
     };
 
     if let Some(msg_bytes) = serialize_message(&update_msg) {
-        broadcast_message(server_socket, players, msg_bytes, None, true);
+        broadcast_message(server_socket, players.clone(), msg_bytes, None, true);
     }
 }
 
-fn handle_game_update(
-    server_socket: &UdpSocket,
-    players: &mut HashMap<String, Player>,
-    message: GameMessage,
-) {
+fn handle_game_update(server_socket: &UdpSocket, players: &mut Players, message: GameMessage) {
     let update_msg = GameMessage {
         message_type: MessageType::GameUpdate,
         sender: message.sender.to_string(),
@@ -258,7 +323,7 @@ fn handle_game_update(
         None => return,
     };
 
-    broadcast_message(server_socket, &players, msg_json, None, true);
+    broadcast_message(server_socket, players.clone(), msg_json, None, true);
 }
 
 lazy_static! {

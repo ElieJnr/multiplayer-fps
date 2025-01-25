@@ -1,7 +1,8 @@
 use bevy::gltf::GltfAssetLabel;
 use bevy::prelude::*;
 use std::{collections::HashMap, time::Duration};
-use crate::maze::models::Players;
+use crate::maze::models::PlayersComponent;
+
 use super::model::*;
 
 
@@ -176,8 +177,8 @@ pub fn create_players(commands: &mut Commands, player_animations: Res<PreloadedP
                 },
                 ..default()
             },
-            Player,
-            Players,
+            PlayerComponent,
+            PlayersComponent,
             AnimationPlayer::default(),
             player_graph.graph.clone(),
             AnimationState::default(),

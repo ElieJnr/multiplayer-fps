@@ -1,8 +1,7 @@
-use crate::client::player::Player;
+use crate::client::player::Players;
 use crate::{player::model::PlayerInput, utils::logger::*};
 use bevy::{math::Vec2, prelude::Resource};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::{
     net::{SocketAddr, UdpSocket},
     sync::Arc,
@@ -68,11 +67,11 @@ pub enum MessageContent {
     },
     WaitForPlayers {
         msg: String,
-        players: HashMap<String, Player>,
+        players: Players,
     },
     StartGame {
         msg: String,
-        players: HashMap<String, Player>,
+        players: Players,
     },
 }
 

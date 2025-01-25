@@ -47,7 +47,7 @@ pub struct EnemyAnimations {
 }
 
 #[derive(Component)]
-pub struct Player;
+pub struct PlayerComponent;
 
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
