@@ -202,9 +202,9 @@ pub fn create_players(commands: &mut Commands, player_animations: Res<PreloadedP
 }
 
 pub fn create_bullet(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, position: Vec3) {
-    let bullet_mesh = meshes.add(Mesh::from(shape::Cylinder { radius: 0.1, height: 0.5, ..Default::default() }));
+    let bullet_mesh = meshes.add(Mesh::from(Cylinder { radius: 0.1, half_height: 0.5, ..Default::default() }));
     let bullet_material = materials.add(StandardMaterial {
-        base_color: Color::rgb(0.0, 0.0, 1.0), 
+        base_color: Color::srgb(0.0, 0.0, 1.0), 
         ..Default::default()
     });
 
@@ -215,3 +215,4 @@ pub fn create_bullet(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>,
         ..Default::default()
     });
 }
+    
