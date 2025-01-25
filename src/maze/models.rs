@@ -16,8 +16,8 @@ pub struct Arch;
 #[derive(Component)]
 pub struct PlayerCamera;
 
-#[derive(Component)]
-pub struct Players;
+#[derive(Component, Resource)]
+pub struct PlayersComponent;
 
 #[derive(Default, Resource)]
 pub struct CameraState {
@@ -92,14 +92,54 @@ pub struct HouseTextures {
 
 #[derive(Default)]
 pub struct HouseMaterials {
-    pub house_1: (Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>),
-    pub house_2: (Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>),
-    pub house_3: (Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>),
-    pub house_4: (Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>),
-    pub house_5: (Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>),
-    pub house_6: (Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>),
-    pub house_7: (Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>),
-    pub house_8: (Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<StandardMaterial>),
+    pub house_1: (
+        Handle<StandardMaterial>,
+        Handle<StandardMaterial>,
+        Handle<StandardMaterial>,
+        Handle<StandardMaterial>,
+    ),
+    pub house_2: (
+        Handle<StandardMaterial>,
+        Handle<StandardMaterial>,
+        Handle<StandardMaterial>,
+        Handle<StandardMaterial>,
+    ),
+    pub house_3: (
+        Handle<StandardMaterial>,
+        Handle<StandardMaterial>,
+        Handle<StandardMaterial>,
+        Handle<StandardMaterial>,
+    ),
+    pub house_4: (
+        Handle<StandardMaterial>,
+        Handle<StandardMaterial>,
+        Handle<StandardMaterial>,
+        Handle<StandardMaterial>,
+    ),
+    pub house_5: (
+        Handle<StandardMaterial>,
+        Handle<StandardMaterial>,
+        Handle<StandardMaterial>,
+        Handle<StandardMaterial>,
+    ),
+    pub house_6: (
+        Handle<StandardMaterial>,
+        Handle<StandardMaterial>,
+        Handle<StandardMaterial>,
+        Handle<StandardMaterial>,
+    ),
+    pub house_7: (
+        Handle<StandardMaterial>,
+        Handle<StandardMaterial>,
+        Handle<StandardMaterial>,
+        Handle<StandardMaterial>,
+    ),
+    pub house_8: (
+        Handle<StandardMaterial>,
+        Handle<StandardMaterial>,
+        Handle<StandardMaterial>,
+        Handle<StandardMaterial>,
+    ),
 }
 
 impl Default for TreeParams {
@@ -122,5 +162,3 @@ pub struct MinimapTextures {
     pub floor_texture: Handle<Image>,
     pub player_texture: Handle<Image>,
 }
-
-

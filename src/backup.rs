@@ -1,8 +1,55 @@
-use super::model::*;
-use crate::maze::models::PlayersComponent;
+use crate::maze::models::Players;
 use bevy::gltf::GltfAssetLabel;
 use bevy::prelude::*;
 use std::{collections::HashMap, time::Duration};
+
+pub struct PlayerBuild;
+
+#[derive(Component)]
+pub struct AnimationState {
+    current_animation: String,
+}
+
+impl Default for AnimationState {
+    fn default() -> Self {
+        Self {
+            current_animation: "static".to_string(),
+        }
+    }
+}
+
+#[derive(Resource)]
+pub struct PreloadedPlayerAnimations {
+    pub model: Handle<Scene>,
+    pub animations: HashMap<String, Handle<AnimationClip>>,
+}
+
+#[derive(Resource)]
+pub struct PlayerAnimations {
+    pub player_entity: Entity,
+    pub animation_player_entity: Option<Entity>,
+    pub animations: HashMap<String, AnimationNodeIndex>,
+    pub graph: Handle<AnimationGraph>,
+}
+
+#[derive(Resource)]
+pub struct EnemyAnimations {
+    pub player_entity: Entity,
+    pub animation_player_entity: Option<Entity>,
+    pub animations: HashMap<String, AnimationNodeIndex>,
+    pub graph: Handle<AnimationGraph>,
+}
+
+#[derive(Component)]
+pub struct Player;
+
+pub struct PlayerPlugin;
+impl Plugin for PlayerPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Startup, preload_player_assets)
+            .add_systems(Update, (setup_player_animation, handle_keyboard_animation));
+    }
+}
 
 pub fn handle_keyboard_animation(
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -75,6 +122,7 @@ pub fn handle_keyboard_animation(
         }
     }
 }
+
 pub fn setup_player_animation(
     mut commands: Commands,
     mut animations: ResMut<PlayerAnimations>,
@@ -125,8 +173,17 @@ pub fn preload_player_assets(
         &mut commands,
         &asset_server,
         &mut animation_graphs,
-        "enemy.glb",
-        vec!["idle", "run", "backward_run", "shoot", "reload"],
+        "player.glb",
+        vec![
+            "static",
+            "arm",
+            "ispect",
+            "reload_fast",
+            "reload_full",
+            "run",
+            "shoot",
+            "walk",
+        ],
         "EnemyAnimations",
     );
 }
@@ -142,7 +199,9 @@ fn preload_assets(
     let default_path = format!("{}", env!("CARGO_MANIFEST_DIR"));
     let path = format!("{}/assets/", default_path);
     let model_path = format!("{}{}", path, model_file);
+
     let model = asset_server.load(GltfAssetLabel::Scene(0).from_asset(model_path.clone()));
+
     let mut animations = HashMap::new();
     for (i, &name) in animation_names.iter().enumerate() {
         animations.insert(
@@ -150,42 +209,36 @@ fn preload_assets(
             asset_server.load(GltfAssetLabel::Animation(i).from_asset(model_path.clone())),
         );
     }
+
     let mut graph = AnimationGraph::new();
     let mut animation_indices = HashMap::new();
+
     for (name, clip) in animations.iter() {
         let node_index = graph.add_clip(clip.clone(), 1.0, graph.root);
         animation_indices.insert(name.clone(), node_index);
     }
+
     let graph_handle = animation_graphs.add(graph);
 
-    match resource_name {
-        "PlayerAnimations" => {
-            commands.insert_resource(PreloadedPlayerAnimations {
-                model: model.clone(),
-                animations: animations.clone(),
-            });
-            commands.insert_resource(PlayerAnimations {
-                player_entity: Entity::from_raw(0),
-                animation_player_entity: None,
-                animations: animation_indices.clone(),
-                graph: graph_handle.clone(),
-            });
-        }
-        "EnemyAnimations" => {
-            commands.insert_resource(PreloadedEnemyAnimations {
-                model: model.clone(),
-                animations: animations.clone(),
-            });
-            commands.insert_resource(EnemyAnimations {
-                player_entity: Entity::from_raw(0),
-                animation_player_entity: None,
-                animations: animation_indices,
-                graph: graph_handle,
-            });
-        }
-        _ => {}
+    commands.insert_resource(PreloadedPlayerAnimations { model, animations });
+
+    if resource_name == "PlayerAnimations" {
+        commands.insert_resource(PlayerAnimations {
+            player_entity: Entity::from_raw(0),
+            animation_player_entity: None,
+            animations: animation_indices,
+            graph: graph_handle,
+        });
+    } else if resource_name == "EnemyAnimations" {
+        commands.insert_resource(PlayerAnimations {
+            player_entity: Entity::from_raw(0),
+            animation_player_entity: None,
+            animations: animation_indices,
+            graph: graph_handle,
+        });
     }
 }
+
 pub fn create_players(
     commands: &mut Commands,
     player_animations: Res<PreloadedPlayerAnimations>,
@@ -197,19 +250,20 @@ pub fn create_players(
             SceneBundle {
                 scene: player_animations.model.clone(),
                 transform: Transform {
-                    translation: Vec3::new(pos[0], pos[1], pos[2]),
+                    translation: Vec3::new(pos[0], 0.0, pos[2]),
                     scale: Vec3::splat(0.25),
                     ..default()
                 },
                 ..default()
             },
-            PlayerComponent,
-            PlayersComponent,
+            Player,
+            Players,
             AnimationPlayer::default(),
             player_graph.graph.clone(),
             AnimationState::default(),
         ))
         .id();
+
     commands
         .spawn((Camera3dBundle {
             transform: Transform::from_xyz(0.0, 0.5, -0.25)
@@ -217,34 +271,11 @@ pub fn create_players(
             ..default()
         },))
         .set_parent(player_entity);
+
     commands.insert_resource(PlayerAnimations {
         player_entity,
         animation_player_entity: None,
         animations: player_graph.animations.clone(),
         graph: player_graph.graph.clone(),
-    });
-}
-
-pub fn create_bullet(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<StandardMaterial>>,
-    position: Vec3,
-) {
-    let bullet_mesh = meshes.add(Mesh::from(Cylinder {
-        radius: 0.1,
-        half_height: 0.5,
-        ..Default::default()
-    }));
-    let bullet_material = materials.add(StandardMaterial {
-        base_color: Color::srgb(0.0, 0.0, 1.0),
-        ..Default::default()
-    });
-
-    commands.spawn(PbrBundle {
-        mesh: bullet_mesh,
-        material: bullet_material,
-        transform: Transform::from_translation(position),
-        ..Default::default()
     });
 }

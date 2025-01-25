@@ -3,7 +3,6 @@ use std::time::Duration;
 use bevy::prelude::*;
 use bevy_tweening::{lens::TransformScaleLens, Animator, EaseFunction, Tween};
 
-
 use super::menu::NORMAL_BUTTON_COLOR;
 
 #[derive(Component, Debug)]
@@ -17,7 +16,7 @@ impl MenuButtonAction {
     pub fn from_label(label: &str) -> Self {
         match label {
             "Play" => MenuButtonAction::Play,
-            "Options" => MenuButtonAction::Options,
+            "Helps" => MenuButtonAction::Options,
             "Quit" => MenuButtonAction::Quit,
             _ => panic!("Invalid button label"),
         }
