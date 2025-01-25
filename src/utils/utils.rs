@@ -133,15 +133,15 @@ pub fn download_models() {
     
     if !player_exists {
         match get_models(PLAYER_URL, PLAYER_PATH) {
-            Ok(_) => println!("Modèle du joueur téléchargé avec succès"),
-            Err(e) => eprintln!("Erreur lors du téléchargement du joueur: {}", e)
+            Ok(_) => display_info(&format!("Player model downloaded successfully")),
+            Err(e) => display_info(&format!(" Error downloading player {}", e))
         }
     }
     
     if !enemy_exists {
         match get_models(ENEMY_URL, ENEMY_PATH) {
-            Ok(_) => println!("Modèle de l'ennemi téléchargé avec succès"), 
-            Err(e) => eprintln!("Erreur lors du téléchargement de l'ennemi: {}", e)
+            Ok(_) => display_info(&format!("Enemy model downloaded successfully")),
+            Err(e) => display_info(&format!(" Error downloading enemy {}", e))
         }
     }
 }
