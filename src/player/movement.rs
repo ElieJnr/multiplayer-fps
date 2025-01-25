@@ -1,24 +1,40 @@
-use crate::maze::models::*;
+use crate::client::player::Players;
 use crate::common::protocol::{
     serialize_message, GameMessage, MessageContent, MessageType, NetworkConfig,
 };
 use crate::common::sync::NetworkMessages;
+use crate::maze::barre_etat::GameStatus;
+use crate::maze::models::*;
 use crate::maze::models::{Collider, ColliderHouse, MazeState, ObstaclePositions};
 use crate::player::model::*;
+use crate::utils::logger::display_info;
 use bevy::input::mouse::MouseMotion;
 use bevy::input::ButtonInput;
 use bevy::math::{Quat, Vec2, Vec3};
 use bevy::prelude::{
-    AnimationPlayer, Camera3d, Commands, EventReader,
-    KeyCode, Local, Query, Res, ResMut, Transform, With, Without,
+    AnimationPlayer, Camera3d, Commands, EventReader, KeyCode, Local, Query, Res, ResMut,
+    Transform, With, Without,
 };
 use bevy::scene::SceneBundle;
 use bevy::time::Time;
 use bevy::utils::default;
 use bevy::window::{CursorGrabMode, Window};
 
-
-pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>>, mut motion_evr: EventReader<MouseMotion>, mut movement: ResMut<PlayerMovement>, _obstacle_positions: Res<ObstaclePositions>, network: Option<Res<NetworkConfig>>, mut sequence_number: Local<u32>, mut query: Query<&mut Transform, With<Players>>, collider_query: Query<&Transform, (With<Collider>, Without<Players>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Players>)>, maze_state: Res<MazeState>) {
+pub fn player_movement(
+    time: Res<Time>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut motion_evr: EventReader<MouseMotion>,
+    mut movement: ResMut<PlayerMovement>,
+    _obstacle_positions: Res<ObstaclePositions>,
+    network: Option<Res<NetworkConfig>>,
+    mut sequence_number: Local<u32>,
+    mut query: Query<&mut Transform, With<PlayersComponent>>,
+    collider_query: Query<&Transform, (With<Collider>, Without<PlayersComponent>)>,
+    house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<PlayersComponent>)>,
+    maze_state: Res<MazeState>,
+    players: ResMut<Players>,
+    game_status: ResMut<GameStatus>,
+) {
     if !maze_state.is_ready {
         return;
     }
@@ -29,6 +45,8 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
         mouse_delta += event.delta;
     }
 
+    simulation_tir(&keyboard_input, &network, &mut query, players, game_status);
+
     let input = PlayerInput {
         arrow_up: keyboard_input.pressed(KeyCode::ArrowUp),
         arrow_down: keyboard_input.pressed(KeyCode::ArrowDown),
@@ -38,7 +56,12 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
         ready: false,
     };
 
-    if input.arrow_up || input.arrow_down || input.arrow_left || input.arrow_right || mouse_delta != Vec2::ZERO {
+    if input.arrow_up
+        || input.arrow_down
+        || input.arrow_left
+        || input.arrow_right
+        || mouse_delta != Vec2::ZERO
+    {
         *sequence_number += 1;
         let delta_time = time.delta_seconds();
 
@@ -82,7 +105,64 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
     }
 }
 
-pub fn apply_input(transform: &mut Transform, input: &PlayerInput, movement: &PlayerMovement, delta_time: f32) {
+fn simulation_tir(
+    keyboard_input: &Res<'_, ButtonInput<KeyCode>>,
+    network: &Option<Res<'_, NetworkConfig>>,
+    query: &mut Query<'_, '_, &mut Transform, With<PlayersComponent>>,
+    mut players: ResMut<'_, Players>,
+    mut game_status: ResMut<GameStatus>,
+) {
+    if keyboard_input.just_pressed(KeyCode::KeyT) {
+        display_info("KeyT pressed, entering simulation_tir function");
+
+        if players.0.is_empty() {
+            display_info("No players found in the HashMap");
+        } else {
+            display_info(&format!("Number of players: {}", players.0.len()));
+        }
+
+        for (player_name, player) in players.0.iter_mut() {
+            display_info(&format!("Processing player: {}", player_name));
+            display_info(&format!("Player health before: {}", player.health));
+
+            if player.health > 0 {
+                player.health -= 1;
+                game_status.player_health -= 0.2;
+                display_info(&format!("Player health after: {}", player.health));
+                display_info(&format!("Game status health: {}", game_status.player_health));
+
+                if player.health == 0 {
+                    // Remove the player
+                    query.iter_mut().for_each(|mut transform| {
+                        transform.translation = Vec3::new(0.0, -100.0, 0.0);
+                    });
+
+                    // Send game over message
+                    if let Some(network) = network {
+                        let game_over_msg = GameMessage {
+                            message_type: MessageType::Disconnect,
+                            sender: "server".to_string(),
+                            content: MessageContent::ServerInfo {
+                                server_status: format!("Player {} has died. Game Over!", player_name),
+                            },
+                        };
+
+                        if let Some(msg_bytes) = serialize_message(&game_over_msg) {
+                            network.client_socket.send(&msg_bytes).unwrap();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+pub fn apply_input(
+    transform: &mut Transform,
+    input: &PlayerInput,
+    movement: &PlayerMovement,
+    delta_time: f32,
+) {
     let forward = transform.forward();
 
     if input.arrow_up {
@@ -106,7 +186,11 @@ pub fn apply_input(transform: &mut Transform, input: &PlayerInput, movement: &Pl
 }
 
 // permet de changer la vue de la camera
-pub fn camera_view_toggle(keyboard_input: Res<ButtonInput<KeyCode>>, mut _player_query: Query<&mut Transform, With<Players>>, mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<Players>)>, mut camera_state: ResMut<CameraState>) {
+pub fn camera_view_toggle(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<PlayersComponent>)>,
+    mut camera_state: ResMut<CameraState>,
+) {
     if keyboard_input.just_pressed(KeyCode::KeyV) {
         camera_state.is_top_view = !camera_state.is_top_view;
 
@@ -128,7 +212,10 @@ pub fn camera_view_toggle(keyboard_input: Res<ButtonInput<KeyCode>>, mut _player
 }
 
 // permet de rendre visible et invisible la souris avec la touche space
-pub fn toggle_cursor_lock(keyboard_input: Res<ButtonInput<KeyCode>>, mut windows: Query<&mut Window>) {
+pub fn toggle_cursor_lock(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut windows: Query<&mut Window>,
+) {
     if keyboard_input.just_pressed(KeyCode::Space) {
         if let Ok(mut window) = windows.get_single_mut() {
             if window.cursor.grab_mode == CursorGrabMode::Locked {
@@ -142,7 +229,11 @@ pub fn toggle_cursor_lock(keyboard_input: Res<ButtonInput<KeyCode>>, mut windows
     }
 }
 
-pub fn check_collisions(player_transform: &Transform, collider_query: &Query<&Transform, (With<Collider>, Without<Players>)>, house_collider_query: &Query<&Transform, (With<ColliderHouse>, Without<Players>)>) -> bool {
+pub fn check_collisions(
+    player_transform: &Transform,
+    collider_query: &Query<&Transform, (With<Collider>, Without<PlayersComponent>)>,
+    house_collider_query: &Query<&Transform, (With<ColliderHouse>, Without<PlayersComponent>)>,
+) -> bool {
     for collider_transform in collider_query.iter() {
         if collide(
             player_transform.translation,
@@ -184,7 +275,15 @@ fn collide(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
     }
 }
 
-pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<PreloadedEnemyAnimations>, enemy_graph: Res<EnemyAnimations>, mut remote_players: ResMut<RemotePlayers>, network: Res<NetworkConfig>, mut messages: ResMut<NetworkMessages>, mut query: Query<&mut Transform>) {
+pub fn manage_remote_players(
+    mut commands: Commands,
+    enemy_animations: Res<PreloadedEnemyAnimations>,
+    enemy_graph: Res<EnemyAnimations>,
+    mut remote_players: ResMut<RemotePlayers>,
+    network: Res<NetworkConfig>,
+    mut messages: ResMut<NetworkMessages>,
+    mut query: Query<&mut Transform>,
+) {
     while let Some(message) = messages.0.pop_front() {
         if let MessageContent::GameUpdate {
             position: (x, z),
@@ -208,7 +307,7 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
                 let remote_player = commands
                     .spawn((
                         SceneBundle {
-                            scene: enemy_animations.model.clone(), 
+                            scene: enemy_animations.model.clone(),
                             transform: Transform {
                                 translation: Vec3::new(*x, 0.0, *z),
                                 rotation: Quat::from_rotation_y(rotation.y),
@@ -221,7 +320,7 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
                             name: player_name.clone(),
                         },
                         AnimationPlayer::default(),
-                        enemy_graph.graph.clone(), 
+                        enemy_graph.graph.clone(),
                         AnimationState::default(),
                     ))
                     .id();
