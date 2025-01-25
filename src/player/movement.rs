@@ -21,15 +21,16 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
     if !maze_state.is_ready {
         return;
     }
+
     let mut mouse_delta = Vec2::ZERO;
     for event in motion_evr.read() {
         mouse_delta += event.delta;
     }
     let input = PlayerInput {
-        arrow_up: keyboard_input.pressed(KeyCode::ArrowUp),
-        arrow_down: keyboard_input.pressed(KeyCode::ArrowDown),
-        arrow_left: keyboard_input.pressed(KeyCode::ArrowLeft),
-        arrow_right: keyboard_input.pressed(KeyCode::ArrowRight),
+        arrow_up: keyboard_input.pressed(KeyCode::KeyW),
+        arrow_down: keyboard_input.pressed(KeyCode::KeyS),
+        arrow_left: keyboard_input.pressed(KeyCode::KeyA),
+        arrow_right: keyboard_input.pressed(KeyCode::KeyD),
         mouse_delta,
         ready: false,
     };
