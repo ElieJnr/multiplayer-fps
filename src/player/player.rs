@@ -7,12 +7,11 @@ use std::{collections::HashMap, time::Duration};
 
 pub fn handle_keyboard_animation(
     keyboard: Res<ButtonInput<KeyCode>>,
-    mut query: Query<(Entity, &mut AnimationState)>,
-    animations: ResMut<PlayerAnimations>,
-    animation_players: Query<&mut AnimationPlayer>,
+    mut query: Query<(Entity, &mut AnimationState, &mut AnimationPlayer)>,
+    animations: Res<PlayerAnimations>,
     mut mouse_button_events: EventReader<MouseButtonInput>,
 ) {
-    if let Ok((_entity, animation_state)) = query.get_single_mut() {
+    for (_entity, mut animation_state, mut animation_player) in query.iter_mut() {
         let mut new_animation = if keyboard.pressed(KeyCode::ArrowUp) {
             "walk"
         } else if keyboard.pressed(KeyCode::ArrowDown) {
@@ -40,62 +39,55 @@ pub fn handle_keyboard_animation(
         }
 
         animation_to_run(
-            animations,
-            animation_players,
+            &animations,
+            &mut animation_player,
             new_animation,
-            animation_state,
+            &mut animation_state,
         );
     }
 }
 
 fn animation_to_run(
-    animations: ResMut<'_, PlayerAnimations>,
-    mut animation_players: Query<'_, '_, &mut AnimationPlayer>,
+    animations: &PlayerAnimations,
+    animation_player: &mut AnimationPlayer,
     new_animation: &str,
-    mut animation_state: Mut<'_, AnimationState>,
+    animation_state: &mut AnimationState,
 ) {
     match new_animation {
         "reload_fast" if new_animation != animation_state.current_animation => {
             animation_state.current_animation = new_animation.to_string();
-            if let Some(player_entity) = animations.animation_player_entity {
-                if let Ok(mut player) = animation_players.get_mut(player_entity) {
-                    if let Some(&animation_index) = animations.animations.get(new_animation) {
-                        AnimationTransitions::new().play(
-                            &mut player,
-                            animation_index,
-                            Duration::from_secs_f32(0.2),
-                        );
-                    }
-                }
+            if let Some(&animation_index) = animations.animations.get(new_animation) {
+                AnimationTransitions::new().play(
+                    animation_player,
+                    animation_index,
+                    Duration::from_secs_f32(0.2),
+                );
             }
         }
         anim if anim.starts_with("stop") => {
-            if let Some(player_entity) = animations.animation_player_entity {
-                if let Ok(mut player) = animation_players.get_mut(player_entity) {
-                    if let Some(&run_animation) = animations
-                        .animations
-                        .get(anim.strip_prefix("stop").unwrap_or(""))
-                    {
-                        player.stop(run_animation);
-                    }
-                }
+            if let Some(&run_animation) = animations
+                .animations
+                .get(anim.strip_prefix("stop").unwrap_or(""))
+            {
+                animation_player.stop(run_animation);
             }
         }
         anim if anim != "reload_fast" && anim != animation_state.current_animation => {
             animation_state.current_animation = new_animation.to_string();
-            if let Some(player_entity) = animations.animation_player_entity {
-                if let Ok(mut player) = animation_players.get_mut(player_entity) {
-                    if let Some(&animation_index) = animations.animations.get(new_animation) {
-                        AnimationTransitions::new()
-                            .play(&mut player, animation_index, Duration::from_secs_f32(0.2))
-                            .repeat();
-                    }
-                }
+            if let Some(&animation_index) = animations.animations.get(new_animation) {
+                AnimationTransitions::new()
+                    .play(
+                        animation_player,
+                        animation_index,
+                        Duration::from_secs_f32(0.2),
+                    )
+                    .repeat();
             }
         }
-        _ => {} // Ne rien faire pour les autres cas
+        _ => {}
     }
 }
+
 pub fn setup_player_animation(
     mut commands: Commands,
     mut animations: ResMut<PlayerAnimations>,
