@@ -5,7 +5,8 @@ use bevy::{
     asset::AssetServer,
     color::Color,
     prelude::{
-        BuildChildren, ChildBuilder, Commands, Component, NodeBundle, OnEnter, Query, Res, Resource, State, TextBundle, With
+        BuildChildren, ChildBuilder, Commands, Component, NodeBundle, OnEnter, Query, Res,
+        Resource, State, TextBundle, With,
     },
     text::TextStyle,
     ui::{
@@ -17,7 +18,10 @@ use bevy::{
 
 use crate::{
     client::player::Player,
-    graphics::{show_fps::{update_fps_ui, FpsText, FpsUpdateTimer}, states::GameState},
+    graphics::{
+        show_fps::{update_fps_ui, FpsText, FpsUpdateTimer},
+        states::GameState,
+    },
 };
 
 #[derive(Resource)]
@@ -65,7 +69,7 @@ fn setup_ui(
     if game_state.get() != &GameState::Game {
         return;
     }
-    
+
     commands.insert_resource(GameStatus::new());
 
     commands

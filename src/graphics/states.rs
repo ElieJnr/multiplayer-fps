@@ -8,7 +8,7 @@ pub enum GameState {
     Game,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Default, Debug, Hash, States)]
+#[derive(Clone, Copy, PartialEq, Eq, Default, Debug, Hash, States, Resource)]
 pub enum MenuState {
     #[default]
     Disabled,

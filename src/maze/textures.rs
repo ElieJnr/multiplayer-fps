@@ -4,7 +4,17 @@ use bevy::prelude::*;
 use std::f32::consts::PI;
 
 // permet de créer un arbre procedural en utilisant les paramètres spécifiés
-pub fn create_procedural_tree(commands: &mut Commands, _meshes: &mut ResMut<Assets<Mesh>>, _materials: &mut ResMut<Assets<StandardMaterial>>, params: &TreeParams, position: Vec3, branch_material: Handle<StandardMaterial>, leaf_material: Handle<StandardMaterial>, branch_mesh: Handle<Mesh>, leaf_mesh: Handle<Mesh>) {
+pub fn create_procedural_tree(
+    commands: &mut Commands,
+    _meshes: &mut ResMut<Assets<Mesh>>,
+    _materials: &mut ResMut<Assets<StandardMaterial>>,
+    params: &TreeParams,
+    position: Vec3,
+    branch_material: Handle<StandardMaterial>,
+    leaf_material: Handle<StandardMaterial>,
+    branch_mesh: Handle<Mesh>,
+    leaf_mesh: Handle<Mesh>,
+) {
     let tree = generate_tree(params);
     let mut entity_parent_indices: Vec<(Entity, Option<usize>)> = Vec::new();
 
@@ -107,7 +117,13 @@ pub fn generate_leaves(parent_idx: usize, all: &mut Vec<Branch>) {
 }
 
 // permet de créer le sol en utilisant une taille de 0.1 et une texture de sol
-pub fn create_surface(commands: &mut Commands, floor_mesh: Handle<Mesh>, floor_material: Handle<StandardMaterial>, width: f32, height: f32) {
+pub fn create_surface(
+    commands: &mut Commands,
+    floor_mesh: Handle<Mesh>,
+    floor_material: Handle<StandardMaterial>,
+    width: f32,
+    height: f32,
+) {
     commands.spawn(PbrBundle {
         mesh: floor_mesh.clone(),
         material: floor_material.clone(),
@@ -117,7 +133,13 @@ pub fn create_surface(commands: &mut Commands, floor_mesh: Handle<Mesh>, floor_m
 }
 
 // permet de créer les murs en utilisant une taille de 1.0, une largeur de 2.0 et une hauteur de 1.0 tous en les positionnant correctement aux coordonnées i et j
-pub fn create_walls(commands: &mut Commands, wall_mesh: Handle<Mesh>, wall_material: Handle<StandardMaterial>, i: usize, j: usize) {
+pub fn create_walls(
+    commands: &mut Commands,
+    wall_mesh: Handle<Mesh>,
+    wall_material: Handle<StandardMaterial>,
+    i: usize,
+    j: usize,
+) {
     commands.spawn((
         PbrBundle {
             mesh: wall_mesh.clone(),
@@ -146,7 +168,12 @@ pub fn create_lights(commands: &mut Commands, width: f32, height: f32) {
 }
 
 // permet de creer le ciel en utilisant une sphere de rayon 500.0 et en lui appliquant une texture de ciel
-pub fn create_sky(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, sky_texture: Handle<Image>) {
+pub fn create_sky(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
+    sky_texture: Handle<Image>,
+) {
     commands.spawn((
         PbrBundle {
             mesh: meshes.add(Mesh::from(Sphere { radius: 500.0 })),
@@ -171,39 +198,47 @@ pub fn rotate_sky(time: Res<Time>, mut query: Query<&mut Transform, With<Sky>>) 
 }
 
 // permet de créer un arc en utilisant des piliers et un arc supérieur
-pub fn create_arch(commands: &mut Commands, _meshes: &mut ResMut<Assets<Mesh>>, arch_mesh: Handle<Mesh>, sup_arch_mesh: Handle<Mesh>, arch_material: Handle<StandardMaterial>, arch: Entity, pillar_height: f32, i: f32, j: f32) {
-
+pub fn create_arch(
+    commands: &mut Commands,
+    _meshes: &mut ResMut<Assets<Mesh>>,
+    arch_mesh: Handle<Mesh>,
+    sup_arch_mesh: Handle<Mesh>,
+    arch_material: Handle<StandardMaterial>,
+    arch: Entity,
+    pillar_height: f32,
+    i: f32,
+    j: f32,
+) {
     // println!("i {} j {}", i, j);
     let mut arch_radius = 2.25;
-    
+
     let transform = if i == 29.0 && j == 22.0 {
         arch_radius = 1.3;
-        Transform::from_xyz(j - 0.26, 0.0, i + 0.5)
-            .with_rotation(Quat::from_rotation_y(PI / 2.0))
+        Transform::from_xyz(j - 0.26, 0.0, i + 0.5).with_rotation(Quat::from_rotation_y(PI / 2.0))
     } else if i == 30.0 && j == 22.0 {
         arch_radius = 1.3;
-        Transform::from_xyz(j + 0.26, 0.0, i - 0.5)
-            .with_rotation(Quat::from_rotation_y(PI / 2.0))
+        Transform::from_xyz(j + 0.26, 0.0, i - 0.5).with_rotation(Quat::from_rotation_y(PI / 2.0))
     } else if i == 20.0 && j == 31.0 {
         Transform::from_xyz(j + 0.5, 0.0, i - 0.26)
     } else {
-        Transform::from_xyz(j - 2.0 + 0.5 , 0.0, i + 0.26  )
+        Transform::from_xyz(j - 2.0 + 0.5, 0.0, i + 0.26)
     };
 
     commands.entity(arch).insert(transform);
 
     // Piliers
     for x in [-arch_radius, arch_radius] {
-
-        commands.spawn((
-            PbrBundle {
-                mesh: arch_mesh.clone(),
-                material: arch_material.clone(),
-                transform: Transform::from_xyz(x, pillar_height / 2.0, 0.0),
-                ..default()
-            },
-            ColliderPillar,
-        )).set_parent(arch);
+        commands
+            .spawn((
+                PbrBundle {
+                    mesh: arch_mesh.clone(),
+                    material: arch_material.clone(),
+                    transform: Transform::from_xyz(x, pillar_height / 2.0, 0.0),
+                    ..default()
+                },
+                ColliderPillar,
+            ))
+            .set_parent(arch);
     }
 
     // Arc supérieur
@@ -213,20 +248,25 @@ pub fn create_arch(commands: &mut Commands, _meshes: &mut ResMut<Assets<Mesh>>, 
         let x = angle.cos() * arch_radius;
         let y = angle.sin() * arch_radius + pillar_height;
 
-        commands.spawn(
-                PbrBundle {
-                    mesh: sup_arch_mesh.clone(),
-                    material: arch_material.clone(),
-                    transform: Transform::from_xyz(x, y, 0.0)
+        commands
+            .spawn(PbrBundle {
+                mesh: sup_arch_mesh.clone(),
+                material: arch_material.clone(),
+                transform: Transform::from_xyz(x, y, 0.0)
                     .with_rotation(Quat::from_rotation_z(angle)),
-                ..default()}
-            )
+                ..default()
+            })
             .set_parent(arch);
     }
 }
 
 // permet de créer une maison en utilisant 4 facades de mur
-pub fn create_house(commands: &mut Commands, meshes: Handle<Mesh>, house_materials: &HouseMaterials, position: Vec3) {
+pub fn create_house(
+    commands: &mut Commands,
+    meshes: Handle<Mesh>,
+    house_materials: &HouseMaterials,
+    position: Vec3,
+) {
     let wall_size = Vec3::new(3.0, 2.5, 0.1);
 
     let (front_material, back_material, left_material, right_material) = if position.x == 7.0
@@ -382,7 +422,28 @@ pub fn load_textures(asset_server: &Res<AssetServer>) -> Textures {
     }
 }
 
-pub fn initialize_materials(meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, textures: &Textures, params: &TreeParams, width: f32, height: f32) -> (Handle<Mesh>, HouseMaterials, Handle<StandardMaterial>, Handle<StandardMaterial>, Handle<Mesh>, Handle<Mesh>, Handle<StandardMaterial>, Handle<Mesh>, Handle<Mesh>, Handle<StandardMaterial>, Handle<Mesh>, Handle<Mesh>, Handle<StandardMaterial>) {
+pub fn initialize_materials(
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
+    textures: &Textures,
+    params: &TreeParams,
+    width: f32,
+    height: f32,
+) -> (
+    Handle<Mesh>,
+    HouseMaterials,
+    Handle<StandardMaterial>,
+    Handle<StandardMaterial>,
+    Handle<Mesh>,
+    Handle<Mesh>,
+    Handle<StandardMaterial>,
+    Handle<Mesh>,
+    Handle<Mesh>,
+    Handle<StandardMaterial>,
+    Handle<Mesh>,
+    Handle<Mesh>,
+    Handle<StandardMaterial>,
+) {
     // house materials
     let wall_size = Vec3::new(3.0, 2.5, 0.1);
     let mesh_face = meshes.add(Mesh::from(Cuboid::new(

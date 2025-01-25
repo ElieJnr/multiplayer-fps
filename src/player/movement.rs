@@ -62,42 +62,49 @@ pub fn player_movement(
         || input.arrow_right
         || mouse_delta != Vec2::ZERO
     {
-        *sequence_number += 1;
-        let delta_time = time.delta_seconds();
+        if input.arrow_up
+            || input.arrow_down
+            || input.arrow_left
+            || input.arrow_right
+            || mouse_delta != Vec2::ZERO
+        {
+            *sequence_number += 1;
+            let delta_time = time.delta_seconds();
 
-        if let Ok(mut transform) = query.get_single_mut() {
-            let new_transform = transform.clone();
+            if let Ok(mut transform) = query.get_single_mut() {
+                let new_transform = transform.clone();
 
-            apply_input(&mut transform, &input, &movement, delta_time);
+                apply_input(&mut transform, &input, &movement, delta_time);
 
-            if check_collisions(&transform, &collider_query, &house_collider_query) {
-                *transform = new_transform;
-            } else {
-                movement.position = transform.translation;
-                movement.rotation.y = transform.rotation.y;
+                if check_collisions(&transform, &collider_query, &house_collider_query) {
+                    *transform = new_transform;
+                } else {
+                    movement.position = transform.translation;
+                    movement.rotation.y = transform.rotation.y;
 
-                let input_sequence = InputSequence {
-                    sequence_number: *sequence_number,
-                    timestamp: time.elapsed_seconds_f64(),
-                    input,
-                };
-
-                movement.input_buffer.push_back(input_sequence.clone());
-
-                if let Some(network) = network.as_ref() {
-                    let message = GameMessage {
-                        message_type: MessageType::GameUpdate,
-                        sender: network.player_name.clone(),
-                        content: MessageContent::GameUpdate {
-                            position: (transform.translation.x, transform.translation.z),
-                            rotation: movement.rotation,
-                            sequence_number: *sequence_number,
-                            timestamp: time.elapsed_seconds_f64(),
-                        },
+                    let input_sequence = InputSequence {
+                        sequence_number: *sequence_number,
+                        timestamp: time.elapsed_seconds_f64(),
+                        input,
                     };
 
-                    if let Some(msg_bytes) = serialize_message(&message) {
-                        let _ = network.client_socket.send(&msg_bytes);
+                    movement.input_buffer.push_back(input_sequence.clone());
+
+                    if let Some(network) = network.as_ref() {
+                        let message = GameMessage {
+                            message_type: MessageType::GameUpdate,
+                            sender: network.player_name.clone(),
+                            content: MessageContent::GameUpdate {
+                                position: (transform.translation.x, transform.translation.z),
+                                rotation: movement.rotation,
+                                sequence_number: *sequence_number,
+                                timestamp: time.elapsed_seconds_f64(),
+                            },
+                        };
+
+                        if let Some(msg_bytes) = serialize_message(&message) {
+                            let _ = network.client_socket.send(&msg_bytes);
+                        }
                     }
                 }
             }
@@ -129,7 +136,10 @@ fn simulation_tir(
                 player.health -= 1;
                 game_status.player_health -= 0.2;
                 display_info(&format!("Player health after: {}", player.health));
-                display_info(&format!("Game status health: {}", game_status.player_health));
+                display_info(&format!(
+                    "Game status health: {}",
+                    game_status.player_health
+                ));
 
                 if player.health == 0 {
                     // Remove the player
@@ -143,7 +153,10 @@ fn simulation_tir(
                             message_type: MessageType::Disconnect,
                             sender: "server".to_string(),
                             content: MessageContent::ServerInfo {
-                                server_status: format!("Player {} has died. Game Over!", player_name),
+                                server_status: format!(
+                                    "Player {} has died. Game Over!",
+                                    player_name
+                                ),
                             },
                         };
 
@@ -214,6 +227,7 @@ pub fn camera_view_toggle(
 // permet de rendre visible et invisible la souris avec la touche space
 pub fn toggle_cursor_lock(
     keyboard_input: Res<ButtonInput<KeyCode>>,
+
     mut windows: Query<&mut Window>,
 ) {
     if keyboard_input.just_pressed(KeyCode::Space) {

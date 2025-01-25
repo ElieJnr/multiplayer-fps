@@ -13,13 +13,10 @@ pub fn get_local_ipv4() -> Option<Ipv4Addr> {
 
 pub fn create_server_socket(ip: Ipv4Addr, port: &str) -> Option<UdpSocket> {
     match UdpSocket::bind(&format!("{}:{}", ip, port)) {
-        Ok(socket) => {
-            Some(socket)
-        }
+        Ok(socket) => Some(socket),
         Err(err) => {
             eprintln!("Failed to bind socket: {}", err);
             None
         }
     }
 }
-

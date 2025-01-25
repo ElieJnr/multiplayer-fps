@@ -1,7 +1,7 @@
+use super::player::*;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use super::player::*;
 use std::collections::VecDeque;
 
 pub struct PlayerBuild;
@@ -32,7 +32,7 @@ pub struct PreloadedEnemyAnimations {
 
 #[derive(Resource)]
 pub struct PlayerAnimations {
-    pub player_entity: Entity, 
+    pub player_entity: Entity,
     pub animation_player_entity: Option<Entity>,
     pub animations: HashMap<String, AnimationNodeIndex>,
     pub graph: Handle<AnimationGraph>,
@@ -41,7 +41,7 @@ pub struct PlayerAnimations {
 #[derive(Resource)]
 pub struct EnemyAnimations {
     pub player_entity: Entity,
-    pub animation_player_entity: Option<Entity>, 
+    pub animation_player_entity: Option<Entity>,
     pub animations: HashMap<String, AnimationNodeIndex>,
     pub graph: Handle<AnimationGraph>,
 }
@@ -71,7 +71,6 @@ pub struct RemotePlayer {
 
 #[derive(Resource)]
 pub struct RemotePlayers(pub HashMap<String, Entity>);
-
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct PlayerInput {

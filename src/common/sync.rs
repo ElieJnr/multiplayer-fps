@@ -16,9 +16,7 @@ pub struct NetworkTimer {
 
 impl Default for NetworkTimer {
     fn default() -> Self {
-        Self {
-            last_check: 0.0,
-        }
+        Self { last_check: 0.0 }
     }
 }
 
@@ -47,10 +45,10 @@ fn check_network_messages(
     mut state: ResMut<PlayerCountState>,
     mut network_messages: ResMut<NetworkMessages>,
 ) {
-    if time.elapsed_seconds() - timer.last_check < 0.016 { 
+    if time.elapsed_seconds() - timer.last_check < 0.016 {
         return;
     }
-    
+
     timer.last_check = time.elapsed_seconds();
 
     if let Ok(socket) = network_config.client_socket.try_clone() {
@@ -83,7 +81,7 @@ fn handle_game_message(message: GameMessage, state: &mut PlayerCountState) {
             }
         }
         MessageType::WaitForPlayers => {
-            if let MessageContent::WaitForPlayers { msg , .. } = message.content {
+            if let MessageContent::WaitForPlayers { msg, .. } = message.content {
                 state.has_enough_players = false;
                 display_info(&msg);
             }

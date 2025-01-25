@@ -239,7 +239,8 @@ fn handle_ready_state(
         display_info(&format!("Player {} is ready.", player.name));
 
         // Vérifier si tous les joueurs sont prêts
-        if players.0.values().all(|p| p.ready) && players.0.len() == player_count.get_min_players() {
+        if players.0.values().all(|p| p.ready) && players.0.len() == player_count.get_min_players()
+        {
             display_info("All players are ready. Starting game...");
 
             let start_game_msg = GameMessage {
