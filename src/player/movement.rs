@@ -42,8 +42,9 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
             apply_input(&mut transform, &input, &movement, delta_time);
             if check_collisions(&transform, &collider_query, &house_collider_query) {
                 *transform = new_transform;
+            } else {
+                movement.position = transform.translation;
             }
-            movement.position = transform.translation;
             movement.rotation.y = transform.rotation.y;
             let input_sequence = InputSequence {
                 sequence_number: *sequence_number,
@@ -187,9 +188,7 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
                     transform.translation.x = *x;
                     transform.translation.z = *z;
                     transform.translation.y = 0.0;
-                    // if mouse_delta.length_squared() > 0.0 {
-                        transform.rotate_y(-mouse_delta.x * 0.003);
-                    // }
+                    transform.rotate_y(-mouse_delta.x * 0.003);
                 }
             } else {
                 let remote_player = commands

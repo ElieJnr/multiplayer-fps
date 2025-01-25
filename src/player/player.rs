@@ -134,7 +134,6 @@ fn preload_assets(commands: &mut Commands, asset_server: &AssetServer, animation
 
     let graph_handle = animation_graphs.add(graph);
 
-    // Insérer la ressource appropriée selon le type
     match resource_name {
         "PlayerAnimations" => {
             commands.insert_resource(PreloadedPlayerAnimations { 
@@ -172,7 +171,7 @@ pub fn create_players(commands: &mut Commands, player_animations: Res<PreloadedP
                 scene: player_animations.model.clone(),
                 transform: Transform {
                     translation: Vec3::new(pos[0], pos[1], pos[2]),
-                    scale: Vec3::splat(0.5),
+                    scale: Vec3::splat(0.25),
                     ..default()
                 },
                 ..default()
