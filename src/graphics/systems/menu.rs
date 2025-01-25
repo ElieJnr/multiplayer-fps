@@ -119,6 +119,7 @@ fn main_menu_setup(mut commands: Commands, assets_server: Res<AssetServer>) {
 }
 
 fn option_menu_setup(mut commands: Commands, _assets_server: Res<AssetServer>) {
+    let instruction_asset = _assets_server.load("textures/instruction.png");
     commands
         .spawn((
             NodeBundle {
@@ -128,9 +129,7 @@ fn option_menu_setup(mut commands: Commands, _assets_server: Res<AssetServer>) {
                     margin: UiRect::all(Val::Auto),
                     width: Val::Percent(70.0),
                     height: Val::Percent(70.0),
-                    flex_direction: FlexDirection::Column,
-                    justify_content: JustifyContent::Center,
-                    align_items: AlignItems::Center,
+                    flex_direction: FlexDirection::RowReverse,
                     ..Default::default()
                 },
                 z_index: ZIndex::Global(10),
@@ -139,54 +138,41 @@ fn option_menu_setup(mut commands: Commands, _assets_server: Res<AssetServer>) {
             OnOptionScreen,
         ))
         .with_children(|parent: &mut ChildBuilder<'_>| {
-            parent.spawn(TextBundle {
-                text: Text::from_section(
-                    "Game Instructions",
-                    TextStyle {
-                        font: _assets_server.load("fonts/FiraSans-Bold.ttf"),
-                        font_size: 40.0,
-                        color: Color::WHITE,
-                    },
-                ),
-                ..Default::default()
-            });
-
-            parent.spawn(TextBundle {
-                text: Text::from_section(
-                    "1. Use arrow keys to move.\n2. Use mouse to rotate.\n3. Press 'Space' to  Shoot.\n4. Kill enemy to win.",
-                    TextStyle {
-                        font: _assets_server.load("fonts/FiraSans-Regular.ttf"),
-                        font_size: 20.0,
-                        color: Color::WHITE,
-                    },
-                ),
+            parent.spawn(ImageBundle {
+                image: UiImage {
+                    texture: instruction_asset,
+                    ..Default::default()
+                },
                 style: Style {
-                    margin: UiRect {
-                        top: Val::Px(10.0),
-                        bottom: Val::Px(20.0),
-                        ..Default::default()
-                    },
+                    position_type: PositionType::Absolute,
+                    width: Val::Percent(100.0),
+                    height: Val::Percent(100.0),
+
                     ..Default::default()
                 },
                 ..Default::default()
             });
-
             parent
                 .spawn(ButtonBundle {
+                    background_color: BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.75)),
                     style: Style {
-                        width: Val::Px(100.0),
+                        width: Val::Px(50.0),
                         height: Val::Px(40.0),
-                        margin: UiRect::all(Val::Px(10.0)),
+                        position_type: PositionType::Relative,
+                        right: Val::Percent(0.0),
                         justify_content: JustifyContent::Center,
                         align_items: AlignItems::Center,
+                        justify_self: JustifySelf::End,
+                        align_self: AlignSelf::Start,
                         ..Default::default()
                     },
-                    background_color: BackgroundColor(Color::srgb(0.8, 0.2, 0.2)),
                     ..Default::default()
                 })
                 .insert(CloseHelpButton)
                 .with_children(|button| {
                     button.spawn(TextBundle {
+                        background_color: BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.75)),
+
                         text: Text::from_section(
                             "Close",
                             TextStyle {

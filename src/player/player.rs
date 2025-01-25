@@ -233,3 +233,21 @@ pub fn create_players(
         graph: player_graph.graph.clone(),
     });
 }
+
+// #[derive(Component)]
+// struct BloodSplatter;
+
+// pub fn blood_splatter(mut commands: Commands, asset_server: Res<AssetServer>) {
+//     let blood_texture_handle = asset_server.load("path/to/blood_splatter.png");
+
+//     // Ajouter l'éclat de sang (invisible au début)
+//     commands
+//         .spawn(SpriteBundle {
+//             texture: blood_texture_handle,
+//             transform: Transform::from_xyz(0.0, 0.0, 1.0),
+//             visibility: Visibility::Hidden,
+
+//             ..Default::default()
+//         })
+//         .insert(BloodSplatter);
+// }
