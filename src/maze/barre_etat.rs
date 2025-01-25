@@ -85,7 +85,6 @@ fn setup_ui(
                 padding: UiRect::horizontal(Val::Px(20.0)),
                 ..default()
             },
-            background_color: BackgroundColor(Color::srgba(0.0, 0.0, 0.5, 0.5)),
             ..default()
         })
         .with_children(|parent| {

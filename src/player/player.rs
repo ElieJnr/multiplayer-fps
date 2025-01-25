@@ -125,7 +125,7 @@ pub fn preload_player_assets(
         &mut commands,
         &asset_server,
         &mut animation_graphs,
-        "player.glb",
+        "enemy.glb",
         vec![
             "static",
             "arm",
