@@ -1,20 +1,22 @@
 use super::handlers::handle_message;
 use crate::{
-    client::{player::Player, udp::client_udp},
+    client::{player::Players, udp::client_udp},
     common::{constant::*, protocol::*},
     graphics::resources::PlayerCountState,
     utils::{logger::*, server_utils::*, utils::*},
 };
 use bevy::math::bool;
 use std::{
-    collections::HashMap,
     io::{self, Write},
     net::UdpSocket,
 };
 
 pub fn run_socket() {
     let mut state: PlayerCountState = PlayerCountState::default();
-    let mut players: HashMap<String, Player> = HashMap::new();
+    let mut players = Players::default();
+
+    download_models();
+
     match get_user_choice() {
         Some(1) => {
             handle_server_mode(&mut players);
@@ -26,7 +28,7 @@ pub fn run_socket() {
     }
 }
 
-fn handle_server_mode(players: &mut HashMap<String, Player>) {
+fn handle_server_mode(players: &mut Players) {
     let player_count = get_min_players_from_user();
 
     match get_local_ipv4() {
@@ -48,11 +50,17 @@ fn get_min_players_from_user() -> PlayerCount {
 
     let mut input = String::new();
     io::stdin().read_line(&mut input).unwrap();
-
-    match input.trim().parse::<usize>() {
-        Ok(num) => PlayerCount::new(num),
-        Err(_) => {
-            display_error("Invalid input. Using default value.");
+    match input
+        .trim()
+        .parse::<usize>()
+        .ok()
+        .filter(|&num| num >= DEFAULT_MIN_PLAYERS)
+    {
+        Some(num) => PlayerCount::new(num),
+        None => {
+            display_error(
+                "Number of players is less than the minimum required. Using default value.",
+            );
             PlayerCount::new(DEFAULT_MIN_PLAYERS)
         }
     }
@@ -64,11 +72,7 @@ fn handle_client_mode(state: &mut PlayerCountState) {
     }
 }
 
-pub fn server(
-    server_socket: UdpSocket,
-    players: &mut HashMap<String, Player>,
-    player_count: &PlayerCount,
-) {
+pub fn server(server_socket: UdpSocket, players: &mut Players, player_count: &PlayerCount) {
     let mut buf = [0; 1024];
 
     loop {
@@ -87,12 +91,12 @@ pub fn server(
 
 pub fn broadcast_message(
     server_socket: &UdpSocket,
-    players: &HashMap<String, Player>,
+    players: Players,
     message: Vec<u8>,
     exclude_name: Option<&str>,
     is_broadcast: bool,
 ) {
-    for player in players.values() {
+    for player in players.0.values() {
         if is_broadcast || exclude_name.map_or(true, |name| name != player.name) {
             match server_socket.send_to(&message, player.address) {
                 Ok(_) => {}

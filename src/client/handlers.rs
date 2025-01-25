@@ -1,5 +1,3 @@
-// use bevy::scene::ron::de::Position;
-
 use crate::graphics::resources::PlayerCountState;
 use crate::graphics::start::start;
 use crate::maze::maze::PosStruct;
@@ -31,7 +29,7 @@ pub fn handle_new_connection(content: MessageContent) {
     }
 }
 
-static mut GAME_STARTED: bool = false;
+pub static mut GAME_STARTED: bool = false;
 pub fn handle_waiting(
     content: MessageContent,
     config: &NetworkConfig,
@@ -44,6 +42,7 @@ pub fn handle_waiting(
 
         let pos = PosStruct {
             position: players
+                .0
                 .get(&config.player_name.clone())
                 .unwrap()
                 .movement
@@ -74,6 +73,7 @@ pub fn handle_start(content: MessageContent, config: &NetworkConfig, state: &mut
 
         let pos = PosStruct {
             position: players
+                .0
                 .get(&config.player_name.clone())
                 .unwrap()
                 .movement

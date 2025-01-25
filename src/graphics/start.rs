@@ -1,4 +1,4 @@
-use std::{collections::HashMap, net::UdpSocket, sync::Arc};
+use std::{net::UdpSocket, sync::Arc};
 
 use super::{
     map::MazePlugin,
@@ -42,7 +42,7 @@ pub fn start(
             server_address,
             client_socket,
         })
-        .insert_resource(Players(HashMap::new()))
+        .init_resource::<Players>()
         .init_resource::<PlayerCountState>()
         .insert_resource(player_count_state)
         .insert_resource(initial_position)
