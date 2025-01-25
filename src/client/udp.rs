@@ -90,7 +90,7 @@ fn process_game_message(
 ) -> bool {
     match game_message.message_type {
         MessageType::GameUpdate => {
-            println!("Received game update: {:?}", game_message.content);
+            // println!("Received game update: {:?}", game_message.content);
         }
         MessageType::Disconnect => {
             handle_disconnect(game_message.content);

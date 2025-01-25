@@ -126,16 +126,7 @@ pub fn preload_player_assets(
         &asset_server,
         &mut animation_graphs,
         "enemy.glb",
-        vec![
-            "static",
-            "arm",
-            "ispect",
-            "reload_fast",
-            "reload_full",
-            "run",
-            "shoot",
-            "walk",
-        ],
+        vec!["idle", "run", "backward_run", "shoot", "reload"],
         "EnemyAnimations",
     );
 }
@@ -232,13 +223,21 @@ pub fn create_players(
         animations: player_graph.animations.clone(),
         graph: player_graph.graph.clone(),
     });
-
 }
 
-pub fn create_bullet(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, position: Vec3) {
-    let bullet_mesh = meshes.add(Mesh::from(Cylinder { radius: 0.1, half_height: 0.5, ..Default::default() }));
+pub fn create_bullet(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
+    position: Vec3,
+) {
+    let bullet_mesh = meshes.add(Mesh::from(Cylinder {
+        radius: 0.1,
+        half_height: 0.5,
+        ..Default::default()
+    }));
     let bullet_material = materials.add(StandardMaterial {
-        base_color: Color::srgb(0.0, 0.0, 1.0), 
+        base_color: Color::srgb(0.0, 0.0, 1.0),
         ..Default::default()
     });
 
@@ -249,4 +248,3 @@ pub fn create_bullet(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>,
         ..Default::default()
     });
 }
-    
