@@ -216,6 +216,14 @@ pub fn handle_player_action(
             update_player_movement(player, &action);
 
             if action.shoot {
+                player.health -= 1;
+                println!("Player {} health: {}", player.name, player.health);
+
+                if player.health == 0 {
+                    display_info(&format!("Player {} is dead.", player.name));
+                    //  on pourra le deconnecter plutard içi...
+                }
+
                 broadcast_players(server_socket, players);
             }
 

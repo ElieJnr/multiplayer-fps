@@ -123,11 +123,10 @@ fn simulation_tir(
     players: &mut ResMut<Players>,
 ) {
     if keyboard_input.just_pressed(KeyCode::KeyT) {
-         for (player_name, player) in players.0.iter_mut() {
-            if player.health > 0 {
-                player.health -= 1;
+        for (player_name, player) in players.0.iter_mut() {
+            if game_status.player_health > 0. {
                 game_status.player_health -= 0.2;
-                
+
                 println!("Player health after: {}", player.health);
                 println!("Game status health: {}", game_status.player_health);
 
@@ -135,7 +134,7 @@ fn simulation_tir(
                     query.iter_mut().for_each(|mut transform| {
                         transform.translation = Vec3::new(0.0, -100.0, 0.0);
                     });
-                    
+
                     // fi on va afficher le pop up de game over
 
                     // Envoyer un message de game over
@@ -285,17 +284,17 @@ pub fn manage_remote_players(
 ) {
     while let Some(message) = messages.0.pop_front() {
         match &message.content {
-            MessageContent::GameUpdate { 
-                position: (x, z), 
-                rotation, 
-                mouse_delta, 
-                .. 
+            MessageContent::GameUpdate {
+                position: (x, z),
+                rotation,
+                mouse_delta,
+                ..
             } => {
                 let player_name = &message.sender;
                 if player_name == &network.player_name {
                     continue;
                 }
-                
+
                 if let Some(&entity) = remote_players.0.get(player_name) {
                     if let Ok(mut transform) = query.get_mut(entity) {
                         transform.translation.x = *x;
@@ -331,26 +330,24 @@ pub fn manage_remote_players(
                         .id();
                     remote_players.0.insert(player_name.clone(), remote_player);
                 }
-            },
-            MessageContent::SyncPlayers { players: synced_players } => {
-                // Mettre à jour directement la ressource Players
-                players.0 = synced_players.0.clone();
-                println!("Players synchronized. Total: {}", players.0.len());
-            },
-            _ => {
-                // Gérer d'autres types de messages si nécessaire
             }
+            MessageContent::SyncPlayers {
+                players: synced_players,
+            } => {
+                players.0 = synced_players.0.clone();
+            }
+            _ => {}
         }
     }
 
     // Simulation de tir
     if keyboard_input.just_pressed(KeyCode::KeyT) {
         simulation_tir(
-            &keyboard_input, 
-            &Some(network), 
-            &mut query, 
-            &mut game_status, 
-            &mut players  // Passez la ressource Players
+            &keyboard_input,
+            &Some(network),
+            &mut query,
+            &mut game_status,
+            &mut players,
         );
     }
 }
