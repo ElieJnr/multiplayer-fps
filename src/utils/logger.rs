@@ -18,12 +18,7 @@ pub fn display_error_with_type(error_type: ErrorType, message: &str) {
 }
 
 pub fn display_error(message: &str) {
-    println!(
-        "{} {} {}",
-        "❌".red(),
-        "[ERROR]".bold().red(),
-        message
-    );
+    println!("{} {} {}", "❌".red(), "[ERROR]".bold().red(), message);
 }
 
 pub fn display_warning(message: &str) {
@@ -36,10 +31,5 @@ pub fn display_warning(message: &str) {
 }
 
 pub fn display_info(message: &str) {
-    println!(
-        "{} {} {}",
-        "ℹ️".blue(),
-        "[INFO]".bold().blue(),
-        message
-    );
+    println!("{} {} {}", "ℹ️".blue(), "[INFO]".bold().blue(), message);
 }

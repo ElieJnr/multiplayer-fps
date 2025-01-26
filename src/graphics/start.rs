@@ -1,8 +1,8 @@
-use std::{collections::HashMap, net::UdpSocket, sync::Arc};
+use std::{net::UdpSocket, sync::Arc};
 
 use super::{
     map::MazePlugin,
-    resources::PlayerCountState,
+    resources::{PlayerCountState, SoundPlugin},
     systems::{setup::minimap_setup, waitting_page::WaittingRoomPlugin},
 };
 use crate::{
@@ -18,7 +18,7 @@ pub fn start(
     server_address: String,
     client_socket: Arc<UdpSocket>,
     player_count_state: PlayerCountState,
-    initial_position:PosStruct
+    initial_position: PosStruct,
 ) {
     let mut app = App::new();
 
@@ -38,7 +38,7 @@ pub fn start(
             server_address,
             client_socket,
         })
-        .insert_resource(Players(HashMap::new()))
+        .init_resource::<Players>()
         .init_resource::<PlayerCountState>()
         .insert_resource(player_count_state)
         .insert_resource(initial_position)
@@ -47,7 +47,7 @@ pub fn start(
         .add_systems(Startup, (minimap_setup, load_minimap_textures, read_maze))
         .add_plugins(menu_plugin)
         .add_plugins(MazePlugin)
-        // .add_plugins(SoundPlugin)
+        .add_plugins(SoundPlugin)
         .add_plugins(FrameTimeDiagnosticsPlugin)
         .add_plugins(NetworkPlugin)
         .add_plugins(PlayerPlugin)
@@ -71,4 +71,3 @@ impl MyWgpuSettings {
         &self.0
     }
 }
-

@@ -6,9 +6,7 @@ use std::net::UdpSocket;
 use std::sync::Arc;
 
 use super::handlers::*;
-pub fn client_udp(
-    state: &mut PlayerCountState,
-) -> Option<NetworkConfig> {
+pub fn client_udp(state: &mut PlayerCountState) -> Option<NetworkConfig> {
     let network_config = initialize_network_config()?;
 
     connect_to_server(&network_config)?;
@@ -92,7 +90,7 @@ fn process_game_message(
 ) -> bool {
     match game_message.message_type {
         MessageType::GameUpdate => {
-            println!("Received game update: {:?}", game_message.content);
+            // println!("Received game update: {:?}", game_message.content);
         }
         MessageType::Disconnect => {
             handle_disconnect(game_message.content);

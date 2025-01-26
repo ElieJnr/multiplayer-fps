@@ -1,16 +1,17 @@
 use std::{collections::HashMap, net::SocketAddr};
 
 use bevy::{math::Vec3, prelude::Resource};
+use serde::{Deserialize, Serialize};
 
 use crate::{
+    common::constant::HEALTH_NBR,
     player::model::PlayerMovement,
     utils::logger::{display_info, display_warning},
 };
 
-#[derive(Resource, Debug)]
+#[derive(Resource, Debug, Default, Clone, Deserialize, Serialize)]
 pub struct Players(pub HashMap<String, Player>);
 
-// #[derive(Debug, Clone, Resource)]
 #[derive(Debug, Clone, Resource, serde::Deserialize, serde::Serialize)]
 pub struct Player {
     pub name: String,
@@ -21,20 +22,20 @@ pub struct Player {
 }
 
 pub fn add_player(
-    players: &mut HashMap<String, Player>,
+    players: &mut Players,
     name: String,
     address: SocketAddr,
     initial_position: Vec3,
 ) {
-    if players.contains_key(&name) {
+    if players.0.contains_key(&name) {
         display_warning(&format!("Player '{}' is already connected.", name));
     } else {
-        players.insert(
+        players.0.insert(
             name.clone(),
             Player {
                 name: name.clone(),
                 address,
-                health: 3,
+                health: HEALTH_NBR,
                 ready: false,
                 movement: PlayerMovement {
                     speed: 5.0,
@@ -48,7 +49,7 @@ pub fn add_player(
             },
         );
         display_info(&format!("{} has joined", name.clone()));
-        display_connected_players(players);
+        display_connected_players(players.clone());
     }
 }
 
@@ -60,12 +61,12 @@ pub fn remove_player(players: &mut HashMap<String, Player>, name: &str) {
     }
 }
 
-pub fn display_connected_players(players: &HashMap<String, Player>) {
-    if players.is_empty() {
+pub fn display_connected_players(players: Players) {
+    if players.0.is_empty() {
         display_info("No players connected.");
     } else {
         display_info("Connected players:");
-        for player in players.values() {
+        for player in players.0.values() {
             println!(
                 "Name: {}, Address: {}, Health: {}",
                 player.name, player.address, player.health

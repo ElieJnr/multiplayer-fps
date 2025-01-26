@@ -1,5 +1,5 @@
 use super::model::*;
-use crate::maze::models::Players;
+// use crate::maze::models::Players;
 use bevy::input::ButtonState;
 use bevy::prelude::*;
 use bevy::{gltf::GltfAssetLabel, input::mouse::MouseButtonInput};
@@ -170,7 +170,7 @@ fn preload_assets(
         animation_indices.insert(name.clone(), node_index);
     }
     let graph_handle = animation_graphs.add(graph);
-    // Insérer la ressource appropriée selon le type
+
     match resource_name {
         "PlayerAnimations" => {
             commands.insert_resource(PreloadedPlayerAnimations {
@@ -217,8 +217,8 @@ pub fn create_players(
                 },
                 ..default()
             },
-            Player,
-            Players,
+            PlayerComponent,
+            // PlayersComponent,
             AnimationPlayer::default(),
             player_graph.graph.clone(),
             AnimationState::default(),
@@ -236,5 +236,29 @@ pub fn create_players(
         animation_player_entity: None,
         animations: player_graph.animations.clone(),
         graph: player_graph.graph.clone(),
+    });
+}
+
+pub fn create_bullet(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
+    position: Vec3,
+) {
+    let bullet_mesh = meshes.add(Mesh::from(Cylinder {
+        radius: 0.1,
+        half_height: 0.5,
+        ..Default::default()
+    }));
+    let bullet_material = materials.add(StandardMaterial {
+        base_color: Color::srgb(0.0, 0.0, 1.0),
+        ..Default::default()
+    });
+
+    commands.spawn(PbrBundle {
+        mesh: bullet_mesh,
+        material: bullet_material,
+        transform: Transform::from_translation(position),
+        ..Default::default()
     });
 }
