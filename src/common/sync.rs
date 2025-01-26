@@ -59,7 +59,7 @@ fn check_network_messages(
             Some((data, _)) => {
                 if let Some(game_message) = deserialize_message(&data) {
                     match game_message.message_type {
-                        MessageType::GameUpdate | MessageType::PlayerAction => {
+                        MessageType::GameUpdate | MessageType::SyncPlayers => {
                             network_messages.0.push_back(game_message);
                         }
                         _ => handle_game_message(game_message, &mut state),
@@ -71,7 +71,6 @@ fn check_network_messages(
     }
 }
 
-// Sépare la logique de traitement des messages
 fn handle_game_message(message: GameMessage, state: &mut PlayerCountState) {
     match message.message_type {
         MessageType::StartGame => {

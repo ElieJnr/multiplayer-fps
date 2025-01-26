@@ -80,6 +80,7 @@ pub struct PlayerInput {
     pub arrow_right: bool,
     pub mouse_delta: Vec2,
     pub ready: bool,
+    pub shoot: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]

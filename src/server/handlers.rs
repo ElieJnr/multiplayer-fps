@@ -215,6 +215,10 @@ pub fn handle_player_action(
 
             update_player_movement(player, &action);
 
+            if action.shoot {
+                broadcast_players(server_socket, players);
+            }
+
             let player = players.0.get(&message.sender).unwrap();
             broadcast_game_update(
                 server_socket,
@@ -226,6 +230,20 @@ pub fn handle_player_action(
                 action.mouse_delta,
             );
         }
+    }
+}
+
+fn broadcast_players(server_socket: &UdpSocket, players: &Players) {
+    let msg = GameMessage {
+        message_type: MessageType::SyncPlayers,
+        sender: "server".to_string(),
+        content: MessageContent::SyncPlayers {
+            players: players.clone(),
+        },
+    };
+
+    if let Some(msg_bytes) = serialize_message(&msg) {
+        broadcast_message(server_socket, players.clone(), msg_bytes, None, true);
     }
 }
 
@@ -293,7 +311,7 @@ fn broadcast_game_update(
     sequence_number: u32,
     timestamp: f64,
     player: &Player,
-    mouse_delta: Vec2
+    mouse_delta: Vec2,
 ) {
     let update_msg = GameMessage {
         message_type: MessageType::GameUpdate,
