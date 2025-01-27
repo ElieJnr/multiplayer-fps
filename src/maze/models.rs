@@ -34,6 +34,9 @@ pub struct Pillar {
 pub struct Collider;
 
 #[derive(Component)]
+pub struct ColliderEnemy;
+
+#[derive(Component)]
 pub struct ColliderHouse;
 
 #[derive(Component)]

@@ -125,13 +125,13 @@ impl PlayerMovement {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Resource)]
 pub struct Bullet {
     pub direction: Vec3,
     pub speed: f32,
 }
 
-#[derive(Component)]
+#[derive(Component, Resource)]
 pub struct SmokeParticle {
     pub lifetime: f32,
 }

@@ -26,7 +26,7 @@ use bevy::time::Time;
 use bevy::utils::default;
 use bevy::window::{CursorGrabMode, Window};
 
-pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>>, mut motion_evr: EventReader<MouseMotion>, mut movement: ResMut<PlayerMovement>, _obstacle_positions: Res<ObstaclePositions>, network: Option<Res<NetworkConfig>>, mut sequence_number: Local<u32>, mut query: Query<&mut Transform, With<PlayersComponent>>, collider_query: Query<&Transform, (With<Collider>, Without<PlayersComponent>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<PlayersComponent>)>, maze_state: Res<MazeState>, players: ResMut<Players>, game_status: ResMut<GameStatus>) {
+pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>>, mut motion_evr: EventReader<MouseMotion>, mut movement: ResMut<PlayerMovement>, _obstacle_positions: Res<ObstaclePositions>, network: Option<Res<NetworkConfig>>, mut sequence_number: Local<u32>, mut query: Query<&mut Transform, With<PlayersComponent>>, collider_query: Query<&Transform, (With<Collider>, Without<PlayersComponent>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<PlayersComponent>)>, bullet_query: Query<&Transform, (With<Bullet>, Without<PlayersComponent>)>,maze_state: Res<MazeState>, players: ResMut<Players>, game_status: ResMut<GameStatus>) {
     if !maze_state.is_ready {
         return;
     }
@@ -53,7 +53,7 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
         if let Ok(mut transform) = query.get_single_mut() {
             let new_transform = transform.clone();
             apply_input(&mut transform, &input, &movement, delta_time);
-            if check_collisions(&transform, &collider_query, &house_collider_query) {
+            if check_collisions(&transform, &collider_query, &house_collider_query,&bullet_query) {
                 *transform = new_transform;
             } else {
                 movement.position = transform.translation;
@@ -195,7 +195,13 @@ pub fn toggle_cursor_lock(keyboard_input: Res<ButtonInput<KeyCode>>, mut windows
     }
 }
 
-pub fn check_collisions(player_transform: &Transform, collider_query: &Query<&Transform, (With<Collider>, Without<PlayersComponent>)>, house_collider_query: &Query<&Transform, (With<ColliderHouse>, Without<PlayersComponent>)>) -> bool {
+pub fn check_collisions(
+    player_transform: &Transform,
+    collider_query: &Query<&Transform, (With<Collider>, Without<PlayersComponent>)>,
+    house_collider_query: &Query<&Transform, (With<ColliderHouse>, Without<PlayersComponent>)>,
+    bullet_query: &Query<&Transform, (With<Bullet>, Without<PlayersComponent>)>, // Query for bullets
+) -> bool {
+    // Check collision with other colliders
     for collider_transform in collider_query.iter() {
         if collide(
             player_transform.translation,
@@ -208,6 +214,8 @@ pub fn check_collisions(player_transform: &Transform, collider_query: &Query<&Tr
             return true;
         }
     }
+
+    // Check collision with house colliders
     for house_collider_transform in house_collider_query.iter() {
         if collide(
             player_transform.translation,
@@ -220,8 +228,61 @@ pub fn check_collisions(player_transform: &Transform, collider_query: &Query<&Tr
             return true;
         }
     }
+
+    for bullet_transform in bullet_query.iter() {
+        for collider_transform in collider_query.iter() {
+            if collide(
+                bullet_transform.translation,
+                Vec3::new(0.006, 0.2, 0.006), // Updated bullet size
+                collider_transform.translation,
+                Vec3::new(1.0, 1.0, 1.0), // House size
+            )
+            .is_some()
+            {
+                println!("Bullet hit a wall");
+                return true;
+            }
+        }
+    }
+
+    for bullet_transform in bullet_query.iter() {
+        for house_collider_transform in house_collider_query.iter() {
+            if collide(
+                bullet_transform.translation,
+                Vec3::new(0.006, 0.2, 0.006), // Updated bullet size
+                house_collider_transform.translation,
+                Vec3::new(3.0, 2.5, 3.0), // House size
+            )
+            .is_some()
+            {
+                println!("Bullet hit a house");
+                return true;
+            }
+        }
+    }
+
+    // Check collision with bullets
+    // for bullet_transform in bullet_query.iter() {
+    //     for (_e, f) in remote_players.0.iter(){
+    //         if let Ok(transform) = query.get_mut(*f) {
+    //             if collide(
+    //                 transform.translation,
+    //                 Vec3::new(0.6, 1.0, 0.6),
+    //                 bullet_transform.translation,
+    //                 Vec3::new(0.1, 0.5, 0.0), 
+    //             )
+    //             .is_some()
+    //             {
+    //                 println!("player hitttttttt");
+    //                 return true;
+    //             }
+    //         }
+    //     }
+    // }
+
     false
 }
+
 
 fn collide(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
     let collision_x = (pos1.x - pos2.x).abs() < (size1.x + size2.x) / 2.0;

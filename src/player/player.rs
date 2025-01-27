@@ -1,38 +1,47 @@
 use super::model::*;
-use crate::maze::models::PlayersComponent;
+use crate::maze::models::{ColliderEnemy, PlayersComponent};
 use bevy::gltf::GltfAssetLabel;
 use bevy::prelude::*;
 use std::{collections::HashMap, time::Duration};
 
-pub fn handle_keyboard_animation(keyboard: Res<ButtonInput<KeyCode>>, mut query: Query<(Entity, &mut AnimationState)>, animations: ResMut<PlayerAnimations>, mut animation_players: Query<&mut AnimationPlayer>, mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>, player_transform_query: Query<&Transform, With<PlayersComponent>>) {
-    if let Ok(player_transform) = player_transform_query.get_single() {
-        if let Ok((_entity, mut animation_state)) = query.get_single_mut() {
-            let new_animation = if keyboard.pressed(KeyCode::ArrowUp) {
-                "walk"
-            } else if keyboard.pressed(KeyCode::ArrowDown) {
-                "walk"
-            } else if keyboard.pressed(KeyCode::KeyR) {
-                "reload_fast"
-            } else if keyboard.pressed(KeyCode::Space) {
-                shoot_bullet(&mut commands, &mut meshes, &mut materials, player_transform);
-                "shoot"
-            } else if keyboard.just_released(KeyCode::ArrowUp) {
-                "stopwalk"
-            } else if keyboard.just_released(KeyCode::ArrowDown) {
-                "stopwalk"
-            } else if keyboard.just_released(KeyCode::Space) {
-                "stopshoot"
-            } else {
-                "static"
-            };
-    
-            if new_animation == "reload_fast" {
-                if new_animation != animation_state.current_animation {
-                    animation_state.current_animation = new_animation.to_string();
-    
-                    if let Some(player_entity) = animations.animation_player_entity {
+pub fn handle_keyboard_animation(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut query: Query<(Entity, &mut AnimationState, &Transform), With<PlayersComponent>>,
+    animations: ResMut<PlayerAnimations>,
+    mut animation_players: Query<&mut AnimationPlayer>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    for (entity, mut animation_state, player_transform) in query.iter_mut() {
+        let new_animation = if keyboard.pressed(KeyCode::ArrowUp) {
+            "walk"
+        } else if keyboard.pressed(KeyCode::ArrowDown) {
+            "walk"
+        } else if keyboard.pressed(KeyCode::KeyR) {
+            "reload_fast"
+        } else if keyboard.pressed(KeyCode::Space) {
+            shoot_bullet(&mut commands, &mut meshes, &mut materials, player_transform);
+            "shoot"
+        } else if keyboard.just_released(KeyCode::ArrowUp) {
+            "stopwalk"
+        } else if keyboard.just_released(KeyCode::ArrowDown) {
+            "stopwalk"
+        } else if keyboard.just_released(KeyCode::Space) {
+            "stopshoot"
+        } else {
+            "static"
+        };
+
+        if new_animation == "reload_fast" {
+            if new_animation != animation_state.current_animation {
+                animation_state.current_animation = new_animation.to_string();
+
+                if let Some(player_entity) = animations.animation_player_entity {
+                    if player_entity == entity {
                         if let Ok(mut player) = animation_players.get_mut(player_entity) {
-                            if let Some(&animation_index) = animations.animations.get(new_animation) {
+                            if let Some(&animation_index) = animations.animations.get(new_animation)
+                            {
                                 let mut transitions = AnimationTransitions::new();
                                 transitions.play(
                                     &mut player,
@@ -43,13 +52,16 @@ pub fn handle_keyboard_animation(keyboard: Res<ButtonInput<KeyCode>>, mut query:
                         }
                     }
                 }
-            } else if !new_animation.starts_with("stop") && new_animation != "reload_fast" {
-                if new_animation != animation_state.current_animation {
-                    animation_state.current_animation = new_animation.to_string();
-    
-                    if let Some(player_entity) = animations.animation_player_entity {
+            }
+        } else if !new_animation.starts_with("stop") && new_animation != "reload_fast" {
+            if new_animation != animation_state.current_animation {
+                animation_state.current_animation = new_animation.to_string();
+
+                if let Some(player_entity) = animations.animation_player_entity {
+                    if player_entity == entity {
                         if let Ok(mut player) = animation_players.get_mut(player_entity) {
-                            if let Some(&animation_index) = animations.animations.get(new_animation) {
+                            if let Some(&animation_index) = animations.animations.get(new_animation)
+                            {
                                 let mut transitions = AnimationTransitions::new();
                                 transitions
                                     .play(&mut player, animation_index, Duration::from_secs_f32(0.2))
@@ -58,8 +70,10 @@ pub fn handle_keyboard_animation(keyboard: Res<ButtonInput<KeyCode>>, mut query:
                         }
                     }
                 }
-            } else if new_animation.starts_with("stop") {
-                if let Some(player_entity) = animations.animation_player_entity {
+            }
+        } else if new_animation.starts_with("stop") {
+            if let Some(player_entity) = animations.animation_player_entity {
+                if player_entity == entity {
                     if let Ok(mut player) = animation_players.get_mut(player_entity) {
                         if let Some(&run_animation) = animations
                             .animations
@@ -73,6 +87,7 @@ pub fn handle_keyboard_animation(keyboard: Res<ButtonInput<KeyCode>>, mut query:
         }
     }
 }
+
 
 pub fn setup_player_animation(mut commands: Commands, mut animations: ResMut<PlayerAnimations>, mut animation_players: Query<(Entity, &mut AnimationPlayer), Added<AnimationPlayer>>) {
     for (entity, mut player) in &mut animation_players {
@@ -216,12 +231,14 @@ pub fn create_bullet(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>,
         ..Default::default()
     });
 
-    commands.spawn(PbrBundle {
+    commands.spawn((PbrBundle {
         mesh: bullet_mesh,
         material: bullet_material,
         transform: Transform::from_translation(position),
         ..Default::default()
-    });
+    },
+    ColliderEnemy)
+);
 }
 
 pub fn shoot_bullet(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, player_transform: &Transform) {
