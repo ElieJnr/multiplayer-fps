@@ -39,3 +39,23 @@ pub fn update_fps_ui(
         }
     }
 }
+
+#[derive(Component)]
+pub struct Degat;
+
+pub fn show_degat(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let degat = asset_server.load("textures/degat.png");
+    commands
+        .spawn(ImageBundle {
+            image: degat.into(),
+            style: Style {
+                height: Val::Percent(100.0),
+                width: Val::Percent(100.0),
+                position_type: PositionType::Absolute,
+                ..Default::default()
+            },
+            visibility: Visibility::Hidden,
+            ..Default::default()
+        })
+        .insert(Degat);
+}

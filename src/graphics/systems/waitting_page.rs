@@ -21,16 +21,23 @@ impl Plugin for WaittingRoomPlugin {
 
 fn spawn_waitting_page(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
+    let img = asset_server.load("textures/waitting_img.png");
+    // commands.spawn((
+
+    //     OnWaittingScreen,
+    // ));
     commands
         .spawn((
-            NodeBundle {
+            ImageBundle {
+                image: img.into(),
                 style: Style {
                     width: Val::Percent(100.0),
                     height: Val::Percent(100.0),
                     justify_content: JustifyContent::Center,
-                    align_items: AlignItems::Center,
+                    align_content: AlignContent::Center,
                     ..Default::default()
                 },
+                // background_color: Color::WHITE.into(),
                 ..Default::default()
             },
             OnWaittingScreen,

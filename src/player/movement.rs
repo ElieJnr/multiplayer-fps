@@ -20,6 +20,7 @@ use bevy::utils::default;
 use bevy::window::{CursorGrabMode, Window};
 use lazy_static::lazy_static;
 use std::sync::Mutex;
+
 lazy_static! {
     static ref GLOBAL_PLAYERS: Mutex<Players> = Mutex::new(Players::default());
 }
@@ -121,6 +122,7 @@ fn simulation_tir(
     query: &mut Query<&mut Transform, With<PlayersComponent>>,
     game_status: &mut ResMut<GameStatus>,
     players: &mut ResMut<Players>,
+    // mut blood_query: Query<&mut bevy::prelude::Visibility, With<BloodSplatter>>,
 ) {
     if keyboard_input.just_pressed(KeyCode::KeyT) {
         for (player_name, player) in players.0.iter_mut() {
@@ -129,6 +131,10 @@ fn simulation_tir(
 
                 println!("Player health after: {}", player.health);
                 println!("Game status health: {}", game_status.player_health);
+
+                // for mut blood_visible in blood_query.iter_mut() {
+                //     *blood_visible = bevy::prelude::Visibility::Visible;
+                // }
 
                 if player.health == 0 {
                     query.iter_mut().for_each(|mut transform| {

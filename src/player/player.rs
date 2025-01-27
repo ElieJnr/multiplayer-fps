@@ -4,6 +4,9 @@ use bevy::gltf::GltfAssetLabel;
 use bevy::prelude::*;
 use std::{collections::HashMap, time::Duration};
 
+#[derive(Component)]
+pub struct BloodSplatter;
+
 pub fn handle_keyboard_animation(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut query: Query<(Entity, &mut AnimationState)>,

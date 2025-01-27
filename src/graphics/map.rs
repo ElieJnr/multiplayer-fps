@@ -20,6 +20,7 @@ use bevy::{
     window::{CursorGrabMode, Window},
 };
 
+use super::show_fps::show_degat;
 use super::states::GameState;
 
 pub struct MazePlugin;
@@ -36,7 +37,7 @@ impl Plugin for MazePlugin {
         app.add_plugins(GameStatusPlugin);
 
         app.add_systems(OnEnter(GameState::Game), setup_mouse)
-            .add_systems(OnEnter(GameState::Game), (maze_setup, setup_crosshair))
+            .add_systems(OnEnter(GameState::Game), (maze_setup, setup_crosshair, show_degat))
             .add_systems(OnEnter(GameState::Game), display_minimap.after(maze_setup))
             .add_systems(
                 Update,

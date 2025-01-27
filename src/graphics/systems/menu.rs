@@ -57,6 +57,15 @@ pub fn menu_plugin(app: &mut App) {
 
 fn main_menu_setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     let icon = assets_server.load("textures/game_icon.png");
+    let blood_texture_handle = assets_server.load("textures/blood_splatter.png");
+    commands.spawn((
+        SpriteBundle {
+            texture: blood_texture_handle.clone(),
+            transform: Transform::from_xyz(0.0, 0.0, 1.0),
+            ..Default::default()
+        },
+        OnMenuScreen,
+    ));
     commands
         .spawn((
             NodeBundle {
@@ -69,13 +78,20 @@ fn main_menu_setup(mut commands: Commands, assets_server: Res<AssetServer>) {
                     flex_direction: FlexDirection::Row,
                     ..Default::default()
                 },
-                background_color: Color::srgba(1.0, 1.0, 1.0, 0.0).into(),
+                background_color: Color::NONE.into(),
                 ..Default::default()
             },
             OnMenuScreen,
             FadeTimer(Timer::from_seconds(1.5, TimerMode::Once)),
         ))
         .with_children(|parent| {
+            // parent
+            //     // texture: blood_texture_handle.clone(),
+            //     // transform: Transform::from_xyz(0.0, 0.0, 1.0),
+
+            //     // visibility: Visibility::Visible,
+            //     ..Default::default()
+            // });
             parent.spawn(ImageBundle {
                 image: UiImage {
                     texture: icon,
@@ -123,7 +139,7 @@ fn option_menu_setup(mut commands: Commands, _assets_server: Res<AssetServer>) {
     commands
         .spawn((
             NodeBundle {
-                background_color: BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.75)), // Semi-transparent background
+                background_color: Color::NONE.into(),
                 style: Style {
                     position_type: PositionType::Absolute,
                     margin: UiRect::all(Val::Auto),
@@ -154,7 +170,7 @@ fn option_menu_setup(mut commands: Commands, _assets_server: Res<AssetServer>) {
             });
             parent
                 .spawn(ButtonBundle {
-                    background_color: BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.75)),
+                    background_color: Color::NONE.into(),
                     style: Style {
                         width: Val::Px(50.0),
                         height: Val::Px(40.0),
@@ -171,7 +187,7 @@ fn option_menu_setup(mut commands: Commands, _assets_server: Res<AssetServer>) {
                 .insert(CloseHelpButton)
                 .with_children(|button| {
                     button.spawn(TextBundle {
-                        background_color: BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.75)),
+                        background_color: Color::NONE.into(),
 
                         text: Text::from_section(
                             "Close",
@@ -223,7 +239,7 @@ pub fn handle_close_help_modal_event(
 fn button_interaction_system(
     mut query: Query<
         (&Interaction, &mut BackgroundColor, &mut Transform),
-        (Changed<Interaction>, With<Button>),
+        (Changed<Interaction>, With<Button>, Without<CloseHelpButton>),
     >,
 ) {
     for (interaction, mut color, mut transform) in &mut query {
