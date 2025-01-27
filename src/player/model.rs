@@ -54,7 +54,7 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, preload_player_assets)
-            .add_systems(Update, (setup_player_animation, update_smoke_particles, add_smoke_trail,handle_keyboard_animation, update_bullets));
+            .add_systems(Update, (setup_player_animation, handle_keyboard_animation, update_bullets));
     }
 }
 
