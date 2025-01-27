@@ -1,18 +1,17 @@
 use super::model::*;
-// use crate::maze::models::Players;
-use bevy::input::ButtonState;
+use crate::maze::models::PlayersComponent;
+use bevy::gltf::GltfAssetLabel;
 use bevy::prelude::*;
-use bevy::{gltf::GltfAssetLabel, input::mouse::MouseButtonInput};
 use std::{collections::HashMap, time::Duration};
 
 pub fn handle_keyboard_animation(
     keyboard: Res<ButtonInput<KeyCode>>,
-    mut query: Query<(Entity, &mut AnimationState, &mut AnimationPlayer)>,
-    animations: Res<PlayerAnimations>,
-    mut mouse_button_events: EventReader<MouseButtonInput>,
+    mut query: Query<(Entity, &mut AnimationState)>,
+    animations: ResMut<PlayerAnimations>,
+    mut animation_players: Query<&mut AnimationPlayer>,
 ) {
-    for (_entity, mut animation_state, mut animation_player) in query.iter_mut() {
-        let mut new_animation = if keyboard.pressed(KeyCode::ArrowUp) {
+    if let Ok((_entity, mut animation_state)) = query.get_single_mut() {
+        let new_animation = if keyboard.pressed(KeyCode::ArrowUp) {
             "walk"
         } else if keyboard.pressed(KeyCode::ArrowDown) {
             "walk"
@@ -30,64 +29,52 @@ pub fn handle_keyboard_animation(
             "static"
         };
 
-        for event in mouse_button_events.read() {
-            if event.button == MouseButton::Left && event.state.is_pressed() {
-                new_animation = "shoot";
-            } else if event.button == MouseButton::Left && event.state == ButtonState::Released {
-                new_animation = "stopshoot";
+        if new_animation == "reload_fast" {
+            if new_animation != animation_state.current_animation {
+                animation_state.current_animation = new_animation.to_string();
+
+                if let Some(player_entity) = animations.animation_player_entity {
+                    if let Ok(mut player) = animation_players.get_mut(player_entity) {
+                        if let Some(&animation_index) = animations.animations.get(new_animation) {
+                            let mut transitions = AnimationTransitions::new();
+                            transitions.play(
+                                &mut player,
+                                animation_index,
+                                Duration::from_secs_f32(0.2),
+                            );
+                        }
+                    }
+                }
+            }
+        } else if !new_animation.starts_with("stop") && new_animation != "reload_fast" {
+            if new_animation != animation_state.current_animation {
+                animation_state.current_animation = new_animation.to_string();
+
+                if let Some(player_entity) = animations.animation_player_entity {
+                    if let Ok(mut player) = animation_players.get_mut(player_entity) {
+                        if let Some(&animation_index) = animations.animations.get(new_animation) {
+                            let mut transitions = AnimationTransitions::new();
+                            transitions
+                                .play(&mut player, animation_index, Duration::from_secs_f32(0.2))
+                                .repeat();
+                        }
+                    }
+                }
+            }
+        } else if new_animation.starts_with("stop") {
+            if let Some(player_entity) = animations.animation_player_entity {
+                if let Ok(mut player) = animation_players.get_mut(player_entity) {
+                    if let Some(&run_animation) = animations
+                        .animations
+                        .get(new_animation.strip_prefix("stop").unwrap_or(""))
+                    {
+                        player.stop(run_animation);
+                    }
+                }
             }
         }
-
-        animation_to_run(
-            &animations,
-            &mut animation_player,
-            new_animation,
-            &mut animation_state,
-        );
     }
 }
-
-fn animation_to_run(
-    animations: &PlayerAnimations,
-    animation_player: &mut AnimationPlayer,
-    new_animation: &str,
-    animation_state: &mut AnimationState,
-) {
-    match new_animation {
-        "reload_fast" if new_animation != animation_state.current_animation => {
-            animation_state.current_animation = new_animation.to_string();
-            if let Some(&animation_index) = animations.animations.get(new_animation) {
-                AnimationTransitions::new().play(
-                    animation_player,
-                    animation_index,
-                    Duration::from_secs_f32(0.2),
-                );
-            }
-        }
-        anim if anim.starts_with("stop") => {
-            if let Some(&run_animation) = animations
-                .animations
-                .get(anim.strip_prefix("stop").unwrap_or(""))
-            {
-                animation_player.stop(run_animation);
-            }
-        }
-        anim if anim != "reload_fast" && anim != animation_state.current_animation => {
-            animation_state.current_animation = new_animation.to_string();
-            if let Some(&animation_index) = animations.animations.get(new_animation) {
-                AnimationTransitions::new()
-                    .play(
-                        animation_player,
-                        animation_index,
-                        Duration::from_secs_f32(0.2),
-                    )
-                    .repeat();
-            }
-        }
-        _ => {}
-    }
-}
-
 pub fn setup_player_animation(
     mut commands: Commands,
     mut animations: ResMut<PlayerAnimations>,
@@ -139,7 +126,7 @@ pub fn preload_player_assets(
         &asset_server,
         &mut animation_graphs,
         "enemy.glb",
-        vec!["static", "run", "b_run", "shoot", "reload_fast"],
+        vec!["idle", "run", "backward_run", "shoot", "reload"],
         "EnemyAnimations",
     );
 }
@@ -199,7 +186,6 @@ fn preload_assets(
         _ => {}
     }
 }
-
 pub fn create_players(
     commands: &mut Commands,
     player_animations: Res<PreloadedPlayerAnimations>,
@@ -218,7 +204,7 @@ pub fn create_players(
                 ..default()
             },
             PlayerComponent,
-            // PlayersComponent,
+            PlayersComponent,
             AnimationPlayer::default(),
             player_graph.graph.clone(),
             AnimationState::default(),
