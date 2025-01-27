@@ -96,6 +96,9 @@ fn process_game_message(
             handle_disconnect(game_message.content);
             return true;
         }
+        MessageType::AnimationUpdate => {
+            println!("Received animation update: {:?}", game_message.content);
+        }
         MessageType::NewConnection => handle_new_connection(game_message.content),
         MessageType::PlayerAction => {}
         MessageType::ServerInfo => handle_server_info(game_message.content),

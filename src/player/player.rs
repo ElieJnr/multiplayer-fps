@@ -1,13 +1,20 @@
 use super::model::*;
-use crate::maze::models::PlayersComponent;
-use bevy::gltf::GltfAssetLabel;
+use crate::{
+    common::protocol::{
+        serialize_message, GameMessage, MessageContent, MessageType, NetworkConfig,
+    },
+    maze::models::PlayersComponent,
+};
+// use bevy::input::ButtonState;
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
+// use bevy::{gltf::GltfAssetLabel, input::mouse::MouseButtonInput};
 use std::{collections::HashMap, time::Duration};
 
 const TRANSITION_DURATION: f32 = 0.2;
 
-#[derive(Debug)]
-enum AnimationType {
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub enum AnimationType {
     Repeating(String),
     OneShot(String),
     Stop(String),
@@ -17,6 +24,7 @@ pub fn handle_keyboard_animation(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut query: Query<(Entity, &mut AnimationState)>,
     animations: ResMut<PlayerAnimations>,
+    network: Option<Res<NetworkConfig>>,
     mut animation_players: Query<&mut AnimationPlayer>,
 ) {
     let (_, mut animation_state) = match query.get_single_mut() {
@@ -25,6 +33,21 @@ pub fn handle_keyboard_animation(
     };
 
     let animation_type = determine_animation_type(&keyboard);
+    info!("{:?}", animation_type);
+
+    if let Some(network) = network.as_ref() {
+        let message = GameMessage {
+            message_type: MessageType::AnimationUpdate,
+            sender: network.player_name.clone(),
+            content: MessageContent::AnimationUpdate {
+                animation: "test".to_string(),
+                player: network.player_name.clone(),
+            },
+        };
+        if let Some(msg_bytes) = serialize_message(&message) {
+            let _ = network.client_socket.send(&msg_bytes);
+        }
+    }
     if let Some(animation_type) = animation_type {
         handle_animation(
             &animation_type,
@@ -35,7 +58,11 @@ pub fn handle_keyboard_animation(
     }
 }
 
-fn determine_animation_type(keyboard: &ButtonInput<KeyCode>) -> Option<AnimationType> {
+fn determine_animation_type(
+    keyboard: &ButtonInput<KeyCode>,
+    // network: Option<Res<NetworkConfig>>,
+    // mut mouse_button_events: EventReader<MouseButtonInput>,
+) -> Option<AnimationType> {
     if keyboard.pressed(KeyCode::ArrowUp) || keyboard.pressed(KeyCode::ArrowDown) {
         Some(AnimationType::Repeating("walk".to_string()))
     } else if keyboard.pressed(KeyCode::KeyR) {
@@ -50,6 +77,14 @@ fn determine_animation_type(keyboard: &ButtonInput<KeyCode>) -> Option<Animation
     } else {
         Some(AnimationType::Repeating("static".to_string()))
     }
+    // for event in mouse_button_events.read() {
+    //     if event.button == MouseButton::Left && event.state.is_pressed() {
+    //         return Some(AnimationType::Repeating("shoot".to_string()));
+    //     } else if event.button == MouseButton::Left && event.state == ButtonState::Released {
+    //         return Some(AnimationType::Repeating("shoot".to_string()));
+    //     }
+    // }
+    // None
 }
 
 fn handle_animation(

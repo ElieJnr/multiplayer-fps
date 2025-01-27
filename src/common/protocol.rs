@@ -1,4 +1,5 @@
 use crate::client::player::Players;
+// use crate::player::player::AnimationType;
 use crate::{player::model::PlayerInput, utils::logger::*};
 use bevy::{math::Vec2, prelude::Resource};
 use serde::{Deserialize, Serialize};
@@ -33,6 +34,7 @@ pub struct GameMessage {
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub enum MessageType {
+    AnimationUpdate,
     NewConnection,
     GameUpdate,
     PlayerAction,
@@ -53,6 +55,10 @@ pub enum MessageContent {
         sequence_number: u32,
         timestamp: f64,
         mouse_delta: Vec2,
+    },
+    AnimationUpdate {
+        animation: String,
+        player: String,
     },
     PlayerAction {
         action: PlayerInput,
