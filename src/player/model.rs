@@ -1,3 +1,4 @@
+use super::movement::update_bullets;
 use super::player::*;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -53,7 +54,7 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, preload_player_assets)
-            .add_systems(Update, (setup_player_animation, handle_keyboard_animation));
+            .add_systems(Update, (setup_player_animation, handle_keyboard_animation, update_bullets));
     }
 }
 
@@ -122,4 +123,10 @@ impl PlayerMovement {
     pub fn set_position(&mut self, new_position: Vec3) {
         self.position = new_position;
     }
+}
+
+#[derive(Component)]
+pub struct Bullet {
+    pub direction: Vec3,
+    pub speed: f32,
 }

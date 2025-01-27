@@ -279,3 +279,9 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
         }
     }
 }
+
+pub fn update_bullets(time: Res<Time>, mut query: Query<(&mut Transform, &Bullet)>) {
+    for (mut transform, bullet) in query.iter_mut() {
+        transform.translation += bullet.direction * bullet.speed * time.delta_seconds();
+    }
+}

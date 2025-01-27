@@ -4,12 +4,7 @@ use bevy::gltf::GltfAssetLabel;
 use bevy::prelude::*;
 use std::{collections::HashMap, time::Duration};
 
-pub fn handle_keyboard_animation(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    mut query: Query<(Entity, &mut AnimationState)>,
-    animations: ResMut<PlayerAnimations>,
-    mut animation_players: Query<&mut AnimationPlayer>,
-) {
+pub fn handle_keyboard_animation(keyboard: Res<ButtonInput<KeyCode>>, mut query: Query<(Entity, &mut AnimationState)>, animations: ResMut<PlayerAnimations>, mut animation_players: Query<&mut AnimationPlayer>, mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>, player_transform_query: Query<&Transform, With<PlayersComponent>>) {
     if let Ok((_entity, mut animation_state)) = query.get_single_mut() {
         let new_animation = if keyboard.pressed(KeyCode::ArrowUp) {
             "walk"
@@ -18,6 +13,11 @@ pub fn handle_keyboard_animation(
         } else if keyboard.pressed(KeyCode::KeyR) {
             "reload_fast"
         } else if keyboard.pressed(KeyCode::Space) {
+            if let Some(player_entity) = animations.animation_player_entity {
+                if let Ok(player_transform) = player_transform_query.get(player_entity) {
+                    shoot_bullet(&mut commands, &mut meshes, &mut materials, player_transform);
+                }
+            }
             "shoot"
         } else if keyboard.just_released(KeyCode::ArrowUp) {
             "stopwalk"
@@ -75,11 +75,8 @@ pub fn handle_keyboard_animation(
         }
     }
 }
-pub fn setup_player_animation(
-    mut commands: Commands,
-    mut animations: ResMut<PlayerAnimations>,
-    mut animation_players: Query<(Entity, &mut AnimationPlayer), Added<AnimationPlayer>>,
-) {
+
+pub fn setup_player_animation(mut commands: Commands, mut animations: ResMut<PlayerAnimations>, mut animation_players: Query<(Entity, &mut AnimationPlayer), Added<AnimationPlayer>>) {
     for (entity, mut player) in &mut animation_players {
         // info!("Setting up animation for player entity: {:?}", entity);
         let transitions = AnimationTransitions::new();
@@ -98,11 +95,7 @@ pub fn setup_player_animation(
     }
 }
 
-pub fn preload_player_assets(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    mut animation_graphs: ResMut<Assets<AnimationGraph>>,
-) {
+pub fn preload_player_assets(mut commands: Commands, asset_server: Res<AssetServer>, mut animation_graphs: ResMut<Assets<AnimationGraph>>) {
     preload_assets(
         &mut commands,
         &asset_server,
@@ -131,14 +124,7 @@ pub fn preload_player_assets(
     );
 }
 
-fn preload_assets(
-    commands: &mut Commands,
-    asset_server: &AssetServer,
-    animation_graphs: &mut Assets<AnimationGraph>,
-    model_file: &str,
-    animation_names: Vec<&str>,
-    resource_name: &str,
-) {
+fn preload_assets(commands: &mut Commands, asset_server: &AssetServer, animation_graphs: &mut Assets<AnimationGraph>, model_file: &str, animation_names: Vec<&str>, resource_name: &str) {
     let default_path = format!("{}", env!("CARGO_MANIFEST_DIR"));
     let path = format!("{}/assets/", default_path);
     let model_path = format!("{}{}", path, model_file);
@@ -186,12 +172,8 @@ fn preload_assets(
         _ => {}
     }
 }
-pub fn create_players(
-    commands: &mut Commands,
-    player_animations: Res<PreloadedPlayerAnimations>,
-    player_graph: Res<PlayerAnimations>,
-    pos: Vec3,
-) {
+
+pub fn create_players(commands: &mut Commands, player_animations: Res<PreloadedPlayerAnimations>, player_graph: Res<PlayerAnimations>, pos: Vec3) {
     let player_entity = commands
         .spawn((
             SceneBundle {
@@ -225,12 +207,7 @@ pub fn create_players(
     });
 }
 
-pub fn create_bullet(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<StandardMaterial>>,
-    position: Vec3,
-) {
+pub fn create_bullet(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, position: Vec3) {
     let bullet_mesh = meshes.add(Mesh::from(Cylinder {
         radius: 0.1,
         half_height: 0.5,
@@ -247,4 +224,31 @@ pub fn create_bullet(
         transform: Transform::from_translation(position),
         ..Default::default()
     });
+}
+
+pub fn shoot_bullet(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, player_transform: &Transform) {
+    let bullet_mesh = meshes.add(Mesh::from(Cylinder {
+        radius: 0.1,
+        half_height: 0.5,
+        ..Default::default()
+    }));
+    let bullet_material = materials.add(StandardMaterial {
+        base_color: Color::srgb(0.0, 0.0, 1.0),
+        ..Default::default()
+    });
+
+    let bullet_direction = player_transform.forward();
+
+    commands.spawn((
+        PbrBundle {
+            mesh: bullet_mesh,
+            material: bullet_material,
+            transform: Transform::from_translation(player_transform.translation),
+            ..Default::default()
+        },
+        Bullet {
+            direction: *bullet_direction,
+            speed: 10.0,
+        },
+    ));
 }
