@@ -2,19 +2,25 @@ use crate::client::player::Players;
 use crate::common::protocol::{
     serialize_message, GameMessage, MessageContent, MessageType, NetworkConfig,
 };
+use bevy::prelude::Color;
+use bevy::math::primitives::Sphere;
 use crate::common::sync::NetworkMessages;
 use crate::maze::barre_etat::GameStatus;
 use crate::maze::models::*;
 use crate::maze::models::{Collider, ColliderHouse, MazeState, ObstaclePositions};
 use crate::player::model::*;
 use crate::utils::logger::display_info;
+use bevy::asset::Assets;
+use bevy::ecs::entity::Entity;
 use bevy::input::mouse::MouseMotion;
 use bevy::input::ButtonInput;
 use bevy::math::{EulerRot, Quat, Vec2, Vec3};
+use bevy::pbr::{PbrBundle, StandardMaterial};
 use bevy::prelude::{
     AnimationPlayer, Camera3d, Commands, EventReader, KeyCode, Local, Query, Res, ResMut,
     Transform, With, Without,
 };
+use bevy::render::mesh::Mesh;
 use bevy::scene::SceneBundle;
 use bevy::time::Time;
 use bevy::utils::default;
@@ -282,6 +288,46 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
 
 pub fn update_bullets(time: Res<Time>, mut query: Query<(&mut Transform, &Bullet)>) {
     for (mut transform, bullet) in query.iter_mut() {
-        transform.translation += bullet.direction * bullet.speed * time.delta_seconds();
+        transform.translation -= bullet.direction * bullet.speed * time.delta_seconds();
+    }
+}
+
+pub fn add_smoke_trail(
+    mut commands: Commands,
+    query: Query<(&Transform, &Bullet)>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    for (transform, _bullet) in query.iter() {
+        let smoke_mesh = meshes.add(Mesh::from(Sphere { radius: 0.02 }));
+        let smoke_material = materials.add(StandardMaterial {
+            base_color: Color::srgb(1.0, 0.0, 0.0),
+            ..Default::default()
+        });
+
+        commands.spawn((
+            PbrBundle {
+                mesh: smoke_mesh,
+                material: smoke_material,
+                transform: *transform,
+                ..Default::default()
+            },
+            SmokeParticle { lifetime: 1.0 },
+        ));
+    }
+}
+
+pub fn update_smoke_particles(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut query: Query<(Entity, &mut SmokeParticle, &mut Transform)>,
+) {
+    for (entity, mut particle, mut transform) in query.iter_mut() {
+        particle.lifetime -= time.delta_seconds();
+        if particle.lifetime <= 0.0 {
+            commands.entity(entity).despawn();
+        } else {
+            transform.translation.y -= time.delta_seconds() * 0.1; // La fumée monte légèrement
+        }
     }
 }

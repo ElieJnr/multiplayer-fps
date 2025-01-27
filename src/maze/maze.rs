@@ -18,6 +18,11 @@ pub fn setup_crosshair(mut commands: Commands, asset_server: Res<AssetServer>) {
             position_type: PositionType::Absolute,
             top: Val::Percent(50.0),
             left: Val::Percent(50.0),
+            margin: UiRect {
+                top: Val::Px(-25.0),
+                left: Val::Px(-25.0),
+                ..Default::default()
+            },
             width: Val::Px(50.0),
             height: Val::Px(50.0),
             ..Default::default()

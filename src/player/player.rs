@@ -5,70 +5,68 @@ use bevy::prelude::*;
 use std::{collections::HashMap, time::Duration};
 
 pub fn handle_keyboard_animation(keyboard: Res<ButtonInput<KeyCode>>, mut query: Query<(Entity, &mut AnimationState)>, animations: ResMut<PlayerAnimations>, mut animation_players: Query<&mut AnimationPlayer>, mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>, player_transform_query: Query<&Transform, With<PlayersComponent>>) {
-    if let Ok((_entity, mut animation_state)) = query.get_single_mut() {
-        let new_animation = if keyboard.pressed(KeyCode::ArrowUp) {
-            "walk"
-        } else if keyboard.pressed(KeyCode::ArrowDown) {
-            "walk"
-        } else if keyboard.pressed(KeyCode::KeyR) {
-            "reload_fast"
-        } else if keyboard.pressed(KeyCode::Space) {
-            if let Some(player_entity) = animations.animation_player_entity {
-                if let Ok(player_transform) = player_transform_query.get(player_entity) {
-                    shoot_bullet(&mut commands, &mut meshes, &mut materials, player_transform);
-                }
-            }
-            "shoot"
-        } else if keyboard.just_released(KeyCode::ArrowUp) {
-            "stopwalk"
-        } else if keyboard.just_released(KeyCode::ArrowDown) {
-            "stopwalk"
-        } else if keyboard.just_released(KeyCode::Space) {
-            "stopshoot"
-        } else {
-            "static"
-        };
-
-        if new_animation == "reload_fast" {
-            if new_animation != animation_state.current_animation {
-                animation_state.current_animation = new_animation.to_string();
-
-                if let Some(player_entity) = animations.animation_player_entity {
-                    if let Ok(mut player) = animation_players.get_mut(player_entity) {
-                        if let Some(&animation_index) = animations.animations.get(new_animation) {
-                            let mut transitions = AnimationTransitions::new();
-                            transitions.play(
-                                &mut player,
-                                animation_index,
-                                Duration::from_secs_f32(0.2),
-                            );
+    if let Ok(player_transform) = player_transform_query.get_single() {
+        if let Ok((_entity, mut animation_state)) = query.get_single_mut() {
+            let new_animation = if keyboard.pressed(KeyCode::ArrowUp) {
+                "walk"
+            } else if keyboard.pressed(KeyCode::ArrowDown) {
+                "walk"
+            } else if keyboard.pressed(KeyCode::KeyR) {
+                "reload_fast"
+            } else if keyboard.pressed(KeyCode::Space) {
+                shoot_bullet(&mut commands, &mut meshes, &mut materials, player_transform);
+                "shoot"
+            } else if keyboard.just_released(KeyCode::ArrowUp) {
+                "stopwalk"
+            } else if keyboard.just_released(KeyCode::ArrowDown) {
+                "stopwalk"
+            } else if keyboard.just_released(KeyCode::Space) {
+                "stopshoot"
+            } else {
+                "static"
+            };
+    
+            if new_animation == "reload_fast" {
+                if new_animation != animation_state.current_animation {
+                    animation_state.current_animation = new_animation.to_string();
+    
+                    if let Some(player_entity) = animations.animation_player_entity {
+                        if let Ok(mut player) = animation_players.get_mut(player_entity) {
+                            if let Some(&animation_index) = animations.animations.get(new_animation) {
+                                let mut transitions = AnimationTransitions::new();
+                                transitions.play(
+                                    &mut player,
+                                    animation_index,
+                                    Duration::from_secs_f32(0.2),
+                                );
+                            }
                         }
                     }
                 }
-            }
-        } else if !new_animation.starts_with("stop") && new_animation != "reload_fast" {
-            if new_animation != animation_state.current_animation {
-                animation_state.current_animation = new_animation.to_string();
-
-                if let Some(player_entity) = animations.animation_player_entity {
-                    if let Ok(mut player) = animation_players.get_mut(player_entity) {
-                        if let Some(&animation_index) = animations.animations.get(new_animation) {
-                            let mut transitions = AnimationTransitions::new();
-                            transitions
-                                .play(&mut player, animation_index, Duration::from_secs_f32(0.2))
-                                .repeat();
+            } else if !new_animation.starts_with("stop") && new_animation != "reload_fast" {
+                if new_animation != animation_state.current_animation {
+                    animation_state.current_animation = new_animation.to_string();
+    
+                    if let Some(player_entity) = animations.animation_player_entity {
+                        if let Ok(mut player) = animation_players.get_mut(player_entity) {
+                            if let Some(&animation_index) = animations.animations.get(new_animation) {
+                                let mut transitions = AnimationTransitions::new();
+                                transitions
+                                    .play(&mut player, animation_index, Duration::from_secs_f32(0.2))
+                                    .repeat();
+                            }
                         }
                     }
                 }
-            }
-        } else if new_animation.starts_with("stop") {
-            if let Some(player_entity) = animations.animation_player_entity {
-                if let Ok(mut player) = animation_players.get_mut(player_entity) {
-                    if let Some(&run_animation) = animations
-                        .animations
-                        .get(new_animation.strip_prefix("stop").unwrap_or(""))
-                    {
-                        player.stop(run_animation);
+            } else if new_animation.starts_with("stop") {
+                if let Some(player_entity) = animations.animation_player_entity {
+                    if let Ok(mut player) = animation_players.get_mut(player_entity) {
+                        if let Some(&run_animation) = animations
+                            .animations
+                            .get(new_animation.strip_prefix("stop").unwrap_or(""))
+                        {
+                            player.stop(run_animation);
+                        }
                     }
                 }
             }
@@ -228,8 +226,8 @@ pub fn create_bullet(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>,
 
 pub fn shoot_bullet(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, player_transform: &Transform) {
     let bullet_mesh = meshes.add(Mesh::from(Cylinder {
-        radius: 0.1,
-        half_height: 0.5,
+        radius: 0.003,
+        half_height: 0.1,
         ..Default::default()
     }));
     let bullet_material = materials.add(StandardMaterial {
@@ -238,6 +236,10 @@ pub fn shoot_bullet(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, 
     });
 
     let bullet_direction = player_transform.forward();
+
+    // let pos = get_window_dimensions(windows);
+
+    // let center = Vec3::new(pos.0/2., pos.1/2., 0.0);
 
     commands.spawn((
         PbrBundle {
@@ -248,7 +250,7 @@ pub fn shoot_bullet(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, 
         },
         Bullet {
             direction: *bullet_direction,
-            speed: 10.0,
+            speed: 100.0,
         },
     ));
 }
