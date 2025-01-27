@@ -4,74 +4,106 @@ use bevy::gltf::GltfAssetLabel;
 use bevy::prelude::*;
 use std::{collections::HashMap, time::Duration};
 
+const TRANSITION_DURATION: f32 = 0.2;
+
+#[derive(Debug)]
+enum AnimationType {
+    Repeating(String),
+    OneShot(String),
+    Stop(String),
+}
+
 pub fn handle_keyboard_animation(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut query: Query<(Entity, &mut AnimationState)>,
     animations: ResMut<PlayerAnimations>,
     mut animation_players: Query<&mut AnimationPlayer>,
 ) {
-    if let Ok((_entity, mut animation_state)) = query.get_single_mut() {
-        let new_animation = if keyboard.pressed(KeyCode::ArrowUp) {
-            "walk"
-        } else if keyboard.pressed(KeyCode::ArrowDown) {
-            "walk"
-        } else if keyboard.pressed(KeyCode::KeyR) {
-            "reload_fast"
-        } else if keyboard.pressed(KeyCode::Space) {
-            "shoot"
-        } else if keyboard.just_released(KeyCode::ArrowUp) {
-            "stopwalk"
-        } else if keyboard.just_released(KeyCode::ArrowDown) {
-            "stopwalk"
-        } else if keyboard.just_released(KeyCode::Space) {
-            "stopshoot"
-        } else {
-            "static"
-        };
+    let (_, mut animation_state) = match query.get_single_mut() {
+        Ok(result) => result,
+        Err(_) => return,
+    };
 
-        if new_animation == "reload_fast" {
-            if new_animation != animation_state.current_animation {
-                animation_state.current_animation = new_animation.to_string();
+    let animation_type = determine_animation_type(&keyboard);
+    if let Some(animation_type) = animation_type {
+        handle_animation(
+            &animation_type,
+            &mut animation_state,
+            &animations,
+            &mut animation_players,
+        );
+    }
+}
 
-                if let Some(player_entity) = animations.animation_player_entity {
-                    if let Ok(mut player) = animation_players.get_mut(player_entity) {
-                        if let Some(&animation_index) = animations.animations.get(new_animation) {
-                            let mut transitions = AnimationTransitions::new();
-                            transitions.play(
-                                &mut player,
-                                animation_index,
-                                Duration::from_secs_f32(0.2),
-                            );
-                        }
-                    }
-                }
-            }
-        } else if !new_animation.starts_with("stop") && new_animation != "reload_fast" {
-            if new_animation != animation_state.current_animation {
-                animation_state.current_animation = new_animation.to_string();
+fn determine_animation_type(keyboard: &ButtonInput<KeyCode>) -> Option<AnimationType> {
+    if keyboard.pressed(KeyCode::ArrowUp) || keyboard.pressed(KeyCode::ArrowDown) {
+        Some(AnimationType::Repeating("walk".to_string()))
+    } else if keyboard.pressed(KeyCode::KeyR) {
+        Some(AnimationType::OneShot("reload_fast".to_string()))
+    } else if keyboard.pressed(KeyCode::Space) {
+        Some(AnimationType::Repeating("shoot".to_string()))
+    } else if keyboard.just_released(KeyCode::ArrowUp) || keyboard.just_released(KeyCode::ArrowDown)
+    {
+        Some(AnimationType::Stop("walk".to_string()))
+    } else if keyboard.just_released(KeyCode::Space) {
+        Some(AnimationType::Stop("shoot".to_string()))
+    } else {
+        Some(AnimationType::Repeating("static".to_string()))
+    }
+}
 
-                if let Some(player_entity) = animations.animation_player_entity {
-                    if let Ok(mut player) = animation_players.get_mut(player_entity) {
-                        if let Some(&animation_index) = animations.animations.get(new_animation) {
-                            let mut transitions = AnimationTransitions::new();
-                            transitions
-                                .play(&mut player, animation_index, Duration::from_secs_f32(0.2))
-                                .repeat();
-                        }
-                    }
-                }
+fn handle_animation(
+    animation_type: &AnimationType,
+    animation_state: &mut AnimationState,
+    animations: &PlayerAnimations,
+    animation_players: &mut Query<&mut AnimationPlayer>,
+) {
+    let player_entity = match animations.animation_player_entity {
+        Some(entity) => entity,
+        None => return,
+    };
+
+    let mut player = match animation_players.get_mut(player_entity) {
+        Ok(player) => player,
+        Err(_) => return,
+    };
+
+    match animation_type {
+        AnimationType::Repeating(name) => {
+            if *name != animation_state.current_animation {
+                play_animation(name, true, animation_state, animations, &mut player);
             }
-        } else if new_animation.starts_with("stop") {
-            if let Some(player_entity) = animations.animation_player_entity {
-                if let Ok(mut player) = animation_players.get_mut(player_entity) {
-                    if let Some(&run_animation) = animations
-                        .animations
-                        .get(new_animation.strip_prefix("stop").unwrap_or(""))
-                    {
-                        player.stop(run_animation);
-                    }
-                }
+        }
+        AnimationType::OneShot(name) => {
+            if *name != animation_state.current_animation {
+                play_animation(name, false, animation_state, animations, &mut player);
             }
+        }
+        AnimationType::Stop(name) => {
+            if let Some(&animation_index) = animations.animations.get(name) {
+                player.stop(animation_index);
+            }
+        }
+    }
+}
+
+fn play_animation(
+    name: &str,
+    repeat: bool,
+    animation_state: &mut AnimationState,
+    animations: &PlayerAnimations,
+    player: &mut AnimationPlayer,
+) {
+    if let Some(&animation_index) = animations.animations.get(name) {
+        animation_state.current_animation = name.to_string();
+        let mut transitions = AnimationTransitions::new();
+        let transition = transitions.play(
+            player,
+            animation_index,
+            Duration::from_secs_f32(TRANSITION_DURATION),
+        );
+        if repeat {
+            transition.repeat();
         }
     }
 }
