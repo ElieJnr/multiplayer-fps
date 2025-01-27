@@ -19,7 +19,7 @@ pub fn setup_crosshair(mut commands: Commands, asset_server: Res<AssetServer>) {
             top: Val::Percent(50.0),
             left: Val::Percent(50.0),
             margin: UiRect {
-                top: Val::Px(-25.0),
+                top: Val::Px(-15.0),
                 left: Val::Px(-25.0),
                 ..Default::default()
             },
@@ -30,6 +30,7 @@ pub fn setup_crosshair(mut commands: Commands, asset_server: Res<AssetServer>) {
         ..default()
     });
 }
+
 pub fn maze_setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,

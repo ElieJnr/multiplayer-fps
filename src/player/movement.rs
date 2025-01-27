@@ -2,8 +2,6 @@ use crate::client::player::Players;
 use crate::common::protocol::{
     serialize_message, GameMessage, MessageContent, MessageType, NetworkConfig,
 };
-use bevy::prelude::Color;
-use bevy::math::primitives::Sphere;
 use crate::common::sync::NetworkMessages;
 use crate::maze::barre_etat::GameStatus;
 use crate::maze::models::*;
@@ -11,9 +9,10 @@ use crate::maze::models::{Collider, ColliderHouse, MazeState, ObstaclePositions}
 use crate::player::model::*;
 use crate::utils::logger::display_info;
 use bevy::asset::Assets;
-use bevy::ecs::entity::Entity;
+use bevy::color::Color;
 use bevy::input::mouse::MouseMotion;
 use bevy::input::ButtonInput;
+use bevy::math::primitives::Cuboid;
 use bevy::math::{EulerRot, Quat, Vec2, Vec3};
 use bevy::pbr::{PbrBundle, StandardMaterial};
 use bevy::prelude::{
@@ -347,48 +346,38 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
     }
 }
 
-pub fn update_bullets(time: Res<Time>, mut query: Query<(&mut Transform, &Bullet)>) {
+pub fn update_bullets(time: Res<Time>, mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>, mut query: Query<(&mut Transform, &Bullet)>) {
     for (mut transform, bullet) in query.iter_mut() {
+        let previous_position = transform.translation;
         transform.translation -= bullet.direction * bullet.speed * time.delta_seconds();
+        add_line_segment(
+            &mut commands,
+            &mut meshes,
+            &mut materials,
+            previous_position,
+            transform.translation,
+        );
     }
 }
 
-pub fn add_smoke_trail(
-    mut commands: Commands,
-    query: Query<(&Transform, &Bullet)>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
-    for (transform, _bullet) in query.iter() {
-        let smoke_mesh = meshes.add(Mesh::from(Sphere { radius: 0.02 }));
-        let smoke_material = materials.add(StandardMaterial {
-            base_color: Color::srgb(1.0, 0.0, 0.0),
+pub fn add_line_segment(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, start: Vec3, end: Vec3) {
+    let line_mesh = meshes.add(Mesh::from(Cuboid::new(0.002, 0.002, (end - start).length())));
+    let line_material = materials.add(StandardMaterial {
+        base_color: Color::srgb(1.0, 0.0, 0.0),
+        ..Default::default()
+    });
+
+    let mid_point = (start + end) / 2.0;
+    let rotation = Quat::from_rotation_arc(Vec3::Z, (end - start).normalize());
+
+    commands.spawn(PbrBundle {
+        mesh: line_mesh,
+        material: line_material,
+        transform: Transform {
+            translation: mid_point,
+            rotation,
             ..Default::default()
-        });
-
-        commands.spawn((
-            PbrBundle {
-                mesh: smoke_mesh,
-                material: smoke_material,
-                transform: *transform,
-                ..Default::default()
-            },
-            SmokeParticle { lifetime: 1.0 },
-        ));
-    }
-}
-
-pub fn update_smoke_particles(
-    time: Res<Time>,
-    mut commands: Commands,
-    mut query: Query<(Entity, &mut SmokeParticle, &mut Transform)>,
-) {
-    for (entity, mut particle, mut transform) in query.iter_mut() {
-        particle.lifetime -= time.delta_seconds();
-        if particle.lifetime <= 0.0 {
-            commands.entity(entity).despawn();
-        } else {
-            transform.translation.y -= time.delta_seconds() * 0.1; // La fumée monte légèrement
-        }
-    }
+        },
+        ..Default::default()
+    });
 }
