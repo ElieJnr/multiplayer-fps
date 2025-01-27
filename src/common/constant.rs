@@ -10,7 +10,7 @@ pub const ENEMY_URL: &str =
 pub const PLAYER_PATH: &str = "assets/player.glb";
 pub const ENEMY_PATH: &str = "assets/enemy.glb";
 
-pub const DEFAULT_MIN_PLAYERS: usize = 2;
+pub const DEFAULT_MIN_PLAYERS: usize = 1;
 #[derive(Debug, Resource, Default)]
 pub struct PlayerCount {
     min_players: usize,
