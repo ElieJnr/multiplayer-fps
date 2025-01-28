@@ -23,7 +23,7 @@ use bevy::prelude::{
 };
 use bevy::render::mesh::Mesh;
 use bevy::scene::SceneBundle;
-use bevy::time::Time;
+use bevy::time::{Time, Timer, TimerMode};
 use bevy::utils::default;
 use bevy::window::{CursorGrabMode, Window};
 
@@ -288,7 +288,6 @@ pub fn check_bullet_collisions(mut commands: Commands, bullet_query: Query<(Enti
     }
 }
 
-
 fn collide(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
     let collision_x = (pos1.x - pos2.x).abs() < (size1.x + size2.x) / 2.0;
     let collision_y = (pos1.y - pos2.y).abs() < (size1.y + size2.y) / 2.0;
@@ -394,18 +393,20 @@ pub fn update_bullets(time: Res<Time>, mut commands: Commands, mut meshes: ResMu
             // Mettre à jour la position si pas de collision
             transform.translation = next_position;
             
-            add_line_segment(
+            let line_entity = add_line_segment(
                 &mut commands,
                 &mut meshes,
                 &mut materials,
                 previous_position,
                 transform.translation,
             );
+
+            commands.entity(line_entity).insert(LineTimer(Timer::from_seconds(0.1, TimerMode::Once)));
         }
     }
 }
 
-pub fn add_line_segment(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, start: Vec3, end: Vec3) {
+pub fn add_line_segment(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, start: Vec3, end: Vec3) -> Entity {
     let line_mesh = meshes.add(Mesh::from(Cuboid::new(0.002, 0.002, (end - start).length())));
     let line_material = materials.add(StandardMaterial {
         base_color: Color::srgb(1.0, 0.0, 0.0),
@@ -415,7 +416,7 @@ pub fn add_line_segment(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh
     let mid_point = (start + end) / 2.0;
     let rotation = Quat::from_rotation_arc(Vec3::Z, (end - start).normalize());
 
-    commands.spawn(PbrBundle {
+    let line_entity = commands.spawn(PbrBundle {
         mesh: line_mesh,
         material: line_material,
         transform: Transform {
@@ -424,5 +425,17 @@ pub fn add_line_segment(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh
             ..Default::default()
         },
         ..Default::default()
-    });
+    }).id();
+
+    line_entity
+}
+
+
+pub fn despawn_after_time(time: Res<Time>, mut commands: Commands, mut query: Query<(Entity, &mut LineTimer)>) {
+    for (entity, mut timer) in query.iter_mut() {
+        timer.0.tick(time.delta());
+        if timer.0.finished() {
+            commands.entity(entity).despawn_recursive();
+        }
+    }
 }

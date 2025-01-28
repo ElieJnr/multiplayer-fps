@@ -8,6 +8,8 @@ use std::collections::VecDeque;
 pub struct PlayerBuild;
 
 #[derive(Component)]
+pub struct LineTimer(pub Timer);
+#[derive(Component)]
 pub struct AnimationState {
     pub current_animation: String,
 }
@@ -55,7 +57,7 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<BulletResources>();
         app.add_systems(Startup, preload_player_assets)
-            .add_systems(Update, (setup_player_animation, handle_keyboard_animation, update_bullets));
+            .add_systems(Update, (setup_player_animation, handle_keyboard_animation, update_bullets, despawn_after_time));
     }
 }
 
