@@ -4,7 +4,7 @@ use bevy::gltf::GltfAssetLabel;
 use bevy::prelude::*;
 use std::{collections::HashMap, time::Duration};
 
-pub fn handle_keyboard_animation(keyboard: Res<ButtonInput<KeyCode>>, mut query: Query<(Entity, &mut AnimationState)>, animations: ResMut<PlayerAnimations>, mut animation_players: Query<&mut AnimationPlayer>, mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>, player_transform_query: Query<&Transform, With<PlayersComponent>>) {
+pub fn handle_keyboard_animation(keyboard: Res<ButtonInput<KeyCode>>, mut query: Query<(Entity, &mut AnimationState)>, animations: ResMut<PlayerAnimations>, mut animation_players: Query<&mut AnimationPlayer>, mut commands: Commands, bullet_resources: Res<BulletResources>, player_transform_query: Query<&Transform, With<PlayersComponent>>) {
     if let Ok((_entity, mut animation_state)) = query.get_single_mut() {
         let new_animation = if keyboard.pressed(KeyCode::ArrowUp) {
             "walk"
@@ -14,7 +14,7 @@ pub fn handle_keyboard_animation(keyboard: Res<ButtonInput<KeyCode>>, mut query:
             "reload_fast"
         } else if keyboard.pressed(KeyCode::Space) {
             let camera_transform = player_transform_query.get_single().unwrap();
-            shoot_bullet(&mut commands, &mut meshes, &mut materials, &camera_transform);
+            shoot_bullet(&mut commands, bullet_resources, &camera_transform);
             "shoot"
         } else if keyboard.just_released(KeyCode::ArrowUp) {
             "stopwalk"
@@ -204,46 +204,18 @@ pub fn create_players(commands: &mut Commands, player_animations: Res<PreloadedP
     });
 }
 
-pub fn create_bullet(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, position: Vec3) {
-    let bullet_mesh = meshes.add(Mesh::from(Cylinder {
-        radius: 0.1,
-        half_height: 0.5,
-        ..Default::default()
-    }));
-    let bullet_material = materials.add(StandardMaterial {
-        base_color: Color::srgb(0.0, 0.0, 1.0),
-        ..Default::default()
-    });
-
-    commands.spawn((PbrBundle {
-        mesh: bullet_mesh,
-        material: bullet_material,
-        transform: Transform::from_translation(position),
-        ..Default::default()
-    },
-    ColliderEnemy)
-);
-}
-
-pub fn shoot_bullet(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, camera_transform: &Transform) {
-    let bullet_mesh = meshes.add(Mesh::from(Cylinder {
-        radius: 0.01,
-        half_height: 0.05,
-        ..Default::default()
-    }));
-    let bullet_material = materials.add(StandardMaterial {
-        base_color: Color::srgb(0.0, 0.0, 1.0),
-        ..Default::default()
-    });
-
+pub fn shoot_bullet(
+    commands: &mut Commands,
+    bullet_resources: Res<BulletResources>,
+    camera_transform: &Transform,
+) {
     let bullet_direction = camera_transform.forward();
-    let bullet_start_position =
-        camera_transform.translation + bullet_direction * 0.1 + Vec3::new(0.0, 0.1, 0.0);
+    let bullet_start_position = camera_transform.translation + bullet_direction * 0.1 + Vec3::new(0.0, 0.1, 0.0);
 
     commands.spawn((
         PbrBundle {
-            mesh: bullet_mesh,
-            material: bullet_material,
+            mesh: bullet_resources.mesh.clone(),
+            material: bullet_resources.material.clone(),
             transform: Transform {
                 translation: bullet_start_position,
                 rotation: Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2),
@@ -251,6 +223,7 @@ pub fn shoot_bullet(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, 
             },
             ..Default::default()
         },
+        ColliderEnemy,
         Bullet {
             direction: *bullet_direction,
             speed: 25.0,

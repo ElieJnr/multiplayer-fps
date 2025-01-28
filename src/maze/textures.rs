@@ -1,3 +1,5 @@
+use crate::player::model::BulletResources;
+
 use super::models::*;
 use bevy::math::primitives::{Cylinder, Sphere};
 use bevy::prelude::*;
@@ -554,4 +556,21 @@ pub fn initialize_materials(
         sup_arch_mesh,
         arch_material,
     )
+}
+
+pub fn setup_bullet_resources(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    let bullet_mesh = meshes.add(Mesh::from(Cuboid::new(0.002, 0.002, 0.002)));
+    let bullet_material = materials.add(StandardMaterial {
+        base_color: Color::srgb(0.0, 0.0, 1.0),
+        ..Default::default()
+    });
+
+    commands.insert_resource(BulletResources {
+        mesh: bullet_mesh,
+        material: bullet_material,
+    });
 }

@@ -53,6 +53,7 @@ pub struct PlayerComponent;
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
+        app.init_resource::<BulletResources>();
         app.add_systems(Startup, preload_player_assets)
             .add_systems(Update, (setup_player_animation, handle_keyboard_animation, update_bullets));
     }
@@ -134,4 +135,10 @@ pub struct Bullet {
 #[derive(Component, Resource)]
 pub struct SmokeParticle {
     pub lifetime: f32,
+}
+
+#[derive(Default, Component, Resource)]
+pub struct BulletResources {
+    pub mesh: Handle<Mesh>,
+    pub material: Handle<StandardMaterial>,
 }

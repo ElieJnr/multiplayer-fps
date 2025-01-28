@@ -196,12 +196,7 @@ pub fn toggle_cursor_lock(keyboard_input: Res<ButtonInput<KeyCode>>, mut windows
     }
 }
 
-pub fn check_collisions(
-    player_transform: &Transform,
-    collider_query: &Query<&Transform, (With<Collider>, Without<PlayersComponent>)>,
-    house_collider_query: &Query<&Transform, (With<ColliderHouse>, Without<PlayersComponent>)>,
-    bullet_query: &Query<&Transform, (With<Bullet>, Without<PlayersComponent>)>, // Query for bullets
-) -> bool {
+pub fn check_collisions(player_transform: &Transform, collider_query: &Query<&Transform, (With<Collider>, Without<PlayersComponent>)>, house_collider_query: &Query<&Transform, (With<ColliderHouse>, Without<PlayersComponent>)>, _bullet_query: &Query<&Transform, (With<Bullet>, Without<PlayersComponent>)>) -> bool {
     // Check collision with other colliders
     for collider_transform in collider_query.iter() {
         if collide(
@@ -252,12 +247,7 @@ pub fn check_collisions(
     false
 }
 
-pub fn check_bullet_collisions(
-    mut commands: Commands,
-    bullet_query: Query<(Entity, &Transform), With<Bullet>>,
-    collider_query: Query<&Transform, (With<Collider>, Without<Bullet>)>,
-    house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Bullet>)>,
-) {
+pub fn check_bullet_collisions(mut commands: Commands, bullet_query: Query<(Entity, &Transform), With<Bullet>>, collider_query: Query<&Transform, (With<Collider>, Without<Bullet>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Bullet>)>) {
     for (bullet_entity, bullet_transform) in bullet_query.iter() {
         let mut should_despawn = false;
 
@@ -362,15 +352,7 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
     }
 }
 
-pub fn update_bullets(
-    time: Res<Time>,
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut bullet_query: Query<(Entity, &mut Transform, &Bullet)>,
-    collider_query: Query<&Transform, (With<Collider>, Without<Bullet>)>,
-    house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Bullet>)>,
-) {
+pub fn update_bullets(time: Res<Time>, mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>, mut bullet_query: Query<(Entity, &mut Transform, &Bullet)>, collider_query: Query<&Transform, (With<Collider>, Without<Bullet>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Bullet>)>) {
     for (bullet_entity, mut transform, bullet) in bullet_query.iter_mut() {
         let previous_position = transform.translation.clone();
         let next_position = transform.translation - bullet.direction * bullet.speed * time.delta_seconds();
