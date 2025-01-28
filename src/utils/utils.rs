@@ -1,8 +1,8 @@
 use bevy::prelude::{Query, With};
 use bevy::window::{PrimaryWindow, Window};
 use colored::{Color, Colorize};
-use std::path::Path;
 use std::io::{self, stdin, Write};
+use std::path::Path;
 use std::process::Command;
 use std::{thread, time::Duration};
 
@@ -134,14 +134,14 @@ pub fn download_models() {
     if !player_exists {
         match get_models(PLAYER_URL, PLAYER_PATH) {
             Ok(_) => display_info(&format!("Player model downloaded successfully")),
-            Err(e) => display_info(&format!(" Error downloading player {}", e))
+            Err(e) => display_info(&format!(" Error downloading player {}", e)),
         }
     }
 
     if !enemy_exists {
         match get_models(ENEMY_URL, ENEMY_PATH) {
             Ok(_) => display_info(&format!("Enemy model downloaded successfully")),
-            Err(e) => display_info(&format!(" Error downloading enemy {}", e))
+            Err(e) => display_info(&format!(" Error downloading enemy {}", e)),
         }
     }
 }

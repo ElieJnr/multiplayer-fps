@@ -7,8 +7,7 @@ use std::{collections::HashMap, time::Duration};
 const TRANSITION_DURATION: f32 = 0.2;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub
- enum AnimationType {
+pub enum AnimationType {
     Repeating(String),
     OneShot(String),
     Stop(String),
@@ -22,7 +21,10 @@ pub fn handle_keyboard_animation(
     println!("-------------*handle_keyboard_animation-------------*");
 
     for (entity, mut animation_state) in query.iter_mut() {
-        println!("Processing animation for entity: {:?}", entity);
+        println!(
+            "Processing animation for entity: {:?} with player entity: {:?}",
+            entity, animations.player_entity
+        );
 
         animations.player_entity = entity;
 

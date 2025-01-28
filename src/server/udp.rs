@@ -16,7 +16,7 @@ pub fn run_socket() {
     let mut players = Players::default();
 
     download_models();
-    
+
     match get_user_choice() {
         Some(1) => {
             handle_server_mode(&mut players);
@@ -50,10 +50,17 @@ fn get_min_players_from_user() -> PlayerCount {
 
     let mut input = String::new();
     io::stdin().read_line(&mut input).unwrap();
-    match input.trim().parse::<usize>().ok().filter(|&num| num >= DEFAULT_MIN_PLAYERS) {
+    match input
+        .trim()
+        .parse::<usize>()
+        .ok()
+        .filter(|&num| num >= DEFAULT_MIN_PLAYERS)
+    {
         Some(num) => PlayerCount::new(num),
         None => {
-            display_error("Number of players is less than the minimum required. Using default value.");
+            display_error(
+                "Number of players is less than the minimum required. Using default value.",
+            );
             PlayerCount::new(DEFAULT_MIN_PLAYERS)
         }
     }
@@ -65,11 +72,7 @@ fn handle_client_mode(state: &mut PlayerCountState) {
     }
 }
 
-pub fn server(
-    server_socket: UdpSocket,   
-    players: &mut Players,
-    player_count: &PlayerCount,
-) {
+pub fn server(server_socket: UdpSocket, players: &mut Players, player_count: &PlayerCount) {
     let mut buf = [0; 1024];
 
     loop {

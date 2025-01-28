@@ -293,7 +293,7 @@ fn broadcast_game_update(
     sequence_number: u32,
     timestamp: f64,
     player: &Player,
-    mouse_delta: Vec2
+    mouse_delta: Vec2,
 ) {
     let update_msg = GameMessage {
         message_type: MessageType::GameUpdate,

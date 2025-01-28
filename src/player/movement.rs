@@ -64,7 +64,7 @@ pub fn player_movement(
         ready: false,
     };
     if input.key_space || input.key_space_release {
-        handle_keyboard_animation( animation_query, animations, animation_players);
+        handle_keyboard_animation(animation_query, animations, animation_players);
     }
 
     if input.arrow_up
