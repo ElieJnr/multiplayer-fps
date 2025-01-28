@@ -7,6 +7,7 @@ use crate::maze::barre_etat::GameStatus;
 use crate::maze::models::*;
 use crate::maze::models::{Collider, ColliderHouse, MazeState, ObstaclePositions};
 use crate::player::model::*;
+use crate::utils::logger::display_info;
 use bevy::input::mouse::MouseMotion;
 use bevy::input::ButtonInput;
 use bevy::math::{EulerRot, Quat, Vec2, Vec3};
@@ -46,15 +47,7 @@ pub fn player_movement(
         mouse_delta += event.delta;
     }
 
-    let input = PlayerInput {
-        arrow_up: keyboard_input.pressed(KeyCode::KeyW),
-        arrow_down: keyboard_input.pressed(KeyCode::KeyS),
-        arrow_left: keyboard_input.pressed(KeyCode::KeyA),
-        arrow_right: keyboard_input.pressed(KeyCode::KeyD),
-        mouse_delta,
-        ready: false,
-        shoot: keyboard_input.just_pressed(KeyCode::KeyT),
-    };
+    let input = get_player_input(keyboard_input, mouse_delta);
 
     if input.arrow_up
         || input.arrow_down
@@ -115,44 +108,57 @@ pub fn player_movement(
         }
     }
 }
+
+pub fn get_player_input(
+    keyboard_input: Res<'_, ButtonInput<KeyCode>>,
+    mouse_delta: Vec2,
+) -> PlayerInput {
+    PlayerInput {
+        arrow_up: keyboard_input.pressed(KeyCode::KeyW),
+        arrow_down: keyboard_input.pressed(KeyCode::KeyS),
+        arrow_left: keyboard_input.pressed(KeyCode::KeyA),
+        arrow_right: keyboard_input.pressed(KeyCode::KeyD),
+        reload: keyboard_input.pressed(KeyCode::KeyR),
+        mouse_delta,
+        ready: false,
+        shoot: keyboard_input.just_pressed(KeyCode::KeyT),
+    }
+}
+
 fn simulation_tir(
-    keyboard_input: &Res<ButtonInput<KeyCode>>,
-    network: &Option<Res<NetworkConfig>>,
+    player_name: &str,
+    network: Option<&Res<NetworkConfig>>,
     query: &mut Query<&mut Transform, With<PlayersComponent>>,
     game_status: &mut ResMut<GameStatus>,
     players: &mut ResMut<Players>,
 ) {
-    if keyboard_input.just_pressed(KeyCode::KeyT) {
-        for (player_name, player) in players.0.iter_mut() {
-            if game_status.player_health > 0. {
-                game_status.player_health -= 0.2;
+    let players_debug = format!("Players {:?}", players);
+    println!("{}", players_debug);
+    
+    if let Some(player) = players.0.get_mut(player_name) {
+        if game_status.player_health > 0. {
+            game_status.player_health -= 0.2;
 
-                println!("Player health after: {}", player.health);
-                println!("Game status health: {}", game_status.player_health);
+            println!("Game status health: {}", game_status.player_health);
+            display_info(player_name);
 
-                if player.health == 0 {
-                    query.iter_mut().for_each(|mut transform| {
-                        transform.translation = Vec3::new(0.0, -100.0, 0.0);
-                    });
+            if player.health <= 0 {
+                query.iter_mut().for_each(|mut transform| {
+                    transform.translation = Vec3::new(0.0, -100.0, 0.0);
+                });
 
-                    // fi on va afficher le pop up de game over
+                // Envoyer un message de game over
+                if let Some(network) = network {
+                    let game_over_msg = GameMessage {
+                        message_type: MessageType::Disconnect,
+                        sender: "server".to_string(),
+                        content: MessageContent::ServerInfo {
+                            server_status: format!("Player {} has died. Game Over!", player_name),
+                        },
+                    };
 
-                    // Envoyer un message de game over
-                    if let Some(network) = network {
-                        let game_over_msg = GameMessage {
-                            message_type: MessageType::Disconnect,
-                            sender: "server".to_string(),
-                            content: MessageContent::ServerInfo {
-                                server_status: format!(
-                                    "Player {} has died. Game Over!",
-                                    player_name
-                                ),
-                            },
-                        };
-
-                        if let Some(msg_bytes) = serialize_message(&game_over_msg) {
-                            let _ = network.client_socket.send(&msg_bytes);
-                        }
+                    if let Some(msg_bytes) = serialize_message(&game_over_msg) {
+                        let _ = network.client_socket.send(&msg_bytes);
                     }
                 }
             }
@@ -340,11 +346,10 @@ pub fn manage_remote_players(
         }
     }
 
-    // Simulation de tir
     if keyboard_input.just_pressed(KeyCode::KeyT) {
         simulation_tir(
-            &keyboard_input,
-            &Some(network),
+            &network.player_name,
+            Some(&network),
             &mut query,
             &mut game_status,
             &mut players,

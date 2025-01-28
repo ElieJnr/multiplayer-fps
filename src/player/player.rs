@@ -1,4 +1,4 @@
-use super::model::*;
+use super::{model::*, movement::get_player_input};
 use crate::maze::models::PlayersComponent;
 use bevy::gltf::GltfAssetLabel;
 use bevy::prelude::*;
@@ -11,70 +11,34 @@ pub fn handle_keyboard_animation(
     mut animation_players: Query<&mut AnimationPlayer>,
 ) {
     if let Ok((_entity, mut animation_state)) = query.get_single_mut() {
-        let new_animation = if keyboard.pressed(KeyCode::ArrowUp) {
-            "walk"
-        } else if keyboard.pressed(KeyCode::ArrowDown) {
-            "walk"
-        } else if keyboard.pressed(KeyCode::KeyR) {
-            "reload_fast"
-        } else if keyboard.pressed(KeyCode::Space) {
-            "shoot"
-        } else if keyboard.just_released(KeyCode::ArrowUp) {
-            "stopwalk"
-        } else if keyboard.just_released(KeyCode::ArrowDown) {
-            "stopwalk"
-        } else if keyboard.just_released(KeyCode::Space) {
-            "stopshoot"
-        } else {
-            "static"
+        let input = get_player_input(keyboard, Vec2::ZERO);
+
+        let new_animation = match (input.arrow_up || input.arrow_down, input.shoot, input.reload) {
+            (true, _, _) => "walk",
+            (_, true, _) => "shoot",
+            (_, _, true) => "reload_fast",
+            _ => "static",
         };
 
-        if new_animation == "reload_fast" {
-            if new_animation != animation_state.current_animation {
-                animation_state.current_animation = new_animation.to_string();
+        if new_animation != animation_state.current_animation {
+            animation_state.current_animation = new_animation.to_string();
 
-                if let Some(player_entity) = animations.animation_player_entity {
-                    if let Ok(mut player) = animation_players.get_mut(player_entity) {
-                        if let Some(&animation_index) = animations.animations.get(new_animation) {
-                            let mut transitions = AnimationTransitions::new();
-                            transitions.play(
-                                &mut player,
-                                animation_index,
-                                Duration::from_secs_f32(0.2),
-                            );
-                        }
-                    }
-                }
-            }
-        } else if !new_animation.starts_with("stop") && new_animation != "reload_fast" {
-            if new_animation != animation_state.current_animation {
-                animation_state.current_animation = new_animation.to_string();
-
-                if let Some(player_entity) = animations.animation_player_entity {
-                    if let Ok(mut player) = animation_players.get_mut(player_entity) {
-                        if let Some(&animation_index) = animations.animations.get(new_animation) {
-                            let mut transitions = AnimationTransitions::new();
-                            transitions
-                                .play(&mut player, animation_index, Duration::from_secs_f32(0.2))
-                                .repeat();
-                        }
-                    }
-                }
-            }
-        } else if new_animation.starts_with("stop") {
             if let Some(player_entity) = animations.animation_player_entity {
                 if let Ok(mut player) = animation_players.get_mut(player_entity) {
-                    if let Some(&run_animation) = animations
-                        .animations
-                        .get(new_animation.strip_prefix("stop").unwrap_or(""))
-                    {
-                        player.stop(run_animation);
+                    if let Some(&animation_index) = animations.animations.get(new_animation) {
+                        let mut transitions = AnimationTransitions::new();
+                        transitions.play(
+                            &mut player,
+                            animation_index,
+                            Duration::from_secs_f32(0.2),
+                        );
                     }
                 }
             }
         }
     }
 }
+
 pub fn setup_player_animation(
     mut commands: Commands,
     mut animations: ResMut<PlayerAnimations>,
@@ -186,6 +150,7 @@ fn preload_assets(
         _ => {}
     }
 }
+
 pub fn create_players(
     commands: &mut Commands,
     player_animations: Res<PreloadedPlayerAnimations>,
