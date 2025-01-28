@@ -7,7 +7,7 @@ push:
 
 merge:
 	git checkout $(TO) && git merge $(FROM)
-
-speed:
+download:
 	bash assets.sh
+speed:
 	clear && cargo run --release

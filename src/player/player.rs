@@ -7,7 +7,8 @@ use std::{collections::HashMap, time::Duration};
 const TRANSITION_DURATION: f32 = 0.2;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub enum AnimationType {
+pub
+ enum AnimationType {
     Repeating(String),
     OneShot(String),
     Stop(String),
