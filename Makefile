@@ -9,4 +9,5 @@ merge:
 	git checkout $(TO) && git merge $(FROM)
 
 speed:
+	bash assets.sh
 	clear && cargo run --release
