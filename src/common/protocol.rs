@@ -168,7 +168,7 @@ pub fn send_ready_msg(config: &NetworkConfig, player_name: &str) {
     {
         display_error(&format!("Failed to send disconnect message: {}", err));
     } else {
-        display_info(&format!("{} is disconnected successfully.", player_name));
+        display_info(&format!("{} is connected successfully.", player_name));
     }
 }
 

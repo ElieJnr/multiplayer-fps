@@ -27,7 +27,22 @@ use bevy::time::Time;
 use bevy::utils::default;
 use bevy::window::{CursorGrabMode, Window};
 
-pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>>, mut motion_evr: EventReader<MouseMotion>, mut movement: ResMut<PlayerMovement>, _obstacle_positions: Res<ObstaclePositions>, network: Option<Res<NetworkConfig>>, mut sequence_number: Local<u32>, mut query: Query<&mut Transform, With<PlayersComponent>>, collider_query: Query<&Transform, (With<Collider>, Without<PlayersComponent>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<PlayersComponent>)>, bullet_query: Query<&Transform, (With<Bullet>, Without<PlayersComponent>)>,maze_state: Res<MazeState>, players: ResMut<Players>, game_status: ResMut<GameStatus>) {
+pub fn player_movement(
+    time: Res<Time>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut motion_evr: EventReader<MouseMotion>,
+    mut movement: ResMut<PlayerMovement>,
+    _obstacle_positions: Res<ObstaclePositions>,
+    network: Option<Res<NetworkConfig>>,
+    mut sequence_number: Local<u32>,
+    mut query: Query<&mut Transform, With<PlayersComponent>>,
+    collider_query: Query<&Transform, (With<Collider>, Without<PlayersComponent>)>,
+    house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<PlayersComponent>)>,
+    bullet_query: Query<&Transform, (With<Bullet>, Without<PlayersComponent>)>,
+    maze_state: Res<MazeState>,
+    players: ResMut<Players>,
+    game_status: ResMut<GameStatus>,
+) {
     if !maze_state.is_ready {
         return;
     }
@@ -48,13 +63,23 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
         ready: false,
     };
 
-    if input.arrow_up || input.arrow_down || input.arrow_left || input.arrow_right || mouse_delta != Vec2::ZERO {
+    if input.arrow_up
+        || input.arrow_down
+        || input.arrow_left
+        || input.arrow_right
+        || mouse_delta != Vec2::ZERO
+    {
         *sequence_number += 1;
         let delta_time = time.delta_seconds();
         if let Ok(mut transform) = query.get_single_mut() {
             let new_transform = transform.clone();
             apply_input(&mut transform, &input, &movement, delta_time);
-            if check_collisions(&transform, &collider_query, &house_collider_query,&bullet_query) {
+            if check_collisions(
+                &transform,
+                &collider_query,
+                &house_collider_query,
+                &bullet_query,
+            ) {
                 *transform = new_transform;
             } else {
                 movement.position = transform.translation;
@@ -89,7 +114,13 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
     }
 }
 
-fn simulation_tir(keyboard_input: &Res<'_, ButtonInput<KeyCode>>, network: &Option<Res<'_, NetworkConfig>>, query: &mut Query<'_, '_, &mut Transform, With<PlayersComponent>>, mut players: ResMut<'_, Players>, mut game_status: ResMut<GameStatus>) {
+fn simulation_tir(
+    keyboard_input: &Res<'_, ButtonInput<KeyCode>>,
+    network: &Option<Res<'_, NetworkConfig>>,
+    query: &mut Query<'_, '_, &mut Transform, With<PlayersComponent>>,
+    mut players: ResMut<'_, Players>,
+    mut game_status: ResMut<GameStatus>,
+) {
     if keyboard_input.just_pressed(KeyCode::KeyT) {
         display_info("KeyT pressed, entering simulation_tir function");
 
@@ -141,7 +172,12 @@ fn simulation_tir(keyboard_input: &Res<'_, ButtonInput<KeyCode>>, network: &Opti
     }
 }
 
-pub fn apply_input(transform: &mut Transform, input: &PlayerInput, movement: &PlayerMovement, delta_time: f32) {
+pub fn apply_input(
+    transform: &mut Transform,
+    input: &PlayerInput,
+    movement: &PlayerMovement,
+    delta_time: f32,
+) {
     let forward = transform.forward();
     if input.arrow_up {
         transform.translation -= forward * movement.speed * delta_time;
@@ -162,7 +198,12 @@ pub fn apply_input(transform: &mut Transform, input: &PlayerInput, movement: &Pl
 }
 
 // permet de changer la vue de la camera
-pub fn camera_view_toggle(keyboard_input: Res<ButtonInput<KeyCode>>, mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<PlayersComponent>)>, mut camera_state: ResMut<CameraState>) { if keyboard_input.just_pressed(KeyCode::KeyV) {
+pub fn camera_view_toggle(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<PlayersComponent>)>,
+    mut camera_state: ResMut<CameraState>,
+) {
+    if keyboard_input.just_pressed(KeyCode::KeyV) {
         camera_state.is_top_view = !camera_state.is_top_view;
         if let Ok(mut camera_transform) = camera_query.get_single_mut() {
             if camera_state.is_top_view {
@@ -182,7 +223,10 @@ pub fn camera_view_toggle(keyboard_input: Res<ButtonInput<KeyCode>>, mut camera_
 }
 
 // permet de rendre visible et invisible la souris avec la touche space
-pub fn toggle_cursor_lock(keyboard_input: Res<ButtonInput<KeyCode>>, mut windows: Query<&mut Window>) {
+pub fn toggle_cursor_lock(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut windows: Query<&mut Window>,
+) {
     if keyboard_input.just_pressed(KeyCode::Space) {
         if let Ok(mut window) = windows.get_single_mut() {
             if window.cursor.grab_mode == CursorGrabMode::Locked {
@@ -238,7 +282,7 @@ pub fn check_collisions(
     //                 transform.translation,
     //                 Vec3::new(0.6, 1.0, 0.6),
     //                 bullet_transform.translation,
-    //                 Vec3::new(0.1, 0.5, 0.0), 
+    //                 Vec3::new(0.1, 0.5, 0.0),
     //             )
     //             .is_some()
     //             {
@@ -257,9 +301,28 @@ pub fn check_bullet_collisions(
     bullet_query: Query<(Entity, &Transform), With<Bullet>>,
     collider_query: Query<&Transform, (With<Collider>, Without<Bullet>)>,
     house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Bullet>)>,
+    remote_players: ResMut<RemotePlayers>,
+    mut query: Query<&Transform>,
 ) {
     for (bullet_entity, bullet_transform) in bullet_query.iter() {
         let mut should_despawn = false;
+            for (name, entity) in remote_players.0.iter() {
+                println!("name {}", name);
+                if let Ok(transform) = query.get_mut(*entity) {
+                    if collide(
+                        bullet_transform.translation,
+                        Vec3::new(0.006, 0.2, 0.006),
+                        transform.translation,
+                        Vec3::new(0.6, 1.0, 0.6),
+                    )
+                    .is_some()
+                    {
+                        should_despawn = true;
+                        println!("Bullet hit a player");
+                        break;
+                    }
+            }
+        }
 
         // Check collisions with walls
         for collider_transform in collider_query.iter() {
@@ -268,7 +331,9 @@ pub fn check_bullet_collisions(
                 Vec3::new(0.006, 0.2, 0.006),
                 collider_transform.translation,
                 Vec3::new(1.0, 1.0, 1.0),
-            ).is_some() {
+            )
+            .is_some()
+            {
                 should_despawn = true;
                 println!("Bullet hit a wall");
                 break;
@@ -283,7 +348,9 @@ pub fn check_bullet_collisions(
                     Vec3::new(0.006, 0.2, 0.006),
                     house_transform.translation,
                     Vec3::new(3.0, 2.5, 3.0),
-                ).is_some() {
+                )
+                .is_some()
+                {
                     should_despawn = true;
                     println!("Bullet hit a house");
                     break;
@@ -291,15 +358,12 @@ pub fn check_bullet_collisions(
             }
         }
 
-        
-
         // Despawn the bullet if it hit something
         if should_despawn {
             commands.entity(bullet_entity).despawn_recursive();
         }
     }
 }
-
 
 fn collide(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
     let collision_x = (pos1.x - pos2.x).abs() < (size1.x + size2.x) / 2.0;
@@ -312,7 +376,15 @@ fn collide(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
     }
 }
 
-pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<PreloadedEnemyAnimations>, enemy_graph: Res<EnemyAnimations>, mut remote_players: ResMut<RemotePlayers>, network: Res<NetworkConfig>, mut messages: ResMut<NetworkMessages>, mut query: Query<&mut Transform>) {
+pub fn manage_remote_players(
+    mut commands: Commands,
+    enemy_animations: Res<PreloadedEnemyAnimations>,
+    enemy_graph: Res<EnemyAnimations>,
+    mut remote_players: ResMut<RemotePlayers>,
+    network: Res<NetworkConfig>,
+    mut messages: ResMut<NetworkMessages>,
+    mut query: Query<&mut Transform>,
+) {
     while let Some(message) = messages.0.pop_front() {
         if let MessageContent::GameUpdate {
             position: (x, z),
@@ -375,17 +447,20 @@ pub fn update_bullets(
 ) {
     for (bullet_entity, mut transform, bullet) in bullet_query.iter_mut() {
         let previous_position = transform.translation.clone();
-        let next_position = transform.translation - bullet.direction * bullet.speed * time.delta_seconds();
-        
+        let next_position =
+            transform.translation - bullet.direction * bullet.speed * time.delta_seconds();
+
         let mut collision_detected = false;
-        
+
         for collider_transform in collider_query.iter() {
             if collide(
                 next_position,
                 Vec3::new(0.006, 0.2, 0.006),
                 collider_transform.translation,
                 Vec3::new(1.0, 1.0, 1.0),
-            ).is_some() {
+            )
+            .is_some()
+            {
                 collision_detected = true;
                 println!("Bullet stopped: hit wall");
                 break;
@@ -399,7 +474,9 @@ pub fn update_bullets(
                     Vec3::new(0.006, 0.2, 0.006),
                     house_transform.translation,
                     Vec3::new(3.0, 2.5, 3.0),
-                ).is_some() {
+                )
+                .is_some()
+                {
                     collision_detected = true;
                     println!("Bullet stopped: hit house");
                     break;
@@ -413,7 +490,7 @@ pub fn update_bullets(
         } else {
             // Mettre à jour la position si pas de collision
             transform.translation = next_position;
-            
+
             add_line_segment(
                 &mut commands,
                 &mut meshes,
@@ -425,8 +502,18 @@ pub fn update_bullets(
     }
 }
 
-pub fn add_line_segment(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, start: Vec3, end: Vec3) {
-    let line_mesh = meshes.add(Mesh::from(Cuboid::new(0.002, 0.002, (end - start).length())));
+pub fn add_line_segment(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
+    start: Vec3,
+    end: Vec3,
+) {
+    let line_mesh = meshes.add(Mesh::from(Cuboid::new(
+        0.002,
+        0.002,
+        (end - start).length(),
+    )));
     let line_material = materials.add(StandardMaterial {
         base_color: Color::srgb(1.0, 0.0, 0.0),
         ..Default::default()
