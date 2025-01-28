@@ -27,7 +27,7 @@ use bevy::time::{Time, Timer, TimerMode};
 use bevy::utils::default;
 use bevy::window::{CursorGrabMode, Window};
 
-pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>>, mut motion_evr: EventReader<MouseMotion>, mut movement: ResMut<PlayerMovement>, _obstacle_positions: Res<ObstaclePositions>, network: Option<Res<NetworkConfig>>, mut sequence_number: Local<u32>, mut query: Query<&mut Transform, With<PlayersComponent>>, collider_query: Query<&Transform, (With<Collider>, Without<PlayersComponent>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<PlayersComponent>)>, bullet_query: Query<&Transform, (With<Bullet>, Without<PlayersComponent>)>,maze_state: Res<MazeState>, players: ResMut<Players>, game_status: ResMut<GameStatus>) {
+pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>>, mut motion_evr: EventReader<MouseMotion>, mut movement: ResMut<PlayerMovement>, _obstacle_positions: Res<ObstaclePositions>, network: Option<Res<NetworkConfig>>, mut sequence_number: Local<u32>, mut query: Query<&mut Transform, With<PlayersComponent>>, collider_query: Query<&Transform, (With<Collider>, Without<PlayersComponent>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<PlayersComponent>)>, bullet_query: Query<&Transform, (With<Bullet>, Without<PlayersComponent>)>, maze_state: Res<MazeState>, players: ResMut<Players>, game_status: ResMut<GameStatus>) {
     if !maze_state.is_ready {
         return;
     }
@@ -48,13 +48,23 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
         ready: false,
     };
 
-    if input.arrow_up || input.arrow_down || input.arrow_left || input.arrow_right || mouse_delta != Vec2::ZERO {
+    if input.arrow_up
+        || input.arrow_down
+        || input.arrow_left
+        || input.arrow_right
+        || mouse_delta != Vec2::ZERO
+    {
         *sequence_number += 1;
         let delta_time = time.delta_seconds();
         if let Ok(mut transform) = query.get_single_mut() {
             let new_transform = transform.clone();
             apply_input(&mut transform, &input, &movement, delta_time);
-            if check_collisions(&transform, &collider_query, &house_collider_query,&bullet_query) {
+            if check_collisions(
+                &transform,
+                &collider_query,
+                &house_collider_query,
+                &bullet_query,
+            ) {
                 *transform = new_transform;
             } else {
                 movement.position = transform.translation;
@@ -162,7 +172,8 @@ pub fn apply_input(transform: &mut Transform, input: &PlayerInput, movement: &Pl
 }
 
 // permet de changer la vue de la camera
-pub fn camera_view_toggle(keyboard_input: Res<ButtonInput<KeyCode>>, mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<PlayersComponent>)>, mut camera_state: ResMut<CameraState>) { if keyboard_input.just_pressed(KeyCode::KeyV) {
+pub fn camera_view_toggle(keyboard_input: Res<ButtonInput<KeyCode>>, mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<PlayersComponent>)>, mut camera_state: ResMut<CameraState>) {
+    if keyboard_input.just_pressed(KeyCode::KeyV) {
         camera_state.is_top_view = !camera_state.is_top_view;
         if let Ok(mut camera_transform) = camera_query.get_single_mut() {
             if camera_state.is_top_view {
@@ -233,7 +244,7 @@ pub fn check_collisions(player_transform: &Transform, collider_query: &Query<&Tr
     //                 transform.translation,
     //                 Vec3::new(0.6, 1.0, 0.6),
     //                 bullet_transform.translation,
-    //                 Vec3::new(0.1, 0.5, 0.0), 
+    //                 Vec3::new(0.1, 0.5, 0.0),
     //             )
     //             .is_some()
     //             {
@@ -247,9 +258,26 @@ pub fn check_collisions(player_transform: &Transform, collider_query: &Query<&Tr
     false
 }
 
-pub fn check_bullet_collisions(mut commands: Commands, bullet_query: Query<(Entity, &Transform), With<Bullet>>, collider_query: Query<&Transform, (With<Collider>, Without<Bullet>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Bullet>)>) {
+pub fn check_bullet_collisions(mut commands: Commands, bullet_query: Query<(Entity, &Transform), With<Bullet>>, collider_query: Query<&Transform, (With<Collider>, Without<Bullet>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Bullet>)>, remote_players: ResMut<RemotePlayers>, mut query: Query<&Transform>) {
     for (bullet_entity, bullet_transform) in bullet_query.iter() {
         let mut should_despawn = false;
+            for (name, entity) in remote_players.0.iter() {
+                println!("name {}", name);
+                if let Ok(transform) = query.get_mut(*entity) {
+                    if collide(
+                        bullet_transform.translation,
+                        Vec3::new(0.006, 0.2, 0.006),
+                        transform.translation,
+                        Vec3::new(0.6, 1.0, 0.6),
+                    )
+                    .is_some()
+                    {
+                        should_despawn = true;
+                        println!("Bullet hit a player");
+                        break;
+                    }
+            }
+        }
 
         // Check collisions with walls
         for collider_transform in collider_query.iter() {
@@ -258,7 +286,9 @@ pub fn check_bullet_collisions(mut commands: Commands, bullet_query: Query<(Enti
                 Vec3::new(0.006, 0.2, 0.006),
                 collider_transform.translation,
                 Vec3::new(1.0, 1.0, 1.0),
-            ).is_some() {
+            )
+            .is_some()
+            {
                 should_despawn = true;
                 println!("Bullet hit a wall");
                 break;
@@ -273,7 +303,9 @@ pub fn check_bullet_collisions(mut commands: Commands, bullet_query: Query<(Enti
                     Vec3::new(0.006, 0.2, 0.006),
                     house_transform.translation,
                     Vec3::new(3.0, 2.5, 3.0),
-                ).is_some() {
+                )
+                .is_some()
+                {
                     should_despawn = true;
                     println!("Bullet hit a house");
                     break;
@@ -354,17 +386,20 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
 pub fn update_bullets(time: Res<Time>, mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>, mut bullet_query: Query<(Entity, &mut Transform, &Bullet)>, collider_query: Query<&Transform, (With<Collider>, Without<Bullet>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Bullet>)>) {
     for (bullet_entity, mut transform, bullet) in bullet_query.iter_mut() {
         let previous_position = transform.translation.clone();
-        let next_position = transform.translation - bullet.direction * bullet.speed * time.delta_seconds();
-        
+        let next_position =
+            transform.translation - bullet.direction * bullet.speed * time.delta_seconds();
+
         let mut collision_detected = false;
-        
+
         for collider_transform in collider_query.iter() {
             if collide(
                 next_position,
                 Vec3::new(0.006, 0.2, 0.006),
                 collider_transform.translation,
                 Vec3::new(1.0, 1.0, 1.0),
-            ).is_some() {
+            )
+            .is_some()
+            {
                 collision_detected = true;
                 println!("Bullet stopped: hit wall");
                 break;
@@ -378,7 +413,9 @@ pub fn update_bullets(time: Res<Time>, mut commands: Commands, mut meshes: ResMu
                     Vec3::new(0.006, 0.2, 0.006),
                     house_transform.translation,
                     Vec3::new(3.0, 2.5, 3.0),
-                ).is_some() {
+                )
+                .is_some()
+                {
                     collision_detected = true;
                     println!("Bullet stopped: hit house");
                     break;
@@ -429,7 +466,6 @@ pub fn add_line_segment(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh
 
     line_entity
 }
-
 
 pub fn despawn_after_time(time: Res<Time>, mut commands: Commands, mut query: Query<(Entity, &mut LineTimer)>) {
     for (entity, mut timer) in query.iter_mut() {
