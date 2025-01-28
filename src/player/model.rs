@@ -53,7 +53,7 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, preload_player_assets)
-            .add_systems(Update, (setup_player_animation, handle_keyboard_animation));
+            .add_systems(Update, setup_player_animation);
     }
 }
 
@@ -75,7 +75,10 @@ pub struct RemotePlayers(pub HashMap<String, Entity>);
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct PlayerInput {
     pub arrow_up: bool,
+    pub arrow_up_release: bool,
     pub arrow_down: bool,
+    pub key_space: bool,
+    pub key_space_release: bool,
     pub arrow_left: bool,
     pub arrow_right: bool,
     pub mouse_delta: Vec2,

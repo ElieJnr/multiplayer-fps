@@ -7,7 +7,9 @@ use crate::maze::barre_etat::GameStatus;
 use crate::maze::models::*;
 use crate::maze::models::{Collider, ColliderHouse, MazeState, ObstaclePositions};
 use crate::player::model::*;
+use crate::player::player::handle_keyboard_animation;
 use crate::utils::logger::display_info;
+use bevy::ecs::entity::Entity;
 use bevy::input::mouse::MouseMotion;
 use bevy::input::ButtonInput;
 use bevy::math::{EulerRot, Quat, Vec2, Vec3};
@@ -15,12 +17,30 @@ use bevy::prelude::{
     AnimationPlayer, Camera3d, Commands, EventReader, KeyCode, Local, Query, Res, ResMut,
     Transform, With, Without,
 };
+
 use bevy::scene::SceneBundle;
 use bevy::time::Time;
 use bevy::utils::default;
 use bevy::window::{CursorGrabMode, Window};
 
-pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>>, mut motion_evr: EventReader<MouseMotion>, mut movement: ResMut<PlayerMovement>, _obstacle_positions: Res<ObstaclePositions>, network: Option<Res<NetworkConfig>>, mut sequence_number: Local<u32>, mut query: Query<&mut Transform, With<PlayersComponent>>, collider_query: Query<&Transform, (With<Collider>, Without<PlayersComponent>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<PlayersComponent>)>, maze_state: Res<MazeState>, players: ResMut<Players>, game_status: ResMut<GameStatus>) {
+pub fn player_movement(
+    time: Res<Time>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut motion_evr: EventReader<MouseMotion>,
+    mut movement: ResMut<PlayerMovement>,
+    _obstacle_positions: Res<ObstaclePositions>,
+    network: Option<Res<NetworkConfig>>,
+    mut sequence_number: Local<u32>,
+    mut query: Query<&mut Transform, With<PlayersComponent>>,
+    collider_query: Query<&Transform, (With<Collider>, Without<PlayersComponent>)>,
+    house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<PlayersComponent>)>,
+    maze_state: Res<MazeState>,
+    players: ResMut<Players>,
+    game_status: ResMut<GameStatus>,
+    animations: ResMut<PlayerAnimations>,
+    animation_players: Query<&mut AnimationPlayer>,
+    animation_query: Query<(Entity, &mut AnimationState)>,
+) {
     if !maze_state.is_ready {
         return;
     }
@@ -34,19 +54,31 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
 
     let input = PlayerInput {
         arrow_up: keyboard_input.pressed(KeyCode::KeyW),
+        arrow_up_release: keyboard_input.just_released(KeyCode::KeyW),
         arrow_down: keyboard_input.pressed(KeyCode::KeyS),
+        key_space: keyboard_input.pressed(KeyCode::Space),
+        key_space_release: keyboard_input.just_released(KeyCode::Space),
         arrow_left: keyboard_input.pressed(KeyCode::KeyA),
         arrow_right: keyboard_input.pressed(KeyCode::KeyD),
         mouse_delta,
         ready: false,
     };
+    if input.key_space || input.key_space_release {
+        handle_keyboard_animation( animation_query, animations, animation_players);
+    }
 
-    if input.arrow_up || input.arrow_down || input.arrow_left || input.arrow_right || mouse_delta != Vec2::ZERO {
+    if input.arrow_up
+        || input.arrow_down
+        || input.arrow_left
+        || input.arrow_right
+        || mouse_delta != Vec2::ZERO
+    {
         *sequence_number += 1;
         let delta_time = time.delta_seconds();
         if let Ok(mut transform) = query.get_single_mut() {
             let new_transform = transform.clone();
             apply_input(&mut transform, &input, &movement, delta_time);
+
             if check_collisions(&transform, &collider_query, &house_collider_query) {
                 *transform = new_transform;
             } else {
@@ -82,7 +114,13 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
     }
 }
 
-fn simulation_tir(keyboard_input: &Res<'_, ButtonInput<KeyCode>>, network: &Option<Res<'_, NetworkConfig>>, query: &mut Query<'_, '_, &mut Transform, With<PlayersComponent>>, mut players: ResMut<'_, Players>, mut game_status: ResMut<GameStatus>) {
+fn simulation_tir(
+    keyboard_input: &Res<'_, ButtonInput<KeyCode>>,
+    network: &Option<Res<'_, NetworkConfig>>,
+    query: &mut Query<'_, '_, &mut Transform, With<PlayersComponent>>,
+    mut players: ResMut<'_, Players>,
+    mut game_status: ResMut<GameStatus>,
+) {
     if keyboard_input.just_pressed(KeyCode::KeyT) {
         display_info("KeyT pressed, entering simulation_tir function");
 
@@ -134,7 +172,12 @@ fn simulation_tir(keyboard_input: &Res<'_, ButtonInput<KeyCode>>, network: &Opti
     }
 }
 
-pub fn apply_input(transform: &mut Transform, input: &PlayerInput, movement: &PlayerMovement, delta_time: f32) {
+pub fn apply_input(
+    transform: &mut Transform,
+    input: &PlayerInput,
+    movement: &PlayerMovement,
+    delta_time: f32,
+) {
     let forward = transform.forward();
     if input.arrow_up {
         transform.translation -= forward * movement.speed * delta_time;
@@ -155,7 +198,12 @@ pub fn apply_input(transform: &mut Transform, input: &PlayerInput, movement: &Pl
 }
 
 // permet de changer la vue de la camera
-pub fn camera_view_toggle(keyboard_input: Res<ButtonInput<KeyCode>>, mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<PlayersComponent>)>, mut camera_state: ResMut<CameraState>) { if keyboard_input.just_pressed(KeyCode::KeyV) {
+pub fn camera_view_toggle(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<PlayersComponent>)>,
+    mut camera_state: ResMut<CameraState>,
+) {
+    if keyboard_input.just_pressed(KeyCode::KeyV) {
         camera_state.is_top_view = !camera_state.is_top_view;
         if let Ok(mut camera_transform) = camera_query.get_single_mut() {
             if camera_state.is_top_view {
@@ -175,7 +223,10 @@ pub fn camera_view_toggle(keyboard_input: Res<ButtonInput<KeyCode>>, mut camera_
 }
 
 // permet de rendre visible et invisible la souris avec la touche space
-pub fn toggle_cursor_lock(keyboard_input: Res<ButtonInput<KeyCode>>, mut windows: Query<&mut Window>) {
+pub fn toggle_cursor_lock(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut windows: Query<&mut Window>,
+) {
     if keyboard_input.just_pressed(KeyCode::Space) {
         if let Ok(mut window) = windows.get_single_mut() {
             if window.cursor.grab_mode == CursorGrabMode::Locked {
@@ -189,7 +240,11 @@ pub fn toggle_cursor_lock(keyboard_input: Res<ButtonInput<KeyCode>>, mut windows
     }
 }
 
-pub fn check_collisions(player_transform: &Transform, collider_query: &Query<&Transform, (With<Collider>, Without<PlayersComponent>)>, house_collider_query: &Query<&Transform, (With<ColliderHouse>, Without<PlayersComponent>)>) -> bool {
+pub fn check_collisions(
+    player_transform: &Transform,
+    collider_query: &Query<&Transform, (With<Collider>, Without<PlayersComponent>)>,
+    house_collider_query: &Query<&Transform, (With<ColliderHouse>, Without<PlayersComponent>)>,
+) -> bool {
     for collider_transform in collider_query.iter() {
         if collide(
             player_transform.translation,
@@ -228,7 +283,15 @@ fn collide(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
     }
 }
 
-pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<PreloadedEnemyAnimations>, enemy_graph: Res<EnemyAnimations>, mut remote_players: ResMut<RemotePlayers>, network: Res<NetworkConfig>, mut messages: ResMut<NetworkMessages>, mut query: Query<&mut Transform>) {
+pub fn manage_remote_players(
+    mut commands: Commands,
+    enemy_animations: Res<PreloadedEnemyAnimations>,
+    enemy_graph: Res<EnemyAnimations>,
+    mut remote_players: ResMut<RemotePlayers>,
+    network: Res<NetworkConfig>,
+    mut messages: ResMut<NetworkMessages>,
+    mut query: Query<&mut Transform>,
+) {
     while let Some(message) = messages.0.pop_front() {
         if let MessageContent::GameUpdate {
             position: (x, z),

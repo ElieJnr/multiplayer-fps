@@ -152,7 +152,10 @@ pub fn send_ready_msg(config: &NetworkConfig, player_name: &str) {
         content: MessageContent::PlayerAction {
             action: PlayerInput {
                 arrow_up: false,
+                arrow_up_release: false,
                 arrow_down: false,
+                key_space: false,
+                key_space_release: false,
                 arrow_left: false,
                 arrow_right: false,
                 mouse_delta: Vec2::default(),
