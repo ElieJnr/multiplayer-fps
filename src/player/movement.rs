@@ -10,6 +10,8 @@ use crate::player::model::*;
 use crate::utils::logger::display_info;
 use bevy::asset::Assets;
 use bevy::color::Color;
+use bevy::ecs::entity::Entity;
+use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::input::mouse::MouseMotion;
 use bevy::input::ButtonInput;
 use bevy::math::primitives::Cuboid;
@@ -228,38 +230,6 @@ pub fn check_collisions(
         }
     }
 
-    for bullet_transform in bullet_query.iter() {
-        for collider_transform in collider_query.iter() {
-            if collide(
-                bullet_transform.translation,
-                Vec3::new(0.006, 0.2, 0.006), // Updated bullet size
-                collider_transform.translation,
-                Vec3::new(1.0, 1.0, 1.0), // House size
-            )
-            .is_some()
-            {
-                println!("Bullet hit a wall");
-                return true;
-            }
-        }
-    }
-
-    for bullet_transform in bullet_query.iter() {
-        for house_collider_transform in house_collider_query.iter() {
-            if collide(
-                bullet_transform.translation,
-                Vec3::new(0.006, 0.2, 0.006), // Updated bullet size
-                house_collider_transform.translation,
-                Vec3::new(3.0, 2.5, 3.0), // House size
-            )
-            .is_some()
-            {
-                println!("Bullet hit a house");
-                return true;
-            }
-        }
-    }
-
     // Check collision with bullets
     // for bullet_transform in bullet_query.iter() {
     //     for (_e, f) in remote_players.0.iter(){
@@ -280,6 +250,52 @@ pub fn check_collisions(
     // }
 
     false
+}
+
+pub fn check_bullet_collisions(
+    mut commands: Commands,
+    bullet_query: Query<(Entity, &Transform), With<Bullet>>,
+    collider_query: Query<&Transform, (With<Collider>, Without<Bullet>)>,
+    house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Bullet>)>,
+) {
+    for (bullet_entity, bullet_transform) in bullet_query.iter() {
+        let mut should_despawn = false;
+
+        // Check collisions with walls
+        for collider_transform in collider_query.iter() {
+            if collide(
+                bullet_transform.translation,
+                Vec3::new(0.006, 0.2, 0.006),
+                collider_transform.translation,
+                Vec3::new(1.0, 1.0, 1.0),
+            ).is_some() {
+                should_despawn = true;
+                println!("Bullet hit a wall");
+                break;
+            }
+        }
+
+        // Check collisions with houses
+        if !should_despawn {
+            for house_transform in house_collider_query.iter() {
+                if collide(
+                    bullet_transform.translation,
+                    Vec3::new(0.006, 0.2, 0.006),
+                    house_transform.translation,
+                    Vec3::new(3.0, 2.5, 3.0),
+                ).is_some() {
+                    should_despawn = true;
+                    println!("Bullet hit a house");
+                    break;
+                }
+            }
+        }
+
+        // Despawn the bullet if it hit something
+        if should_despawn {
+            commands.entity(bullet_entity).despawn_recursive();
+        }
+    }
 }
 
 
@@ -346,17 +362,64 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
     }
 }
 
-pub fn update_bullets(time: Res<Time>, mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>, mut query: Query<(&mut Transform, &Bullet)>) {
-    for (mut transform, bullet) in query.iter_mut() {
-        let previous_position = transform.translation;
-        transform.translation -= bullet.direction * bullet.speed * time.delta_seconds();
-        add_line_segment(
-            &mut commands,
-            &mut meshes,
-            &mut materials,
-            previous_position,
-            transform.translation,
-        );
+pub fn update_bullets(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut bullet_query: Query<(Entity, &mut Transform, &Bullet)>,
+    collider_query: Query<&Transform, (With<Collider>, Without<Bullet>)>,
+    house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Bullet>)>,
+) {
+    for (bullet_entity, mut transform, bullet) in bullet_query.iter_mut() {
+        let previous_position = transform.translation.clone();
+        let next_position = transform.translation - bullet.direction * bullet.speed * time.delta_seconds();
+        
+        let mut collision_detected = false;
+        
+        for collider_transform in collider_query.iter() {
+            if collide(
+                next_position,
+                Vec3::new(0.006, 0.2, 0.006),
+                collider_transform.translation,
+                Vec3::new(1.0, 1.0, 1.0),
+            ).is_some() {
+                collision_detected = true;
+                println!("Bullet stopped: hit wall");
+                break;
+            }
+        }
+
+        if !collision_detected {
+            for house_transform in house_collider_query.iter() {
+                if collide(
+                    next_position,
+                    Vec3::new(0.006, 0.2, 0.006),
+                    house_transform.translation,
+                    Vec3::new(3.0, 2.5, 3.0),
+                ).is_some() {
+                    collision_detected = true;
+                    println!("Bullet stopped: hit house");
+                    break;
+                }
+            }
+        }
+
+        if collision_detected {
+            // Despawn la balle si elle entre en collision
+            commands.entity(bullet_entity).despawn_recursive();
+        } else {
+            // Mettre à jour la position si pas de collision
+            transform.translation = next_position;
+            
+            add_line_segment(
+                &mut commands,
+                &mut meshes,
+                &mut materials,
+                previous_position,
+                transform.translation,
+            );
+        }
     }
 }
 

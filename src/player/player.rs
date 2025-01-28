@@ -253,7 +253,7 @@ pub fn shoot_bullet(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, 
         },
         Bullet {
             direction: *bullet_direction,
-            speed: 50.0,
+            speed: 25.0,
         },
     ));
 }
