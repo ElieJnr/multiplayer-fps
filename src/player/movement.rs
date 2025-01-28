@@ -291,6 +291,8 @@ pub fn check_bullet_collisions(
             }
         }
 
+        
+
         // Despawn the bullet if it hit something
         if should_despawn {
             commands.entity(bullet_entity).despawn_recursive();
