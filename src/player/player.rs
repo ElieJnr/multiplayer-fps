@@ -56,12 +56,12 @@ fn handle_animation(
     animations: &PlayerAnimations,
     animation_players: &mut Query<&mut AnimationPlayer>,
 ) {
-    let player_entity = match animations.animation_player_entity {
-        Some(entity) => entity,
-        None => return,
-    };
+    // let player_entity = match animations.animation_player_entity {
+    //     Some(entity) => entity,
+    //     None => return,
+    // };
 
-    let mut player = match animation_players.get_mut(player_entity) {
+    let mut player = match animation_players.get_mut(animations.player_entity) {
         Ok(player) => player,
         Err(_) => return,
     };
@@ -109,6 +109,7 @@ pub fn setup_player_animation(
     mut commands: Commands,
     mut animations: ResMut<PlayerAnimations>,
     mut animation_players: Query<(Entity, &mut AnimationPlayer), Added<AnimationPlayer>>,
+    // shoot: bool,
 ) {
     for (entity, mut player) in &mut animation_players {
         let transitions = AnimationTransitions::new();
