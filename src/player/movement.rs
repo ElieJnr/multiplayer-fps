@@ -7,7 +7,7 @@ use crate::maze::barre_etat::GameStatus;
 use crate::maze::models::*;
 use crate::maze::models::{Collider, ColliderHouse, MazeState, ObstaclePositions};
 use crate::player::model::*;
-use crate::utils::logger::display_info;
+use bevy::ecs::system::ParamSet;
 use bevy::input::mouse::MouseMotion;
 use bevy::input::ButtonInput;
 use bevy::math::{EulerRot, Quat, Vec2, Vec3};
@@ -19,11 +19,6 @@ use bevy::scene::SceneBundle;
 use bevy::time::Time;
 use bevy::utils::default;
 use bevy::window::{CursorGrabMode, Window};
-use lazy_static::lazy_static;
-use std::sync::Mutex;
-lazy_static! {
-    static ref GLOBAL_PLAYERS: Mutex<Players> = Mutex::new(Players::default());
-}
 
 pub fn player_movement(
     time: Res<Time>,
@@ -132,15 +127,9 @@ fn simulation_tir(
     game_status: &mut ResMut<GameStatus>,
     players: &mut ResMut<Players>,
 ) {
-    let players_debug = format!("Players {:?}", players);
-    println!("{}", players_debug);
-    
     if let Some(player) = players.0.get_mut(player_name) {
         if game_status.player_health > 0. {
             game_status.player_health -= 0.2;
-
-            println!("Game status health: {}", game_status.player_health);
-            display_info(player_name);
 
             if player.health <= 0 {
                 query.iter_mut().for_each(|mut transform| {
@@ -276,6 +265,7 @@ fn collide(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
         None
     }
 }
+
 pub fn manage_remote_players(
     mut commands: Commands,
     enemy_animations: Res<PreloadedEnemyAnimations>,
@@ -284,9 +274,12 @@ pub fn manage_remote_players(
     network: Res<NetworkConfig>,
     mut messages: ResMut<NetworkMessages>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut query: Query<&mut Transform, With<PlayersComponent>>,
+    mut query_set: ParamSet<(
+        Query<&mut Transform>,
+        Query<&mut Transform, With<PlayersComponent>>,
+    )>,
     mut game_status: ResMut<GameStatus>,
-    mut players: ResMut<Players>, // Ajoutez cette ressource
+    mut players: ResMut<Players>,
 ) {
     while let Some(message) = messages.0.pop_front() {
         match &message.content {
@@ -302,11 +295,13 @@ pub fn manage_remote_players(
                 }
 
                 if let Some(&entity) = remote_players.0.get(player_name) {
-                    if let Ok(mut transform) = query.get_mut(entity) {
-                        transform.translation.x = *x;
-                        transform.translation.z = *z;
-                        transform.translation.y = 0.0;
-                        transform.rotate_y(-mouse_delta.x * 0.003);
+                    if let Ok(_transform) = query_set.p0().get_mut(entity) {
+                        if let Ok(mut transform) = query_set.p0().get_mut(entity) {
+                            transform.translation.x = *x;
+                            transform.translation.z = *z;
+                            transform.translation.y = 0.0;
+                            transform.rotate_y(-mouse_delta.x * 0.003);
+                        }
                     }
                 } else {
                     let remote_player = commands
@@ -350,7 +345,7 @@ pub fn manage_remote_players(
         simulation_tir(
             &network.player_name,
             Some(&network),
-            &mut query,
+            &mut query_set.p1(),
             &mut game_status,
             &mut players,
         );
