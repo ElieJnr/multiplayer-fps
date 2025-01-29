@@ -486,13 +486,36 @@ pub fn update_bullets(
     mut bullet_query: Query<(Entity, &mut Transform, &Bullet)>,
     collider_query: Query<&Transform, (With<Collider>, Without<Bullet>)>,
     house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Bullet>)>,
+    remote_players: ResMut<RemotePlayers>,
+    mut query: Query<&mut Transform>,
 ) {
     for (bullet_entity, mut transform, bullet) in bullet_query.iter_mut() {
         let previous_position = transform.translation.clone();
         let next_position =
             transform.translation - bullet.direction * bullet.speed * time.delta_seconds();
 
-        let mut collision_detected = false;
+            let mut collision_detected = false;
+        
+
+            for (name, entity) in remote_players.0.iter() {
+                println!("name {}", name);
+                if let Ok(transform) = query.get_mut(*entity) {
+                    if collide(
+                        next_position,
+                        Vec3::new(0.006, 0.2, 0.006),
+                        transform.translation,
+                        Vec3::new(0.6, 1.0, 0.6),
+                    )
+                    .is_some()
+                    {
+                        collision_detected = true;
+                        println!("Bullet hit a player");
+                        break;
+                    }
+            }
+        }
+
+
 
         for collider_transform in collider_query.iter() {
             if collide(
