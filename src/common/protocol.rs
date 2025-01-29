@@ -151,6 +151,7 @@ pub fn send_ready_msg(config: &NetworkConfig, player_name: &str) {
                 arrow_right: false,
                 mouse_delta: Vec2::default(),
                 ready: true,
+                shoot: false,
             },
             sequence_number: Default::default(),
             timestamp: Default::default(),

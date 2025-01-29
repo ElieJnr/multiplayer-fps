@@ -12,7 +12,7 @@ use bevy::asset::Assets;
 use bevy::color::Color;
 use bevy::ecs::entity::Entity;
 use bevy::hierarchy::DespawnRecursiveExt;
-use bevy::input::mouse::MouseMotion;
+use bevy::input::mouse::{MouseButton, MouseButtonInput, MouseMotion};
 use bevy::input::ButtonInput;
 use bevy::math::primitives::Cuboid;
 use bevy::math::{EulerRot, Quat, Vec2, Vec3};
@@ -28,6 +28,7 @@ use bevy::utils::default;
 use bevy::window::{CursorGrabMode, Window};
 
 pub fn player_movement(
+    mut commands: Commands,
     time: Res<Time>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut motion_evr: EventReader<MouseMotion>,
@@ -61,7 +62,44 @@ pub fn player_movement(
         arrow_right: keyboard_input.pressed(KeyCode::KeyD),
         mouse_delta,
         ready: false,
+        shoot: keyboard_input.pressed(KeyCode::Space),
     };
+
+    if input.shoot {
+        if let Ok(transform) = query.get_single_mut() {
+            let player_transform = transform.clone();
+            let bullet_direction = player_transform.forward();
+            let bullet_speed = 10.0;
+            let _bullet_entity = commands
+                .spawn((
+                    Transform {
+                        translation: player_transform.translation,
+                        rotation: player_transform.rotation,
+                        ..Default::default()
+                    },
+                    Bullet {
+                        direction: *bullet_direction,
+                        speed: bullet_speed,
+                    },
+                ))
+                .id();
+
+                if let Some(network) = network.as_ref() {
+                    let message = GameMessage {
+                        message_type: MessageType::GameUpdate,
+                        sender: network.player_name.clone(),
+                        content: MessageContent::PlayerAction { 
+                            action: input.clone(), 
+                            sequence_number: *sequence_number, 
+                            timestamp: time.elapsed_seconds_f64() 
+                        }
+                    };
+                    if let Some(msg_bytes) = serialize_message(&message) {
+                        let _ = network.client_socket.send(&msg_bytes);
+                    }
+                }
+        }
+    }
 
     if input.arrow_up
         || input.arrow_down
@@ -114,6 +152,9 @@ pub fn player_movement(
     }
 }
 
+
+
+
 fn simulation_tir(
     keyboard_input: &Res<'_, ButtonInput<KeyCode>>,
     network: &Option<Res<'_, NetworkConfig>>,
@@ -121,6 +162,7 @@ fn simulation_tir(
     mut players: ResMut<'_, Players>,
     mut game_status: ResMut<GameStatus>,
 ) {
+
     if keyboard_input.just_pressed(KeyCode::KeyT) {
         display_info("KeyT pressed, entering simulation_tir function");
 
