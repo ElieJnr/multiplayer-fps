@@ -1,15 +1,10 @@
 use super::{model::*, movement::get_player_input};
-use crate::maze::models::PlayersComponent;
+use crate::maze::models::{ColliderEnemy, PlayersComponent};
 use bevy::gltf::GltfAssetLabel;
 use bevy::prelude::*;
 use std::{collections::HashMap, time::Duration};
 
-pub fn handle_keyboard_animation(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    mut query: Query<(Entity, &mut AnimationState)>,
-    animations: ResMut<PlayerAnimations>,
-    mut animation_players: Query<&mut AnimationPlayer>,
-) {
+pub fn handle_keyboard_animation(keyboard: Res<ButtonInput<KeyCode>>, mut query: Query<(Entity, &mut AnimationState)>, animations: ResMut<PlayerAnimations>, mut animation_players: Query<&mut AnimationPlayer>) {
     if let Ok((_entity, mut animation_state)) = query.get_single_mut() {
         let input = get_player_input(keyboard, Vec2::ZERO);
 
@@ -39,11 +34,7 @@ pub fn handle_keyboard_animation(
     }
 }
 
-pub fn setup_player_animation(
-    mut commands: Commands,
-    mut animations: ResMut<PlayerAnimations>,
-    mut animation_players: Query<(Entity, &mut AnimationPlayer), Added<AnimationPlayer>>,
-) {
+pub fn setup_player_animation(mut commands: Commands, mut animations: ResMut<PlayerAnimations>, mut animation_players: Query<(Entity, &mut AnimationPlayer), Added<AnimationPlayer>>) {
     for (entity, mut player) in &mut animation_players {
         // info!("Setting up animation for player entity: {:?}", entity);
         let transitions = AnimationTransitions::new();
@@ -62,11 +53,7 @@ pub fn setup_player_animation(
     }
 }
 
-pub fn preload_player_assets(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    mut animation_graphs: ResMut<Assets<AnimationGraph>>,
-) {
+pub fn preload_player_assets(mut commands: Commands, asset_server: Res<AssetServer>, mut animation_graphs: ResMut<Assets<AnimationGraph>>) {
     preload_assets(
         &mut commands,
         &asset_server,
@@ -95,14 +82,7 @@ pub fn preload_player_assets(
     );
 }
 
-fn preload_assets(
-    commands: &mut Commands,
-    asset_server: &AssetServer,
-    animation_graphs: &mut Assets<AnimationGraph>,
-    model_file: &str,
-    animation_names: Vec<&str>,
-    resource_name: &str,
-) {
+fn preload_assets(commands: &mut Commands, asset_server: &AssetServer, animation_graphs: &mut Assets<AnimationGraph>, model_file: &str, animation_names: Vec<&str>, resource_name: &str) {
     let default_path = format!("{}", env!("CARGO_MANIFEST_DIR"));
     let path = format!("{}/assets/", default_path);
     let model_path = format!("{}{}", path, model_file);
@@ -151,12 +131,7 @@ fn preload_assets(
     }
 }
 
-pub fn create_players(
-    commands: &mut Commands,
-    player_animations: Res<PreloadedPlayerAnimations>,
-    player_graph: Res<PlayerAnimations>,
-    pos: Vec3,
-) {
+pub fn create_players(commands: &mut Commands, player_animations: Res<PreloadedPlayerAnimations>, player_graph: Res<PlayerAnimations>, pos: Vec3) {
     let player_entity = commands
         .spawn((
             SceneBundle {
@@ -190,26 +165,29 @@ pub fn create_players(
     });
 }
 
-pub fn create_bullet(
+pub fn shoot_bullet(
     commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<StandardMaterial>>,
-    position: Vec3,
+    bullet_resources: Res<BulletResources>,
+    camera_transform: &Transform,
 ) {
-    let bullet_mesh = meshes.add(Mesh::from(Cylinder {
-        radius: 0.1,
-        half_height: 0.5,
-        ..Default::default()
-    }));
-    let bullet_material = materials.add(StandardMaterial {
-        base_color: Color::srgb(0.0, 0.0, 1.0),
-        ..Default::default()
-    });
+    let bullet_direction = camera_transform.forward();
+    let bullet_start_position = camera_transform.translation + bullet_direction * -0.2 + Vec3::new(0.0, 0.1, 0.0);
 
-    commands.spawn(PbrBundle {
-        mesh: bullet_mesh,
-        material: bullet_material,
-        transform: Transform::from_translation(position),
-        ..Default::default()
-    });
+    commands.spawn((
+        PbrBundle {
+            mesh: bullet_resources.mesh.clone(),
+            material: bullet_resources.material.clone(),
+            transform: Transform {
+                translation: bullet_start_position,
+                rotation: Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2),
+                ..Default::default()
+            },
+            ..Default::default()
+        },
+        ColliderEnemy,
+        Bullet {
+            direction: *bullet_direction,
+            speed: 2.0,
+        },
+    ));
 }

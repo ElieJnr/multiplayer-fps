@@ -7,6 +7,8 @@ use std::collections::VecDeque;
 pub struct PlayerBuild;
 
 #[derive(Component)]
+pub struct LineTimer(pub Timer);
+#[derive(Component)]
 pub struct AnimationState {
     pub current_animation: String,
 }
@@ -124,4 +126,21 @@ impl PlayerMovement {
     pub fn set_position(&mut self, new_position: Vec3) {
         self.position = new_position;
     }
+}
+
+#[derive(Component, Resource)]
+pub struct Bullet {
+    pub direction: Vec3,
+    pub speed: f32,
+}
+
+#[derive(Component, Resource)]
+pub struct SmokeParticle {
+    pub lifetime: f32,
+}
+
+#[derive(Default, Component, Resource)]
+pub struct BulletResources {
+    pub mesh: Handle<Mesh>,
+    pub material: Handle<StandardMaterial>,
 }

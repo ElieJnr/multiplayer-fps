@@ -8,31 +8,28 @@ use crate::maze::models::*;
 use crate::maze::models::{Collider, ColliderHouse, MazeState, ObstaclePositions};
 use crate::player::model::*;
 use bevy::ecs::system::ParamSet;
+use bevy::asset::Assets;
+use bevy::color::Color;
+use bevy::ecs::entity::Entity;
+use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::input::mouse::MouseMotion;
 use bevy::input::ButtonInput;
+use bevy::math::primitives::Cuboid;
 use bevy::math::{EulerRot, Quat, Vec2, Vec3};
+use bevy::pbr::{PbrBundle, StandardMaterial};
 use bevy::prelude::{
     AnimationPlayer, Camera3d, Commands, EventReader, KeyCode, Local, Query, Res, ResMut,
     Transform, With, Without,
 };
+use bevy::render::mesh::Mesh;
 use bevy::scene::SceneBundle;
-use bevy::time::Time;
+use bevy::time::{Time, Timer, TimerMode};
 use bevy::utils::default;
 use bevy::window::{CursorGrabMode, Window};
 
-pub fn player_movement(
-    time: Res<Time>,
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut motion_evr: EventReader<MouseMotion>,
-    mut movement: ResMut<PlayerMovement>,
-    _obstacle_positions: Res<ObstaclePositions>,
-    network: Option<Res<NetworkConfig>>,
-    mut sequence_number: Local<u32>,
-    mut query: Query<&mut Transform, With<PlayersComponent>>,
-    collider_query: Query<&Transform, (With<Collider>, Without<PlayersComponent>)>,
-    house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<PlayersComponent>)>,
-    maze_state: Res<MazeState>,
-) {
+use super::player::shoot_bullet;
+
+pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>>, mut motion_evr: EventReader<MouseMotion>, mut movement: ResMut<PlayerMovement>, _obstacle_positions: Res<ObstaclePositions>, network: Option<Res<NetworkConfig>>, mut sequence_number: Local<u32>, mut query: Query<&mut Transform, With<PlayersComponent>>, collider_query: Query<&Transform, (With<Collider>, Without<PlayersComponent>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<PlayersComponent>)>, bullet_query: Query<&Transform, (With<Bullet>, Without<PlayersComponent>)>, maze_state: Res<MazeState>) {
     if !maze_state.is_ready {
         return;
     }
@@ -56,7 +53,12 @@ pub fn player_movement(
         if let Ok(mut transform) = query.get_single_mut() {
             let new_transform = transform.clone();
             apply_input(&mut transform, &input, &movement, delta_time);
-            if check_collisions(&transform, &collider_query, &house_collider_query) {
+            if check_collisions(
+                &transform,
+                &collider_query,
+                &house_collider_query,
+                &bullet_query,
+            ) {
                 *transform = new_transform;
             } else {
                 movement.position = transform.translation;
@@ -223,11 +225,8 @@ pub fn toggle_cursor_lock(
     }
 }
 
-pub fn check_collisions(
-    player_transform: &Transform,
-    collider_query: &Query<&Transform, (With<Collider>, Without<PlayersComponent>)>,
-    house_collider_query: &Query<&Transform, (With<ColliderHouse>, Without<PlayersComponent>)>,
-) -> bool {
+pub fn check_collisions(player_transform: &Transform, collider_query: &Query<&Transform, (With<Collider>, Without<PlayersComponent>)>, house_collider_query: &Query<&Transform, (With<ColliderHouse>, Without<PlayersComponent>)>, _bullet_query: &Query<&Transform, (With<Bullet>, Without<PlayersComponent>)>) -> bool {
+    // Check collision with other colliders
     for collider_transform in collider_query.iter() {
         if collide(
             player_transform.translation,
@@ -240,6 +239,8 @@ pub fn check_collisions(
             return true;
         }
     }
+
+    // Check collision with house colliders
     for house_collider_transform in house_collider_query.iter() {
         if collide(
             player_transform.translation,
@@ -252,7 +253,89 @@ pub fn check_collisions(
             return true;
         }
     }
+
+    // Check collision with bullets
+    // for bullet_transform in bullet_query.iter() {
+    //     for (_e, f) in remote_players.0.iter(){
+    //         if let Ok(transform) = query.get_mut(*f) {
+    //             if collide(
+    //                 transform.translation,
+    //                 Vec3::new(0.6, 1.0, 0.6),
+    //                 bullet_transform.translation,
+    //                 Vec3::new(0.1, 0.5, 0.0),
+    //             )
+    //             .is_some()
+    //             {
+    //                 println!("player hitttttttt");
+    //                 return true;
+    //             }
+    //         }
+    //     }
+    // }
+
     false
+}
+
+pub fn check_bullet_collisions(mut commands: Commands, bullet_query: Query<(Entity, &Transform), With<Bullet>>, collider_query: Query<&Transform, (With<Collider>, Without<Bullet>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Bullet>)>, remote_players: ResMut<RemotePlayers>, mut query: Query<&Transform>) {
+    for (bullet_entity, bullet_transform) in bullet_query.iter() {
+        let mut should_despawn = false;
+            for (name, entity) in remote_players.0.iter() {
+                println!("name {}", name);
+                if let Ok(transform) = query.get_mut(*entity) {
+                    if collide(
+                        bullet_transform.translation,
+                        Vec3::new(0.006, 0.2, 0.006),
+                        transform.translation,
+                        Vec3::new(0.6, 1.0, 0.6),
+                    )
+                    .is_some()
+                    {
+                        should_despawn = true;
+                        println!("Bullet hit a player");
+                        break;
+                    }
+            }
+        }
+
+        // Check collisions with walls
+        for collider_transform in collider_query.iter() {
+            if collide(
+                bullet_transform.translation,
+                Vec3::new(0.006, 0.2, 0.006),
+                collider_transform.translation,
+                Vec3::new(1.0, 1.0, 1.0),
+            )
+            .is_some()
+            {
+                should_despawn = true;
+                println!("Bullet hit a wall");
+                break;
+            }
+        }
+
+        // Check collisions with houses
+        if !should_despawn {
+            for house_transform in house_collider_query.iter() {
+                if collide(
+                    bullet_transform.translation,
+                    Vec3::new(0.006, 0.2, 0.006),
+                    house_transform.translation,
+                    Vec3::new(3.0, 2.5, 3.0),
+                )
+                .is_some()
+                {
+                    should_despawn = true;
+                    println!("Bullet hit a house");
+                    break;
+                }
+            }
+        }
+
+        // Despawn the bullet if it hit something
+        if should_despawn {
+            commands.entity(bullet_entity).despawn_recursive();
+        }
+    }
 }
 
 fn collide(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
@@ -349,5 +432,110 @@ pub fn manage_remote_players(
             &mut game_status,
             &mut players,
         );
+    }
+}
+
+pub fn manage_shoot_logic(keyboard: Res<ButtonInput<KeyCode>>, mut commands: Commands, bullet_resources: Res<BulletResources>, player_transform_query: Query<&Transform, With<PlayersComponent>>, maze_state: Res<MazeState>) {
+    if !maze_state.is_ready {
+        return;
+    }
+
+    if keyboard.pressed(KeyCode::Space) {
+        if let Ok(camera_transform) = player_transform_query.get_single() {
+            shoot_bullet(&mut commands, bullet_resources, &camera_transform);
+        }
+    }
+}
+
+pub fn update_bullets(time: Res<Time>, mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>, mut bullet_query: Query<(Entity, &mut Transform, &Bullet)>, collider_query: Query<&Transform, (With<Collider>, Without<Bullet>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Bullet>)>) {
+    for (bullet_entity, mut transform, bullet) in bullet_query.iter_mut() {
+        let previous_position = transform.translation.clone();
+        let next_position =
+            transform.translation - bullet.direction * bullet.speed * time.delta_seconds();
+
+        let mut collision_detected = false;
+
+        for collider_transform in collider_query.iter() {
+            if collide(
+                next_position,
+                Vec3::new(0.006, 0.2, 0.006),
+                collider_transform.translation,
+                Vec3::new(1.0, 1.0, 1.0),
+            )
+            .is_some()
+            {
+                collision_detected = true;
+                println!("Bullet stopped: hit wall");
+                break;
+            }
+        }
+
+        if !collision_detected {
+            for house_transform in house_collider_query.iter() {
+                if collide(
+                    next_position,
+                    Vec3::new(0.006, 0.2, 0.006),
+                    house_transform.translation,
+                    Vec3::new(3.0, 2.5, 3.0),
+                )
+                .is_some()
+                {
+                    collision_detected = true;
+                    println!("Bullet stopped: hit house");
+                    break;
+                }
+            }
+        }
+
+        if collision_detected {
+            // Despawn la balle si elle entre en collision
+            commands.entity(bullet_entity).despawn_recursive();
+        } else {
+            // Mettre à jour la position si pas de collision
+            transform.translation = next_position;
+            
+            let line_entity = add_line_segment(
+                &mut commands,
+                &mut meshes,
+                &mut materials,
+                previous_position,
+                transform.translation,
+            );
+
+            commands.entity(line_entity).insert(LineTimer(Timer::from_seconds(0.1, TimerMode::Once)));
+        }
+    }
+}
+
+pub fn add_line_segment(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>, start: Vec3, end: Vec3) -> Entity {
+    let line_mesh = meshes.add(Mesh::from(Cuboid::new(0.002, 0.002, (end - start).length())));
+    let line_material = materials.add(StandardMaterial {
+        base_color: Color::srgb(1.0, 0.0, 0.0),
+        ..Default::default()
+    });
+
+    let mid_point = (start + end) / 2.0;
+    let rotation = Quat::from_rotation_arc(Vec3::Z, (end - start).normalize());
+
+    let line_entity = commands.spawn(PbrBundle {
+        mesh: line_mesh,
+        material: line_material,
+        transform: Transform {
+            translation: mid_point,
+            rotation,
+            ..Default::default()
+        },
+        ..Default::default()
+    }).id();
+
+    line_entity
+}
+
+pub fn despawn_after_time(time: Res<Time>, mut commands: Commands, mut query: Query<(Entity, &mut LineTimer)>) {
+    for (entity, mut timer) in query.iter_mut() {
+        timer.0.tick(time.delta());
+        if timer.0.finished() {
+            commands.entity(entity).despawn_recursive();
+        }
     }
 }
