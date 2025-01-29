@@ -84,20 +84,20 @@ pub fn player_movement(
                 ))
                 .id();
 
-                if let Some(network) = network.as_ref() {
-                    let message = GameMessage {
-                        message_type: MessageType::GameUpdate,
-                        sender: network.player_name.clone(),
-                        content: MessageContent::PlayerAction { 
-                            action: input.clone(), 
-                            sequence_number: *sequence_number, 
-                            timestamp: time.elapsed_seconds_f64() 
-                        }
-                    };
-                    if let Some(msg_bytes) = serialize_message(&message) {
-                        let _ = network.client_socket.send(&msg_bytes);
-                    }
+            if let Some(network) = network.as_ref() {
+                let message = GameMessage {
+                    message_type: MessageType::GameUpdate,
+                    sender: network.player_name.clone(),
+                    content: MessageContent::PlayerAction {
+                        action: input.clone(),
+                        sequence_number: *sequence_number,
+                        timestamp: time.elapsed_seconds_f64(),
+                    },
+                };
+                if let Some(msg_bytes) = serialize_message(&message) {
+                    let _ = network.client_socket.send(&msg_bytes);
                 }
+            }
         }
     }
 
@@ -152,9 +152,6 @@ pub fn player_movement(
     }
 }
 
-
-
-
 fn simulation_tir(
     keyboard_input: &Res<'_, ButtonInput<KeyCode>>,
     network: &Option<Res<'_, NetworkConfig>>,
@@ -162,7 +159,6 @@ fn simulation_tir(
     mut players: ResMut<'_, Players>,
     mut game_status: ResMut<GameStatus>,
 ) {
-
     if keyboard_input.just_pressed(KeyCode::KeyT) {
         display_info("KeyT pressed, entering simulation_tir function");
 
@@ -348,21 +344,21 @@ pub fn check_bullet_collisions(
 ) {
     for (bullet_entity, bullet_transform) in bullet_query.iter() {
         let mut should_despawn = false;
-            for (name, entity) in remote_players.0.iter() {
-                println!("name {}", name);
-                if let Ok(transform) = query.get_mut(*entity) {
-                    if collide(
-                        bullet_transform.translation,
-                        Vec3::new(0.006, 0.2, 0.006),
-                        transform.translation,
-                        Vec3::new(0.6, 1.0, 0.6),
-                    )
-                    .is_some()
-                    {
-                        should_despawn = true;
-                        println!("Bullet hit a player");
-                        break;
-                    }
+        for (name, entity) in remote_players.0.iter() {
+            println!("name {}", name);
+            if let Ok(transform) = query.get_mut(*entity) {
+                if collide(
+                    bullet_transform.translation,
+                    Vec3::new(0.006, 0.2, 0.006),
+                    transform.translation,
+                    Vec3::new(0.6, 1.0, 0.6),
+                )
+                .is_some()
+                {
+                    should_despawn = true;
+                    println!("Bullet hit a player");
+                    break;
+                }
             }
         }
 
@@ -483,40 +479,39 @@ pub fn update_bullets(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut bullet_query: Query<(Entity, &mut Transform, &Bullet),With<Bullet>>,
+    mut bullet_query: Query<(Entity, &mut Transform, &Bullet), With<Bullet>>,
     collider_query: Query<&Transform, (With<Collider>, Without<Bullet>)>,
     house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Bullet>)>,
     remote_players: ResMut<RemotePlayers>,
-    player_query: Query<&Transform, (With<PlayerComponent>, Without<Bullet>)>, // Fixed disjoint 
+    player_query: Query<&Transform, (With<RemotePlayer>, Without<Bullet>)>, // Fixed disjoint
 ) {
+    // println!("the numbers of players {:?}", player_query.iter().count());
+
     for (bullet_entity, mut transform, bullet) in bullet_query.iter_mut() {
         let previous_position = transform.translation.clone();
         let next_position =
             transform.translation - bullet.direction * bullet.speed * time.delta_seconds();
 
-            let mut collision_detected = false;
-        
+        let mut collision_detected = false;
 
-            for (name, entity) in remote_players.0.iter() {
-                println!("name {}", name);
-                if let Ok(transform) = player_query.get(*entity) {
-                    println!("translate {}", transform.translation);
-                    if collide(
-                        next_position,
-                        Vec3::new(0.006, 0.2, 0.006),
-                        transform.translation,
-                        Vec3::new(0.6, 1.0, 0.6),
-                    )
-                    .is_some()
-                    {
-                        collision_detected = true;
-                        println!("Bullet hit a player");
-                        break;
-                    }
+        for (_name, entity) in remote_players.0.iter() {
+            println!("entity {:?}", entity);
+            if let Ok(player_transform) = player_query.get(*entity) {
+                println!("player_transform {:?}", player_transform);
+            if collide(
+                next_position,
+                Vec3::new(0.006, 0.2, 0.006),
+                player_transform.translation,
+                Vec3::new(1.6, 1.0, 1.6),
+            )
+            .is_some()
+            {
+                collision_detected = true;
+                println!("Bullet hit a player");
+                break;
+            }
             }
         }
-
-
 
         for collider_transform in collider_query.iter() {
             if collide(
@@ -551,10 +546,10 @@ pub fn update_bullets(
         }
 
         if collision_detected {
-            // Despawn la balle si elle entre en collision
+            // Despawn the bullet if it collides
             commands.entity(bullet_entity).despawn_recursive();
         } else {
-            // Mettre à jour la position si pas de collision
+            // Update the position if no collision
             transform.translation = next_position;
 
             add_line_segment(
