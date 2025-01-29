@@ -6,10 +6,10 @@ use crate::maze::minimap::minimap::{display_minimap, update_minimap};
 use crate::maze::minimap::minimap_player::update_minimap_player;
 use crate::maze::models::{CameraState, MazeState, ObstaclePositions, TreeParams};
 use crate::maze::textures::rotate_sky;
-use crate::player::model::PlayerMovement;
+use crate::player::model::{BulletResources, PlayerMovement};
 use crate::player::model::RemotePlayers;
 use crate::player::movement::{
-    camera_view_toggle, manage_remote_players, player_movement, toggle_cursor_lock,
+    camera_view_toggle, despawn_after_time, manage_remote_players, manage_shoot_logic, player_movement, toggle_cursor_lock, update_bullets
 };
 use bevy::{
     app::{App, Plugin, Update},
@@ -31,6 +31,7 @@ impl Plugin for MazePlugin {
             .init_resource::<PlayerMovement>()
             .init_resource::<PosStruct>()
             .insert_resource(RemotePlayers(HashMap::new()))
+            .init_resource::<BulletResources>()
             .init_resource::<ObstaclePositions>();
 
         app.add_plugins(GameStatusPlugin);
@@ -45,7 +46,10 @@ impl Plugin for MazePlugin {
                     manage_remote_players,
                     camera_view_toggle,
                     rotate_sky,
+                    manage_shoot_logic,
                     update_minimap_player,
+                    update_bullets,
+                    despawn_after_time
                 ),
             )
             .add_systems(OnExit(GameState::Game), cleanup_maze)

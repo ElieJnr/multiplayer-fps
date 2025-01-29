@@ -1,4 +1,3 @@
-use super::movement::*;
 use super::player::*;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -55,9 +54,8 @@ pub struct PlayerComponent;
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<BulletResources>();
         app.add_systems(Startup, preload_player_assets)
-            .add_systems(Update, (setup_player_animation, handle_keyboard_animation, update_bullets, despawn_after_time));
+            .add_systems(Update, (setup_player_animation, handle_keyboard_animation));
     }
 }
 

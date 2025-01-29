@@ -27,6 +27,8 @@ use bevy::time::{Time, Timer, TimerMode};
 use bevy::utils::default;
 use bevy::window::{CursorGrabMode, Window};
 
+use super::player::shoot_bullet;
+
 pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>>, mut motion_evr: EventReader<MouseMotion>, mut movement: ResMut<PlayerMovement>, _obstacle_positions: Res<ObstaclePositions>, network: Option<Res<NetworkConfig>>, mut sequence_number: Local<u32>, mut query: Query<&mut Transform, With<PlayersComponent>>, collider_query: Query<&Transform, (With<Collider>, Without<PlayersComponent>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<PlayersComponent>)>, bullet_query: Query<&Transform, (With<Bullet>, Without<PlayersComponent>)>, maze_state: Res<MazeState>, players: ResMut<Players>, game_status: ResMut<GameStatus>) {
     if !maze_state.is_ready {
         return;
@@ -48,12 +50,7 @@ pub fn player_movement(time: Res<Time>, keyboard_input: Res<ButtonInput<KeyCode>
         ready: false,
     };
 
-    if input.arrow_up
-        || input.arrow_down
-        || input.arrow_left
-        || input.arrow_right
-        || mouse_delta != Vec2::ZERO
-    {
+    if input.arrow_up || input.arrow_down || input.arrow_left || input.arrow_right || mouse_delta != Vec2::ZERO {
         *sequence_number += 1;
         let delta_time = time.delta_seconds();
         if let Ok(mut transform) = query.get_single_mut() {
@@ -379,6 +376,18 @@ pub fn manage_remote_players(mut commands: Commands, enemy_animations: Res<Prelo
                     .id();
                 remote_players.0.insert(player_name.clone(), remote_player);
             }
+        }
+    }
+}
+
+pub fn manage_shoot_logic(keyboard: Res<ButtonInput<KeyCode>>, mut commands: Commands, bullet_resources: Res<BulletResources>, player_transform_query: Query<&Transform, With<PlayersComponent>>, maze_state: Res<MazeState>) {
+    if !maze_state.is_ready {
+        return;
+    }
+
+    if keyboard.pressed(KeyCode::Space) {
+        if let Ok(camera_transform) = player_transform_query.get_single() {
+            shoot_bullet(&mut commands, bullet_resources, &camera_transform);
         }
     }
 }
