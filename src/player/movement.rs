@@ -478,17 +478,15 @@ pub fn manage_remote_players(
     }
 }
 
-use bevy::prelude::ParamSet;
-
 pub fn update_bullets(
     time: Res<Time>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut bullet_query: Query<(Entity, &mut Transform, &Bullet)>,
+    mut bullet_query: Query<(Entity, &mut Transform, &Bullet),With<Bullet>>,
     collider_query: Query<&Transform, (With<Collider>, Without<Bullet>)>,
     house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Bullet>)>,
-    mut remote_players: ResMut<RemotePlayers>,
+    remote_players: ResMut<RemotePlayers>,
     player_query: Query<&Transform, (With<PlayerComponent>, Without<Bullet>)>, // Fixed disjoint 
 ) {
     for (bullet_entity, mut transform, bullet) in bullet_query.iter_mut() {
@@ -502,6 +500,7 @@ pub fn update_bullets(
             for (name, entity) in remote_players.0.iter() {
                 println!("name {}", name);
                 if let Ok(transform) = player_query.get(*entity) {
+                    println!("translate {}", transform.translation);
                     if collide(
                         next_position,
                         Vec3::new(0.006, 0.2, 0.006),
