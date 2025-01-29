@@ -479,11 +479,12 @@ pub fn update_bullets(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut bullet_query: Query<(Entity, &mut Transform, &Bullet), With<Bullet>>,
+    mut bullet_query: Query<(Entity, &mut Transform, &Bullet)>,
     collider_query: Query<&Transform, (With<Collider>, Without<Bullet>)>,
     house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Bullet>)>,
     remote_players: ResMut<RemotePlayers>,
-    player_query: Query<&Transform, (With<RemotePlayer>, Without<Bullet>)>, // Fixed disjoint
+    player_query: Query<&Transform, (With<RemotePlayer>, Without<Bullet>)>,
+    // new_query: Query<&Transform, (With<ColliderEnemy>, Without<Bullet>)> // Fixed disjoint
 ) {
     // println!("the numbers of players {:?}", player_query.iter().count());
 
@@ -495,14 +496,13 @@ pub fn update_bullets(
         let mut collision_detected = false;
 
         for (_name, entity) in remote_players.0.iter() {
-            println!("entity {:?}", entity);
             if let Ok(player_transform) = player_query.get(*entity) {
                 println!("player_transform {:?}", player_transform);
             if collide(
                 next_position,
                 Vec3::new(0.006, 0.2, 0.006),
                 player_transform.translation,
-                Vec3::new(1.6, 1.0, 1.6),
+                Vec3::new(0.6, 1.0, 0.6),
             )
             .is_some()
             {

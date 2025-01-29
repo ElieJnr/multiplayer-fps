@@ -251,6 +251,7 @@ pub fn shoot_bullet(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, 
             },
             ..Default::default()
         },
+        ColliderEnemy,
         Bullet {
             direction: *bullet_direction,
             speed: 20.0,
