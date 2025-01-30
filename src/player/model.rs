@@ -1,17 +1,15 @@
-use super::movement::*;
 use super::player::*;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::collections::VecDeque;
-
 pub struct PlayerBuild;
-
+#[derive(Component)]
+pub struct LineTimer(pub Timer);
 #[derive(Component)]
 pub struct AnimationState {
     pub current_animation: String,
 }
-
 impl Default for AnimationState {
     fn default() -> Self {
         Self {
@@ -24,13 +22,11 @@ pub struct PreloadedPlayerAnimations {
     pub model: Handle<Scene>,
     pub animations: HashMap<String, Handle<AnimationClip>>,
 }
-
 #[derive(Resource)]
 pub struct PreloadedEnemyAnimations {
     pub model: Handle<Scene>,
     pub animations: HashMap<String, Handle<AnimationClip>>,
 }
-
 #[derive(Resource)]
 pub struct PlayerAnimations {
     pub player_entity: Entity,
@@ -38,7 +34,6 @@ pub struct PlayerAnimations {
     pub animations: HashMap<String, AnimationNodeIndex>,
     pub graph: Handle<AnimationGraph>,
 }
-
 #[derive(Resource)]
 pub struct EnemyAnimations {
     pub player_entity: Entity,
@@ -46,33 +41,27 @@ pub struct EnemyAnimations {
     pub animations: HashMap<String, AnimationNodeIndex>,
     pub graph: Handle<AnimationGraph>,
 }
-
 #[derive(Component)]
 pub struct PlayerComponent;
-
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, preload_player_assets)
-            .add_systems(Update, (setup_player_animation, handle_keyboard_animation, update_bullets));
+            .add_systems(Update, (setup_player_animation, handle_keyboard_animation));
     }
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlayerPosition {
     pub x: f32,
     pub y: f32,
     pub z: f32,
 }
-
 #[derive(Default, Component, Resource)]
 pub struct RemotePlayer {
     pub name: String,
 }
-
 #[derive(Resource)]
 pub struct RemotePlayers(pub HashMap<String, Entity>);
-
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct PlayerInput {
     pub arrow_up: bool,
@@ -83,14 +72,12 @@ pub struct PlayerInput {
     pub ready: bool,
     pub shoot: bool
 }
-
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct InputSequence {
     pub sequence_number: u32,
     pub timestamp: f64,
     pub input: PlayerInput,
 }
-
 #[derive(Resource, Debug, Clone, Deserialize, Serialize)]
 pub struct PlayerMovement {
     pub speed: f32,
@@ -101,7 +88,6 @@ pub struct PlayerMovement {
     pub last_processed_input: u32,
     pub input_buffer: VecDeque<InputSequence>,
 }
-
 impl Default for PlayerMovement {
     fn default() -> Self {
         Self {
@@ -115,24 +101,25 @@ impl Default for PlayerMovement {
         }
     }
 }
-
 impl PlayerMovement {
     pub fn get_position(&self) -> Vec3 {
         self.position
     }
-
     pub fn set_position(&mut self, new_position: Vec3) {
         self.position = new_position;
     }
 }
-
 #[derive(Component, Resource)]
 pub struct Bullet {
     pub direction: Vec3,
     pub speed: f32,
 }
-
 #[derive(Component, Resource)]
 pub struct SmokeParticle {
     pub lifetime: f32,
+}
+#[derive(Default, Component, Resource)]
+pub struct BulletResources {
+    pub mesh: Handle<Mesh>,
+    pub material: Handle<StandardMaterial>,
 }
