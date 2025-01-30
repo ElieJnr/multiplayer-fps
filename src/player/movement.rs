@@ -458,7 +458,7 @@ pub fn update_bullets(
             transform.translation - bullet.direction * bullet.speed * time.delta_seconds();
         let mut collision_detected = false;
 
-        for (_name, entity) in remote_players.0.iter() {
+        for (name, entity) in remote_players.0.iter() {
             if let Ok(player_transform) = query.get_mut(*entity) {
             if collide_bullet(
                 next_position,
@@ -469,10 +469,8 @@ pub fn update_bullets(
             .is_some()
             {
                 collision_detected = true;
-                println!("Bullet hit a player");
+                println!("Bullet hit playername {name}");
                 break;
-            }else{
-                println!("Bullet missed a player");
             }
             }
         }
