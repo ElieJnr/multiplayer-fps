@@ -105,3 +105,30 @@ pub fn broadcast_message(
         }
     }
 }
+
+pub fn broadcast_decrease_life(
+    server_socket: &UdpSocket,
+    players: &Players,
+    target_name: &str, 
+) {
+    if let Some(player) = players.0.get(target_name) {
+        let message = GameMessage {
+            message_type: MessageType::DecreaseLife,
+            sender: "server".to_string(),
+            content: MessageContent::DecreaseLife {
+                name: target_name.to_string(),
+            },
+        };
+
+        if let Ok(serialized_message) = serde_json::to_vec(&message) {
+            if let Err(err) = server_socket.send_to(&serialized_message, player.address) {
+                display_error(&format!(
+                    "Failed to send hit message to {}: {}",
+                    player.name, err
+                ));
+            }
+        } else {
+            display_error("Failed to serialize DecreaseLife message");
+        }
+    }
+}

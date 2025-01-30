@@ -40,7 +40,8 @@ pub enum MessageType {
     Disconnect,
     WaitForPlayers,
     StartGame,
-    SyncPlayers
+    SyncPlayers,
+    DecreaseLife
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -76,6 +77,9 @@ pub enum MessageContent {
     },
     SyncPlayers{
         players: Players,
+    },
+    DecreaseLife{
+        name: String,
     }
 }
 

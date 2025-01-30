@@ -108,34 +108,42 @@ pub fn player_movement(
         }
     }
 }
-
-fn simulation_tir(
-    player_name: &str,
-    network: Option<&Res<NetworkConfig>>,
-    game_status: &mut ResMut<GameStatus>,
-    players: &mut ResMut<Players>,
+pub fn simulation_tir(
+    mut messages: ResMut<NetworkMessages>,
+    network: Option<Res<NetworkConfig>>,
+    mut game_status: ResMut<GameStatus>,
+    mut players: ResMut<Players>,       
 ) {
-    if let Some(player) = players.0.get_mut(player_name) {
-    display_info(&format!("Player {} has been hit", player_name));
+    while let Some(message) = messages.0.pop_front() {
+        match &message.content {
+            MessageContent::DecreaseLife { name, .. } => {
+                if let Some(player) = players.0.get_mut(name) {
+                    display_info(&format!("Player {} has been hit", name));
 
-        if game_status.player_health > 0. {
-            game_status.player_health -= 0.2;
-            display_info(&format!("Player {} has died", player_name));
-            if player.health <= 0 {
-                // Envoyer un message de game over
-                if let Some(network) = network {
-                    let game_over_msg = GameMessage {
-                        message_type: MessageType::Disconnect,
-                        sender: "server".to_string(),
-                        content: MessageContent::ServerInfo {
-                            server_status: format!("Player {} has died. Game Over!", player_name),
-                        },
-                    };
-                    if let Some(msg_bytes) = serialize_message(&game_over_msg) {
-                        let _ = network.client_socket.send(&msg_bytes);
+                    if game_status.player_health > 0. {
+                        game_status.player_health -= 0.2;
+                        display_info(&format!("Player {} has died", name));
+                        if player.health <= 0 {
+                            if let Some(network) = &network {
+                                let game_over_msg = GameMessage {
+                                    message_type: MessageType::Disconnect,
+                                    sender: "server".to_string(),
+                                    content: MessageContent::ServerInfo {
+                                        server_status: format!(
+                                            "Player {} has died. Game Over!",
+                                            name
+                                        ),
+                                    },
+                                };
+                                if let Some(msg_bytes) = serialize_message(&game_over_msg) {
+                                    let _ = network.client_socket.send(&msg_bytes);
+                                }
+                            }
+                        }
                     }
                 }
             }
+            _ => {}
         }
     }
 }
@@ -336,7 +344,7 @@ fn collide(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
 fn collide_bullet(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
     let collision_x = (pos1.x - pos2.x).abs() < (size1.x + size2.x) / 2.0;
     let collision_z = (pos1.z - pos2.z).abs() < (size1.z + size2.z) / 2.0;
-    if collision_x  && collision_z {
+    if collision_x && collision_z {
         Some(())
     } else {
         None
@@ -367,10 +375,10 @@ pub fn manage_remote_players(
                 }
                 if let Some(&entity) = remote_players.0.get(player_name) {
                     if let Ok(mut transform) = query.get_mut(entity) {
-                            transform.translation.x = *x;
-                            transform.translation.z = *z;
-                            transform.translation.y = 0.0;
-                            transform.rotate_y(-mouse_delta.x * 0.003);
+                        transform.translation.x = *x;
+                        transform.translation.z = *z;
+                        transform.translation.y = 0.0;
+                        transform.rotate_y(-mouse_delta.x * 0.003);
                     }
                 } else {
                     let remote_player = commands
@@ -427,6 +435,7 @@ pub fn manage_shoot_logic(
         }
     }
 }
+
 pub fn update_bullets(
     time: Res<Time>,
     mut commands: Commands,
@@ -437,9 +446,7 @@ pub fn update_bullets(
     house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Bullet>)>,
     remote_players: ResMut<RemotePlayers>,
     mut query: Query<&Transform, (With<RemotePlayer>, Without<Bullet>)>,
-    network: Option<Res<NetworkConfig>>,
-    mut game_status: ResMut<GameStatus>,
-    mut players: ResMut<Players>,
+    network: Res<NetworkConfig>,
 ) {
     for (bullet_entity, mut transform, bullet) in bullet_query.iter_mut() {
         let previous_position = transform.translation.clone();
@@ -448,19 +455,28 @@ pub fn update_bullets(
         let mut collision_detected = false;
         for (name, entity) in remote_players.0.iter() {
             if let Ok(player_transform) = query.get_mut(*entity) {
-            if collide_bullet(
-                next_position,
-                Vec3::new(0.006, 0.2, 0.006),
-                player_transform.translation,
-                Vec3::new(0.4, 1.0, 0.4),
-            )
-            .is_some()
-            {
-                collision_detected = true;
-                println!("Bullet hit playername {name}");
-                simulation_tir(name, network.as_ref(), &mut game_status, &mut players);
-                break;
-            }
+                if collide_bullet(
+                    next_position,
+                    Vec3::new(0.006, 0.2, 0.006),
+                    player_transform.translation,
+                    Vec3::new(0.4, 1.0, 0.4),
+                )
+                .is_some()
+                {
+                    collision_detected = true;
+                    println!("Bullet hit playername {name}");
+                    let message = GameMessage {
+                        message_type: MessageType::DecreaseLife,
+                        sender: network.player_name.clone(),
+                        content: MessageContent::DecreaseLife {
+                            name: name.to_string(),
+                        },
+                    };
+                    if let Some(msg_bytes) = serialize_message(&message) {
+                        let _ = network.client_socket.send(&msg_bytes);
+                    }
+                    break;
+                }
             }
         }
         for collider_transform in collider_query.iter() {
@@ -545,7 +561,6 @@ pub fn add_line_segment(
         .id();
     line_entity
 }
-
 
 pub fn despawn_after_time(
     time: Res<Time>,

@@ -22,6 +22,8 @@ use lazy_static::lazy_static;
 use rand::Rng;
 use std::sync::Mutex;
 
+use super::udp::broadcast_decrease_life;
+
 pub fn handle_message(
     server_socket: &UdpSocket,
     players: &mut Players,
@@ -37,12 +39,18 @@ pub fn handle_message(
             handle_player_action(server_socket, players, message, &player_count);
         }
         MessageType::Disconnect => handle_disconnect(server_socket, players, message, src),
+        MessageType::DecreaseLife => {
+            if let MessageContent::DecreaseLife { name } = &message.content {
+                broadcast_decrease_life(server_socket, players, name);
+            } 
+        },
         _ => display_error(&format!(
             "Unhandled message type: {:?}",
             message.message_type
         )),
     }
 }
+
 
 fn handle_new_connection(
     server_socket: &UdpSocket,
