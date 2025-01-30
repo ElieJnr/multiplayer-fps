@@ -3,7 +3,6 @@ use crate::maze::models::{ColliderEnemy, PlayersComponent};
 use bevy::gltf::GltfAssetLabel;
 use bevy::prelude::*;
 use std::{collections::HashMap, time::Duration};
-
 pub fn handle_keyboard_animation(keyboard: Res<ButtonInput<KeyCode>>, mut query: Query<(Entity, &mut AnimationState)>, animations: ResMut<PlayerAnimations>, mut animation_players: Query<&mut AnimationPlayer>) {
     if let Ok((_entity, mut animation_state)) = query.get_single_mut() {
         let new_animation = if keyboard.pressed(KeyCode::ArrowUp) {
@@ -23,11 +22,9 @@ pub fn handle_keyboard_animation(keyboard: Res<ButtonInput<KeyCode>>, mut query:
         } else {
             "static"
         };
-
         if new_animation == "reload_fast" {
             if new_animation != animation_state.current_animation {
                 animation_state.current_animation = new_animation.to_string();
-
                 if let Some(player_entity) = animations.animation_player_entity {
                     if let Ok(mut player) = animation_players.get_mut(player_entity) {
                         if let Some(&animation_index) = animations.animations.get(new_animation) {
@@ -44,7 +41,6 @@ pub fn handle_keyboard_animation(keyboard: Res<ButtonInput<KeyCode>>, mut query:
         } else if !new_animation.starts_with("stop") && new_animation != "reload_fast" {
             if new_animation != animation_state.current_animation {
                 animation_state.current_animation = new_animation.to_string();
-
                 if let Some(player_entity) = animations.animation_player_entity {
                     if let Ok(mut player) = animation_players.get_mut(player_entity) {
                         if let Some(&animation_index) = animations.animations.get(new_animation) {
@@ -70,7 +66,6 @@ pub fn handle_keyboard_animation(keyboard: Res<ButtonInput<KeyCode>>, mut query:
         }
     }
 }
-
 pub fn setup_player_animation(mut commands: Commands, mut animations: ResMut<PlayerAnimations>, mut animation_players: Query<(Entity, &mut AnimationPlayer), Added<AnimationPlayer>>) {
     for (entity, mut player) in &mut animation_players {
         // info!("Setting up animation for player entity: {:?}", entity);
@@ -81,7 +76,6 @@ pub fn setup_player_animation(mut commands: Commands, mut animations: ResMut<Pla
                 .play(&mut player, idle_animation, Duration::ZERO)
                 .repeat();
         }
-
         commands
             .entity(entity)
             .insert(animations.graph.clone())
@@ -89,7 +83,6 @@ pub fn setup_player_animation(mut commands: Commands, mut animations: ResMut<Pla
         animations.animation_player_entity = Some(entity);
     }
 }
-
 pub fn preload_player_assets(mut commands: Commands, asset_server: Res<AssetServer>, mut animation_graphs: ResMut<Assets<AnimationGraph>>) {
     preload_assets(
         &mut commands,
@@ -108,7 +101,6 @@ pub fn preload_player_assets(mut commands: Commands, asset_server: Res<AssetServ
         ],
         "PlayerAnimations",
     );
-
     preload_assets(
         &mut commands,
         &asset_server,
@@ -118,7 +110,6 @@ pub fn preload_player_assets(mut commands: Commands, asset_server: Res<AssetServ
         "EnemyAnimations",
     );
 }
-
 fn preload_assets(commands: &mut Commands, asset_server: &AssetServer, animation_graphs: &mut Assets<AnimationGraph>, model_file: &str, animation_names: Vec<&str>, resource_name: &str) {
     let default_path = format!("{}", env!("CARGO_MANIFEST_DIR"));
     let path = format!("{}/assets/", default_path);
@@ -138,7 +129,6 @@ fn preload_assets(commands: &mut Commands, asset_server: &AssetServer, animation
         animation_indices.insert(name.clone(), node_index);
     }
     let graph_handle = animation_graphs.add(graph);
-
     match resource_name {
         "PlayerAnimations" => {
             commands.insert_resource(PreloadedPlayerAnimations {
@@ -167,7 +157,6 @@ fn preload_assets(commands: &mut Commands, asset_server: &AssetServer, animation
         _ => {}
     }
 }
-
 pub fn create_players(commands: &mut Commands, player_animations: Res<PreloadedPlayerAnimations>, player_graph: Res<PlayerAnimations>, pos: Vec3) {
     let player_entity = commands
         .spawn((
@@ -201,7 +190,6 @@ pub fn create_players(commands: &mut Commands, player_animations: Res<PreloadedP
         graph: player_graph.graph.clone(),
     });
 }
-
 pub fn shoot_bullet(
     commands: &mut Commands,
     bullet_resources: Res<BulletResources>,
@@ -209,7 +197,6 @@ pub fn shoot_bullet(
 ) {
     let bullet_direction = camera_transform.forward();
     let bullet_start_position = camera_transform.translation + bullet_direction * -0.2 + Vec3::new(0.0, 0.1, 0.0);
-
     commands.spawn((
         PbrBundle {
             mesh: bullet_resources.mesh.clone(),

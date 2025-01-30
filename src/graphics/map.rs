@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-
 use crate::maze::barre_etat::GameStatusPlugin;
 use crate::maze::maze::{maze_setup, setup_crosshair, PosStruct};
 use crate::maze::minimap::minimap::{display_minimap, update_minimap};
@@ -19,9 +18,7 @@ use bevy::{
     sprite::Sprite,
     window::{CursorGrabMode, Window},
 };
-
 use super::states::GameState;
-
 pub struct MazePlugin;
 impl Plugin for MazePlugin {
     fn build(&self, app: &mut App) {
@@ -33,9 +30,7 @@ impl Plugin for MazePlugin {
             .insert_resource(RemotePlayers(HashMap::new()))
             .init_resource::<BulletResources>()
             .init_resource::<ObstaclePositions>();
-
         app.add_plugins(GameStatusPlugin);
-
         app.add_systems(OnEnter(GameState::Game), setup_mouse)
             .add_systems(OnEnter(GameState::Game), (maze_setup, setup_crosshair))
             .add_systems(OnEnter(GameState::Game), display_minimap.after(maze_setup))
@@ -56,7 +51,6 @@ impl Plugin for MazePlugin {
             .add_systems(Update, (update_minimap, toggle_cursor_lock));
     }
 }
-
 // Nouveau système pour configurer la souris
 fn setup_mouse(mut windows: Query<&mut Window>) {
     if let Ok(mut window) = windows.get_single_mut() {
@@ -64,7 +58,6 @@ fn setup_mouse(mut windows: Query<&mut Window>) {
         window.cursor.visible = false;
     }
 }
-
 fn cleanup_maze(mut commands: Commands, query: Query<Entity, With<Sprite>>) {
     for entity in &query {
         commands.entity(entity).despawn_recursive();
