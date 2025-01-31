@@ -129,7 +129,7 @@ pub fn handle_player_health(
                     if let Some(network) = &network {
                         let game_over_msg = GameMessage {
                             message_type: MessageType::Disconnect,
-                            sender: message.sender,
+                            sender: name.to_string(),
                             content: MessageContent::ServerInfo {
                                 server_status: format!("Player {} has died. Game Over!", name),
                             },
