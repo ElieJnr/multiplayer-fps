@@ -431,7 +431,7 @@ pub fn manage_shoot_logic(
     if !maze_state.is_ready {
         return;
     }
-    if keyboard.pressed(KeyCode::Space) {
+    if keyboard.just_released(KeyCode::Space) {
         if let Ok(camera_transform) = player_transform_query.get_single() {
             shoot_bullet(&mut commands, bullet_resources, &camera_transform);
         }
