@@ -578,11 +578,12 @@ pub fn despawn_after_time(
 }
 
 pub fn despawn_if_no_health(mut commands: Commands, remote_players: Res<RemotePlayers>, players: Res<Players>, mut query: Query<(Entity, &mut Transform)>,  delete_state: ResMut<DeleteState>,) {
-    if !delete_state.is_ready {
+    if delete_state.is_ready {
         return;
     }
-
+    let mut count = 0;
     for (player_name, &entity) in remote_players.0.iter() {
+        count +=1;
         if let Ok((entity, _transform)) = query.get_mut(entity) {
             if let Some(player) = players.0.get(player_name) {
                 display_info(&format!("player health {}", player.health));
@@ -593,4 +594,5 @@ pub fn despawn_if_no_health(mut commands: Commands, remote_players: Res<RemotePl
             }
         }
     }
+    println!("Count {}", count);
 }
