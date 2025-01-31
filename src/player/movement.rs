@@ -124,6 +124,9 @@ pub fn handle_player_health(
                 if game_status.player_health > 0. {
                     game_status.player_health -= 0.2;
                 }
+
+                display_info(&format!("Player {} has hitted", name));
+
                 if game_status.player_health <= 0. {
                     display_info(&format!("Player {} has died", name));
                     if let Some(network) = &network {
@@ -361,7 +364,7 @@ pub fn manage_remote_players(
     network: Res<NetworkConfig>,
     mut messages: ResMut<NetworkMessages>,
     mut query: Query<&mut Transform>,
-    mut players: ResMut<Players>,
+    _players: ResMut<Players>,
 ) {
     while let Some(message) = messages.0.pop_front() {
         match &message.content {
@@ -411,11 +414,11 @@ pub fn manage_remote_players(
                     remote_players.0.insert(player_name.clone(), remote_player);
                 }
             }
-            MessageContent::SyncPlayers {
-                players: synced_players,
-            } => {
-                players.0 = synced_players.0.clone();
-            }
+            // MessageContent::SyncPlayers {
+            //     players: synced_players,
+            // } => {
+            //     players.0 = synced_players.0.clone();
+            // }
             _ => {}
         }
     }

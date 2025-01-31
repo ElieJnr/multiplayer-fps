@@ -40,7 +40,7 @@ pub enum MessageType {
     Disconnect,
     WaitForPlayers,
     StartGame,
-    SyncPlayers,
+    // SyncPlayers,
     DecreaseLife
 }
 
@@ -75,9 +75,9 @@ pub enum MessageContent {
         msg: String,
         players: Players,
     },
-    SyncPlayers{
-        players: Players,
-    },
+    // SyncPlayers{
+    //     players: Players,
+    // },
     DecreaseLife{
         name: String,
     }

@@ -114,10 +114,9 @@ pub fn broadcast_decrease_life(
     players: &mut Players,
     target_name: &str,
 ) {
-
     if let Some(player) = players.0.get_mut(target_name) {
         player.health -= 1;
-
+        display_info(&format!("life decreased"));
         let message = GameMessage {
             message_type: MessageType::DecreaseLife,
             sender: "server".to_string(),

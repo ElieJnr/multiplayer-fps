@@ -224,7 +224,7 @@ pub fn handle_player_action(
             } 
 
             if let Some(player) = players.0.get(&message.sender) {
-                broadcast_sync_players(server_socket, players, &message.sender);
+                // broadcast_sync_players(server_socket, players, &message.sender);
                 broadcast_game_update(
                     server_socket,
                     players,
@@ -249,7 +249,7 @@ pub fn handle_player_action(
             } 
 
             if let Some(player) = players.0.get(&message.sender) {
-                broadcast_sync_players(server_socket, players, &message.sender);
+                // broadcast_sync_players(server_socket, players, &message.sender);
                 broadcast_game_update(
                     server_socket,
                     players,
@@ -348,7 +348,7 @@ fn broadcast_game_update(
     }
 }
 
-fn broadcast_sync_players(server_socket: &UdpSocket, players: &Players, player_name: &str) {
+/* fn broadcast_sync_players(server_socket: &UdpSocket, players: &Players, player_name: &str) {
     let update_msg = GameMessage {
         message_type: MessageType::SyncPlayers,
         sender: player_name.to_string(),
@@ -360,7 +360,7 @@ fn broadcast_sync_players(server_socket: &UdpSocket, players: &Players, player_n
     if let Some(msg_bytes) = serialize_message(&update_msg) {
         broadcast_message(server_socket, players.clone(), msg_bytes, None, true);
     }
-}
+} */
 
 /* fn handle_game_update(server_socket: &UdpSocket, players: &mut Players, message: GameMessage) {
     let update_msg = GameMessage {
