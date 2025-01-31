@@ -7,7 +7,7 @@ use crate::common::protocol::{
 use crate::common::sync::NetworkMessages;
 use crate::maze::barre_etat::GameStatus;
 use crate::maze::models::*;
-use crate::maze::models::{Collider, ColliderHouse, MazeState, ObstaclePositions};
+use crate::maze::models::{Collider, ColliderHouse, MazeState};
 use crate::player::model::*;
 use crate::utils::logger::display_info;
 use bevy::asset::Assets;
@@ -153,9 +153,7 @@ pub fn simulation_tir(
                                 }
                             }
                         }
-                    } else {
-                        println!("pour voir");
-                    }
+                    } 
                 }
             }
             _ => {}
@@ -372,11 +370,6 @@ pub fn manage_remote_players(
             } => {
                 let player_name = &message.sender;
                 if player_name == &network.player_name {
-                    let player=  players.0.get(player_name).unwrap();
-                    display_info(&format!("player {:?}", player.health));
-                    if player.health == 0 {
-                        println!("GAME OVER");
-                    }
                     continue;
                 }
                 if let Some(&entity) = remote_players.0.get(player_name) {
@@ -435,7 +428,7 @@ pub fn manage_shoot_logic(
     if !maze_state.is_ready {
         return;
     }
-    if keyboard.pressed(KeyCode::Space) {
+    if keyboard.just_released(KeyCode::Space) {
         if let Ok(camera_transform) = player_transform_query.get_single() {
             shoot_bullet(&mut commands, bullet_resources, &camera_transform);
         }
@@ -582,12 +575,7 @@ pub fn despawn_after_time(
     }
 }
 
-pub fn despawn_if_no_health(
-    mut commands: Commands,
-    remote_players: Res<RemotePlayers>,
-    players: Res<Players>,
-    mut query: Query<(Entity, &mut Transform)>,
-) {
+pub fn despawn_if_no_health(mut commands: Commands, remote_players: Res<RemotePlayers>, players: Res<Players>, mut query: Query<(Entity, &mut Transform)>) {
     for (player_name, &entity) in remote_players.0.iter() {
         if let Ok((entity, _transform)) = query.get_mut(entity) {
             if let Some(player) = players.0.get(player_name) {

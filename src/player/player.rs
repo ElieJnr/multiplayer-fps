@@ -211,7 +211,7 @@ pub fn shoot_bullet(
         ColliderEnemy,
         Bullet {
             direction: *bullet_direction,
-            speed: 2.0,
+            speed: 15.0,
         },
     ));
 }
