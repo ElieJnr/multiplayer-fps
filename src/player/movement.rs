@@ -68,24 +68,14 @@ pub fn player_movement(
         ready: false,
         shoot: keyboard_input.pressed(KeyCode::Space),
     };
-    if input.arrow_up
-        || input.arrow_down
-        || input.arrow_left
-        || input.arrow_right
-        || mouse_delta != Vec2::ZERO
-    {
+    if input.arrow_up || input.arrow_down || input.arrow_left || input.arrow_right || mouse_delta != Vec2::ZERO {
         *sequence_number += 1;
         let delta_time = time.delta_seconds();
         if let Ok(mut transform) = query.get_single_mut() {
-            let new_transform = transform.clone();
+            let previous_transform = *transform;
             apply_input(&mut transform, &input, &movement, delta_time);
-            if check_collisions(
-                &transform,
-                &collider_query,
-                &house_collider_query,
-                &bullet_query,
-            ) {
-                *transform = new_transform;
+            if check_collisions(&transform, &collider_query, &house_collider_query, &bullet_query) {
+                *transform = previous_transform;
             } else {
                 movement.position = transform.translation;
             }
@@ -181,6 +171,7 @@ pub fn apply_input(
     delta_time: f32,
 ) {
     let forward = transform.forward();
+    let right = transform.right();
 
     if input.arrow_up {
         transform.translation -= forward * movement.speed * delta_time;
@@ -189,10 +180,10 @@ pub fn apply_input(
         transform.translation += forward * movement.speed * delta_time;
     }
     if input.arrow_left {
-        transform.translation += transform.right() * movement.speed * delta_time;
+        transform.translation += right * movement.speed * delta_time;
     }
     if input.arrow_right {
-        transform.translation -= transform.right() * movement.speed * delta_time;
+        transform.translation -= right * movement.speed * delta_time;
     }
     if input.mouse_delta.length_squared() > 0.0 {
         transform.rotate_y(-input.mouse_delta.x * movement.mouse_sensitivity);
@@ -272,24 +263,6 @@ pub fn check_collisions(
             return true;
         }
     }
-    // Check collision with bullets
-    // for bullet_transform in bullet_query.iter() {
-    //     for (_e, f) in remote_players.0.iter(){
-    //         if let Ok(transform) = query.get_mut(*f) {
-    //             if collide(
-    //                 transform.translation,
-    //                 Vec3::new(0.6, 1.0, 0.6),
-    //                 bullet_transform.translation,
-    //                 Vec3::new(0.1, 0.5, 0.0),
-    //             )
-    //             .is_some()
-    //             {
-    //                 println!("player hitttttttt");
-    //                 return true;
-    //             }
-    //         }
-    //     }
-    // }
     false
 }
 pub fn check_bullet_collisions(
@@ -476,9 +449,8 @@ pub fn update_bullets(
     network: Res<NetworkConfig>,
 ) {
     for (bullet_entity, mut transform, bullet) in bullet_query.iter_mut() {
-        let previous_position = transform.translation.clone();
-        let next_position =
-            transform.translation - bullet.direction * bullet.speed * time.delta_seconds();
+        let previous_position = transform.translation;
+        let next_position = transform.translation - bullet.direction * bullet.speed * time.delta_seconds();
         let mut collision_detected = false;
         for (name, entity) in remote_players.0.iter() {
             if let Ok(player_transform) = query.get_mut(*entity) {
@@ -537,11 +509,10 @@ pub fn update_bullets(
             }
         }
         if collision_detected {
-            // Despawn la balle si elle entre en collision
+            // Despawn the bullet if it hit something
             commands.entity(bullet_entity).despawn_recursive();
-            break;
         } else {
-            // Mettre à jour la position si pas de collision
+            // Update the position if no collision
             transform.translation = next_position;
             let line_entity = add_line_segment(
                 &mut commands,
