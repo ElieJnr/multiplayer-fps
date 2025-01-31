@@ -5,7 +5,7 @@ use crate::{common::protocol::*, utils::logger::*};
 
 // use super::player::Players;
 
-pub fn handle_disconnect(content: MessageContent) {
+pub fn handle_disconnect_client(content: MessageContent) {
     if let MessageContent::Disconnect { reason } = content {
         display_warning(&format!("[{}]", reason));
     } else {

@@ -7,7 +7,8 @@ use crate::{
 };
 use bevy::math::bool;
 use std::{
-    io::{self, Write}, net::UdpSocket, thread::sleep, time::Duration
+    io::{self, Write},
+    net::UdpSocket,
 };
 
 pub fn run_socket() {
@@ -15,7 +16,7 @@ pub fn run_socket() {
     let mut players = Players::default();
 
     download_models();
-    
+
     match get_user_choice() {
         Some(1) => {
             handle_server_mode(&mut players);
@@ -49,10 +50,17 @@ fn get_min_players_from_user() -> PlayerCount {
 
     let mut input = String::new();
     io::stdin().read_line(&mut input).unwrap();
-    match input.trim().parse::<usize>().ok().filter(|&num| num >= DEFAULT_MIN_PLAYERS) {
+    match input
+        .trim()
+        .parse::<usize>()
+        .ok()
+        .filter(|&num| num >= DEFAULT_MIN_PLAYERS)
+    {
         Some(num) => PlayerCount::new(num),
         None => {
-            display_error("Number of players is less than the minimum required. Using default value.");
+            display_error(
+                "Number of players is less than the minimum required. Using default value.",
+            );
             PlayerCount::new(DEFAULT_MIN_PLAYERS)
         }
     }
@@ -64,11 +72,7 @@ fn handle_client_mode(state: &mut PlayerCountState) {
     }
 }
 
-pub fn server(
-    server_socket: UdpSocket,   
-    players: &mut Players,
-    player_count: &PlayerCount,
-) {
+pub fn server(server_socket: UdpSocket, players: &mut Players, player_count: &PlayerCount) {
     let mut buf = [0; 1024];
 
     loop {
@@ -108,16 +112,11 @@ pub fn broadcast_message(
 pub fn broadcast_decrease_life(
     server_socket: &UdpSocket,
     players: &mut Players,
-    target_name: &str, 
+    target_name: &str,
 ) {
-    let mut should_remove_player = false;
 
     if let Some(player) = players.0.get_mut(target_name) {
         player.health -= 1;
-
-        if player.health <= 0 {
-            should_remove_player = true;
-        }
 
         let message = GameMessage {
             message_type: MessageType::DecreaseLife,
@@ -135,11 +134,5 @@ pub fn broadcast_decrease_life(
                 ));
             }
         }
-    }
-
-    if should_remove_player {
-        sleep(Duration::from_secs(5));
-        players.0.remove(target_name);
-        display_info(&format!("Player {} has been removed from the game", target_name));
     }
 }

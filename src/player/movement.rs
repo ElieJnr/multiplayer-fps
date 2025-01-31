@@ -1,6 +1,5 @@
 use super::player::shoot_bullet;
 use crate::client::player::Players;
-use crate::common::constant::HEALTH_NBR;
 use crate::common::protocol::{
     serialize_message, GameMessage, MessageContent, MessageType, NetworkConfig,
 };
@@ -109,39 +108,44 @@ pub fn player_movement(
         }
     }
 }
-pub fn simulation_tir(
+
+pub fn handle_player_health(
+    mut commands: Commands,
     mut messages: ResMut<NetworkMessages>,
     network: Option<Res<NetworkConfig>>,
     mut game_status: ResMut<GameStatus>,
-    mut players: ResMut<Players>,       
+    mut players: ResMut<Players>,
+    remote_players: Res<RemotePlayers>,
+    query: Query<(Entity, &mut Transform)>,
 ) {
     while let Some(message) = messages.0.pop_front() {
-        match &message.content {
-            MessageContent::DecreaseLife { name, .. } => {
-                if let Some(player) = players.0.get_mut(name) {
-                    if game_status.player_health > 0. {
-                        game_status.player_health -= 0.2;
-                        if player.health <= 0 || player.health > HEALTH_NBR {
-                            if let Some(network) = &network {
-                                let game_over_msg = GameMessage {
-                                    message_type: MessageType::Disconnect,
-                                    sender: "server".to_string(),
-                                    content: MessageContent::ServerInfo {
-                                        server_status: format!(
-                                            "Player {} has died. Game Over!",
-                                            name
-                                        ),
-                                    },
-                                };
-                                if let Some(msg_bytes) = serialize_message(&game_over_msg) {
-                                    let _ = network.client_socket.send(&msg_bytes);
-                                }
-                            }
+        if let MessageContent::DecreaseLife { name, .. } = &message.content {
+            if let Some(_player) = players.0.get_mut(name) {
+                if game_status.player_health > 0. {
+                    game_status.player_health -= 0.2;
+                }
+                if game_status.player_health <= 0. {
+                    display_info(&format!("Player {} has died", name));
+                    if let Some(network) = &network {
+                        let game_over_msg = GameMessage {
+                            message_type: MessageType::Disconnect,
+                            sender: message.sender,
+                            content: MessageContent::ServerInfo {
+                                server_status: format!("Player {} has died. Game Over!", name),
+                            },
+                        };
+                        if let Some(msg_bytes) = serialize_message(&game_over_msg) {
+                            let _ = network.client_socket.send(&msg_bytes);
+                        }
+                    }
+
+                    if let Some(&entity) = remote_players.0.get(name) {
+                        if let Ok((entity, _)) = query.get(entity) {
+                            commands.entity(entity).despawn_recursive();
                         }
                     }
                 }
             }
-            _ => {}
         }
     }
 }
@@ -487,7 +491,7 @@ pub fn update_bullets(
             .is_some()
             {
                 collision_detected = true;
-                println!("Bullet stopped: hit wall");
+                // println!("Bullet stopped: hit wall");
                 break;
             }
         }
@@ -570,24 +574,6 @@ pub fn despawn_after_time(
         timer.0.tick(time.delta());
         if timer.0.finished() {
             commands.entity(entity).despawn_recursive();
-        }
-    }
-}
-
-pub fn despawn_if_no_health(
-    mut commands: Commands,
-    remote_players: Res<RemotePlayers>,
-    players: Res<Players>,
-    mut query: Query<(Entity, &mut Transform)>,
-) {
-    for (player_name, &entity) in remote_players.0.iter() {
-        if let Ok((entity, _transform)) = query.get_mut(entity) {
-            if let Some(player) = players.0.get(player_name) {
-                if player.health <= 0 || player.health > HEALTH_NBR {
-                    display_info(&format!("Player Removed {}", player_name));
-                    commands.entity(entity).despawn_recursive();
-                }
-            }
         }
     }
 }
