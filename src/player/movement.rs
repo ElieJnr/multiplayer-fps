@@ -33,7 +33,6 @@ pub fn player_movement(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut motion_evr: EventReader<MouseMotion>,
     mut movement: ResMut<PlayerMovement>,
-    _obstacle_positions: Res<ObstaclePositions>,
     network: Option<Res<NetworkConfig>>,
     mut sequence_number: Local<u32>,
     mut query: Query<&mut Transform, With<PlayersComponent>>,
@@ -45,6 +44,7 @@ pub fn player_movement(
     if !maze_state.is_ready {
         return;
     }
+    // if players.heal
     let mut mouse_delta = Vec2::ZERO;
     for event in motion_evr.read() {
         mouse_delta += event.delta;
@@ -108,10 +108,12 @@ pub fn player_movement(
         }
     }
 }
+
 pub fn simulation_tir(
     mut messages: ResMut<NetworkMessages>,
     network: Option<Res<NetworkConfig>>,
     mut game_status: ResMut<GameStatus>,
+    // remote_players: ResMut<RemotePlayers>,
     mut players: ResMut<Players>,       
 ) {
     while let Some(message) = messages.0.pop_front() {
@@ -140,12 +142,19 @@ pub fn simulation_tir(
                                 }
                             }
                         }
+                    } else {
+                        println!("pour voir");
                     }
                 }
             }
             _ => {}
         }
     }
+}
+
+
+pub fn despawn_player(){
+
 }
 
 pub fn apply_input(
@@ -238,24 +247,7 @@ pub fn check_collisions(
             return true;
         }
     }
-    // Check collision with bullets
-    // for bullet_transform in bullet_query.iter() {
-    //     for (_e, f) in remote_players.0.iter(){
-    //         if let Ok(transform) = query.get_mut(*f) {
-    //             if collide(
-    //                 transform.translation,
-    //                 Vec3::new(0.6, 1.0, 0.6),
-    //                 bullet_transform.translation,
-    //                 Vec3::new(0.1, 0.5, 0.0),
-    //             )
-    //             .is_some()
-    //             {
-    //                 println!("player hitttttttt");
-    //                 return true;
-    //             }
-    //         }
-    //     }
-    // }
+    
     false
 }
 pub fn check_bullet_collisions(
@@ -364,6 +356,11 @@ pub fn manage_remote_players(
             } => {
                 let player_name = &message.sender;
                 if player_name == &network.player_name {
+                    let player=  players.0.get(player_name).unwrap();
+                    display_info(&format!("player {:?}", player.health));
+                    if player.health == 0 {
+                        println!("GAME OVER");
+                    }
                     continue;
                 }
                 if let Some(&entity) = remote_players.0.get(player_name) {
@@ -429,18 +426,7 @@ pub fn manage_shoot_logic(
     }
 }
 
-pub fn update_bullets(
-    time: Res<Time>,
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut bullet_query: Query<(Entity, &mut Transform, &Bullet)>,
-    collider_query: Query<&Transform, (With<Collider>, Without<Bullet>)>,
-    house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Bullet>)>,
-    remote_players: ResMut<RemotePlayers>,
-    mut query: Query<&Transform, (With<RemotePlayer>, Without<Bullet>)>,
-    network: Res<NetworkConfig>,
-) {
+pub fn update_bullets(time: Res<Time>, mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>, mut bullet_query: Query<(Entity, &mut Transform, &Bullet)>, collider_query: Query<&Transform, (With<Collider>, Without<Bullet>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Bullet>)>, remote_players: ResMut<RemotePlayers>, mut query: Query<&Transform, (With<RemotePlayer>, Without<Bullet>)>, network: Res<NetworkConfig>) {
     for (bullet_entity, mut transform, bullet) in bullet_query.iter_mut() {
         let previous_position = transform.translation.clone();
         let next_position =
