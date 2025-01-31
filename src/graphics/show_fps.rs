@@ -23,6 +23,9 @@ pub struct DamageFlashTimer {
 #[derive(Resource)]
 pub struct DamageFlashActive(pub bool);
 
+#[derive(Component)]
+pub struct GameOver;
+
 impl Default for FpsUpdateTimer {
     fn default() -> Self {
         Self {
@@ -101,4 +104,22 @@ pub fn trigger_damage_flash(
 ) {
     active.0 = true;
     timer.timer.reset();
+}
+
+pub fn spawn_game_over_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let game_over = asset_server.load("textures/game_over.png");
+
+    commands
+        .spawn(ImageBundle {
+            image: game_over.into(),
+            style: Style {
+                height: Val::Percent(100.0),
+                width: Val::Percent(100.0),
+                position_type: PositionType::Absolute,
+                ..Default::default()
+            },
+            visibility: Visibility::Hidden,
+            ..Default::default()
+        })
+        .insert(GameOver);
 }

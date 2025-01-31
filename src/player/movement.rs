@@ -1,10 +1,13 @@
 use super::player::shoot_bullet;
 use crate::client::player::Players;
+use crate::common::constant::HEALTH_NBR;
 use crate::common::protocol::{
     serialize_message, GameMessage, MessageContent, MessageType, NetworkConfig,
 };
 use crate::common::sync::NetworkMessages;
-use crate::graphics::show_fps::{trigger_damage_flash, DamageFlashActive, DamageFlashTimer};
+use crate::graphics::show_fps::{
+    trigger_damage_flash, DamageFlashActive, DamageFlashTimer, GameOver,
+};
 use crate::maze::barre_etat::GameStatus;
 use crate::maze::models::*;
 use crate::maze::models::{Collider, ColliderHouse, MazeState, ObstaclePositions};
@@ -24,6 +27,7 @@ use bevy::prelude::{
     Camera3d, Commands, EventReader, KeyCode, Local, Query, Res, ResMut, Transform, With, Without,
 };
 use bevy::render::mesh::Mesh;
+use bevy::render::view::Visibility;
 use bevy::scene::SceneBundle;
 use bevy::time::{Time, Timer, TimerMode};
 use bevy::utils::default;
@@ -68,13 +72,23 @@ pub fn player_movement(
         ready: false,
         shoot: keyboard_input.pressed(KeyCode::Space),
     };
-    if input.arrow_up || input.arrow_down || input.arrow_left || input.arrow_right || mouse_delta != Vec2::ZERO {
+    if input.arrow_up
+        || input.arrow_down
+        || input.arrow_left
+        || input.arrow_right
+        || mouse_delta != Vec2::ZERO
+    {
         *sequence_number += 1;
         let delta_time = time.delta_seconds();
         if let Ok(mut transform) = query.get_single_mut() {
             let previous_transform = *transform;
             apply_input(&mut transform, &input, &movement, delta_time);
-            if check_collisions(&transform, &collider_query, &house_collider_query, &bullet_query) {
+            if check_collisions(
+                &transform,
+                &collider_query,
+                &house_collider_query,
+                &bullet_query,
+            ) {
                 *transform = previous_transform;
             } else {
                 movement.position = transform.translation;
@@ -160,6 +174,29 @@ pub fn simulation_tir(
                 }
             }
             _ => {}
+        }
+    }
+}
+
+pub fn despawn_if_no_health(
+    mut commands: Commands,
+    remote_players: Res<RemotePlayers>,
+    players: Res<Players>,
+    mut query: Query<(Entity, &mut Transform)>,
+    visible: Query<&mut Visibility, With<GameOver>>,
+) {
+    let _ = visible;
+    for (player_name, &entity) in remote_players.0.iter() {
+        if let Ok((entity, _transform)) = query.get_mut(entity) {
+            if let Some(player) = players.0.get(player_name) {
+                if player.health <= 0 || player.health > HEALTH_NBR {
+                    display_info(&format!("Player Removed {}", player_name));
+                    commands.entity(entity).despawn_recursive();
+                    visible.iter().for_each(|mut _visible| {
+                        _visible = &Visibility::Visible;
+                    });
+                }
+            }
         }
     }
 }
@@ -450,7 +487,8 @@ pub fn update_bullets(
 ) {
     for (bullet_entity, mut transform, bullet) in bullet_query.iter_mut() {
         let previous_position = transform.translation;
-        let next_position = transform.translation - bullet.direction * bullet.speed * time.delta_seconds();
+        let next_position =
+            transform.translation - bullet.direction * bullet.speed * time.delta_seconds();
         let mut collision_detected = false;
         for (name, entity) in remote_players.0.iter() {
             if let Ok(player_transform) = query.get_mut(*entity) {

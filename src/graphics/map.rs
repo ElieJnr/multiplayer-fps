@@ -1,4 +1,4 @@
-use super::show_fps::{show_degat, simulate_damage_flash, DamageFlashActive, DamageFlashTimer};
+use super::show_fps::{show_degat, simulate_damage_flash, spawn_game_over_ui, DamageFlashActive, DamageFlashTimer};
 use super::states::GameState;
 use crate::maze::barre_etat::GameStatusPlugin;
 use crate::maze::maze::{maze_setup, setup_crosshair, PosStruct};
@@ -38,7 +38,7 @@ impl Plugin for MazePlugin {
         app.add_systems(OnEnter(GameState::Game), setup_mouse)
             .add_systems(
                 OnEnter(GameState::Game),
-                (maze_setup, setup_crosshair, show_degat),
+                (maze_setup, setup_crosshair, show_degat, spawn_game_over_ui),
             )
             .add_systems(OnEnter(GameState::Game), display_minimap.after(maze_setup));
 
