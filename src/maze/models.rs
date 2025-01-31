@@ -58,6 +58,11 @@ pub struct MazeState {
     pub is_ready: bool,
 }
 
+#[derive(Resource, Default)]
+pub struct DeleteState {
+    pub is_ready: bool,
+}
+
 #[derive(Component)]
 pub struct MinimapPlayer;
 

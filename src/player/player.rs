@@ -66,6 +66,7 @@ pub fn handle_keyboard_animation(keyboard: Res<ButtonInput<KeyCode>>, mut query:
         }
     }
 }
+
 pub fn setup_player_animation(mut commands: Commands, mut animations: ResMut<PlayerAnimations>, mut animation_players: Query<(Entity, &mut AnimationPlayer), Added<AnimationPlayer>>) {
     for (entity, mut player) in &mut animation_players {
         // info!("Setting up animation for player entity: {:?}", entity);
@@ -83,6 +84,7 @@ pub fn setup_player_animation(mut commands: Commands, mut animations: ResMut<Pla
         animations.animation_player_entity = Some(entity);
     }
 }
+
 pub fn preload_player_assets(mut commands: Commands, asset_server: Res<AssetServer>, mut animation_graphs: ResMut<Assets<AnimationGraph>>) {
     preload_assets(
         &mut commands,
@@ -110,6 +112,7 @@ pub fn preload_player_assets(mut commands: Commands, asset_server: Res<AssetServ
         "EnemyAnimations",
     );
 }
+
 fn preload_assets(commands: &mut Commands, asset_server: &AssetServer, animation_graphs: &mut Assets<AnimationGraph>, model_file: &str, animation_names: Vec<&str>, resource_name: &str) {
     let default_path = format!("{}", env!("CARGO_MANIFEST_DIR"));
     let path = format!("{}/assets/", default_path);
@@ -157,6 +160,7 @@ fn preload_assets(commands: &mut Commands, asset_server: &AssetServer, animation
         _ => {}
     }
 }
+
 pub fn create_players(commands: &mut Commands, player_animations: Res<PreloadedPlayerAnimations>, player_graph: Res<PlayerAnimations>, pos: Vec3) {
     let player_entity = commands
         .spawn((
@@ -190,6 +194,7 @@ pub fn create_players(commands: &mut Commands, player_animations: Res<PreloadedP
         graph: player_graph.graph.clone(),
     });
 }
+
 pub fn shoot_bullet(
     commands: &mut Commands,
     bullet_resources: Res<BulletResources>,

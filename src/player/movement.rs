@@ -129,6 +129,7 @@ pub fn simulation_tir(
     network: Option<Res<NetworkConfig>>,
     mut game_status: ResMut<GameStatus>,
     mut players: ResMut<Players>,
+    mut delete_state: ResMut<DeleteState>,
 ) {
     while let Some(message) = messages.0.pop_front() {
         match &message.content {
@@ -137,6 +138,7 @@ pub fn simulation_tir(
                     if game_status.player_health > 0. {
                         game_status.player_health -= 0.2;
                         if game_status.player_health <= 0. {
+                            delete_state.is_ready = true;
                             if let Some(network) = &network {
                                 let game_over_msg = GameMessage {
                                     message_type: MessageType::Disconnect,
@@ -575,7 +577,11 @@ pub fn despawn_after_time(
     }
 }
 
-pub fn despawn_if_no_health(mut commands: Commands, remote_players: Res<RemotePlayers>, players: Res<Players>, mut query: Query<(Entity, &mut Transform)>) {
+pub fn despawn_if_no_health(mut commands: Commands, remote_players: Res<RemotePlayers>, players: Res<Players>, mut query: Query<(Entity, &mut Transform)>,  delete_state: ResMut<DeleteState>,) {
+    if !delete_state.is_ready {
+        return;
+    }
+
     for (player_name, &entity) in remote_players.0.iter() {
         if let Ok((entity, _transform)) = query.get_mut(entity) {
             if let Some(player) = players.0.get(player_name) {

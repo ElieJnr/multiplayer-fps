@@ -3,7 +3,7 @@ use crate::maze::barre_etat::GameStatusPlugin;
 use crate::maze::maze::{maze_setup, setup_crosshair, PosStruct};
 use crate::maze::minimap::minimap::{display_minimap, update_minimap};
 use crate::maze::minimap::minimap_player::update_minimap_player;
-use crate::maze::models::{CameraState, MazeState, ObstaclePositions, TreeParams};
+use crate::maze::models::{CameraState, DeleteState, MazeState, ObstaclePositions, TreeParams};
 use crate::maze::textures::rotate_sky;
 use crate::player::model::RemotePlayers;
 use crate::player::model::{BulletResources, PlayerMovement};
@@ -25,6 +25,7 @@ impl Plugin for MazePlugin {
         app.init_resource::<TreeParams>()
             .init_resource::<CameraState>()
             .init_resource::<MazeState>()
+            .init_resource::<DeleteState>()
             .init_resource::<PlayerMovement>()
             .init_resource::<PosStruct>()
             .insert_resource(RemotePlayers(HashMap::new()))
