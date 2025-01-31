@@ -113,7 +113,7 @@ pub fn spawn_game_over_ui(mut commands: Commands, asset_server: Res<AssetServer>
         .spawn(ImageBundle {
             image: game_over.into(),
             style: Style {
-                height: Val::Percent(100.0),
+                height: Val::Px(1200.0),
                 width: Val::Percent(100.0),
                 position_type: PositionType::Absolute,
                 ..Default::default()
