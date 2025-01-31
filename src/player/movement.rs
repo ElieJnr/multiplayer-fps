@@ -1,22 +1,30 @@
+use super::player::shoot_bullet;
 use crate::client::player::Players;
 use crate::common::protocol::{
     serialize_message, GameMessage, MessageContent, MessageType, NetworkConfig,
 };
 use crate::common::sync::NetworkMessages;
-use crate::graphics::show_fps::{trigger_damage_flash, DamageFlashActive, DamageFlashTimer};
 use crate::maze::barre_etat::GameStatus;
 use crate::maze::models::*;
 use crate::maze::models::{Collider, ColliderHouse, MazeState, ObstaclePositions};
 use crate::player::model::*;
 use crate::utils::logger::display_info;
+use bevy::animation::AnimationPlayer;
+use bevy::asset::Assets;
+use bevy::color::Color;
+use bevy::ecs::entity::Entity;
+use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::input::mouse::{MouseButton, MouseMotion};
 use bevy::input::ButtonInput;
+use bevy::math::primitives::Cuboid;
 use bevy::math::{EulerRot, Quat, Vec2, Vec3};
+use bevy::pbr::{PbrBundle, StandardMaterial};
 use bevy::prelude::{
     Camera3d, Commands, EventReader, KeyCode, Local, Query, Res, ResMut, Transform, With, Without,
 };
+use bevy::render::mesh::Mesh;
 use bevy::scene::SceneBundle;
-use bevy::time::Time;
+use bevy::time::{Time, Timer, TimerMode};
 use bevy::utils::default;
 use bevy::window::{CursorGrabMode, Window};
 use lazy_static::lazy_static;
@@ -29,7 +37,6 @@ lazy_static! {
 pub fn player_movement(
     time: Res<Time>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    mouse_input: Res<ButtonInput<MouseButton>>,
     mut motion_evr: EventReader<MouseMotion>,
     mut movement: ResMut<PlayerMovement>,
     _obstacle_positions: Res<ObstaclePositions>,
@@ -38,17 +45,17 @@ pub fn player_movement(
     mut query: Query<&mut Transform, With<PlayersComponent>>,
     collider_query: Query<&Transform, (With<Collider>, Without<PlayersComponent>)>,
     house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<PlayersComponent>)>,
+    bullet_query: Query<&Transform, (With<Bullet>, Without<PlayersComponent>)>,
     maze_state: Res<MazeState>,
+    mouse_input: Res<ButtonInput<MouseButton>>,
 ) {
     if !maze_state.is_ready {
         return;
     }
-
     let mut mouse_delta = Vec2::ZERO;
     for event in motion_evr.read() {
         mouse_delta += event.delta;
     }
-
     let input = PlayerInput {
         arrow_up: keyboard_input.pressed(KeyCode::KeyW),
         arrow_down: keyboard_input.pressed(KeyCode::KeyS),
@@ -58,22 +65,25 @@ pub fn player_movement(
         space: mouse_input.pressed(MouseButton::Left),
         mouse_delta,
         ready: false,
-        shoot: keyboard_input.pressed(KeyCode::KeyT),
+        shoot: keyboard_input.pressed(KeyCode::Space),
     };
-
     if input.arrow_up
         || input.arrow_down
         || input.arrow_left
         || input.arrow_right
         || mouse_delta != Vec2::ZERO
-        || input.shoot
     {
         *sequence_number += 1;
         let delta_time = time.delta_seconds();
         if let Ok(mut transform) = query.get_single_mut() {
             let new_transform = transform.clone();
             apply_input(&mut transform, &input, &movement, delta_time);
-            if check_collisions(&transform, &collider_query, &house_collider_query) {
+            if check_collisions(
+                &transform,
+                &collider_query,
+                &house_collider_query,
+                &bullet_query,
+            ) {
                 *transform = new_transform;
             } else {
                 movement.position = transform.translation;
@@ -121,42 +131,41 @@ pub fn player_movement(
     }
 }
 
-fn simulation_tir(
-    player_name: &str,
-    network: Option<&Res<NetworkConfig>>,
-    query: &mut Query<&mut Transform, With<PlayersComponent>>,
-    game_status: &mut ResMut<GameStatus>,
-    players: &mut ResMut<Players>,
-    timer: &mut ResMut<DamageFlashTimer>,
-    active: &mut ResMut<DamageFlashActive>,
+pub fn simulation_tir(
+    mut messages: ResMut<NetworkMessages>,
+    network: Option<Res<NetworkConfig>>,
+    mut game_status: ResMut<GameStatus>,
+    mut players: ResMut<Players>,
 ) {
-    let players_debug = format!("Players {:?}", players);
-    println!("{}", players_debug);
-
-    if let Some(player) = players.0.get_mut(player_name) {
-        if game_status.player_health > 0. {
-            game_status.player_health -= 0.2;
-            trigger_damage_flash(timer, active);
-            println!("Game status health: {}", game_status.player_health);
-            display_info(player_name);
-            if player.health <= 0 {
-                query.iter_mut().for_each(|mut transform| {
-                    transform.translation = Vec3::new(0.0, -100.0, 0.0);
-                });
-                // Envoyer un message de game over
-                if let Some(network) = network {
-                    let game_over_msg = GameMessage {
-                        message_type: MessageType::Disconnect,
-                        sender: "server".to_string(),
-                        content: MessageContent::ServerInfo {
-                            server_status: format!("Player {} has died. Game Over!", player_name),
-                        },
-                    };
-                    if let Some(msg_bytes) = serialize_message(&game_over_msg) {
-                        let _ = network.client_socket.send(&msg_bytes);
+    while let Some(message) = messages.0.pop_front() {
+        match &message.content {
+            MessageContent::DecreaseLife { name, .. } => {
+                if let Some(player) = players.0.get_mut(name) {
+                    display_info(&format!("Player {} has been hit", name));
+                    if game_status.player_health > 0. {
+                        game_status.player_health -= 0.2;
+                        display_info(&format!("Player {} has died", name));
+                        if player.health <= 0 {
+                            if let Some(network) = &network {
+                                let game_over_msg = GameMessage {
+                                    message_type: MessageType::Disconnect,
+                                    sender: "server".to_string(),
+                                    content: MessageContent::ServerInfo {
+                                        server_status: format!(
+                                            "Player {} has died. Game Over!",
+                                            name
+                                        ),
+                                    },
+                                };
+                                if let Some(msg_bytes) = serialize_message(&game_over_msg) {
+                                    let _ = network.client_socket.send(&msg_bytes);
+                                }
+                            }
+                        }
                     }
                 }
             }
+            _ => {}
         }
     }
 }
@@ -186,7 +195,6 @@ pub fn apply_input(
     }
     transform.translation.y = movement.ground_level;
 }
-
 // permet de changer la vue de la camera
 pub fn camera_view_toggle(
     keyboard_input: Res<ButtonInput<KeyCode>>,
@@ -211,7 +219,6 @@ pub fn camera_view_toggle(
         }
     }
 }
-
 // permet de rendre visible et invisible la souris avec la touche space
 pub fn toggle_cursor_lock(
     keyboard_input: Res<ButtonInput<KeyCode>>,
@@ -229,12 +236,13 @@ pub fn toggle_cursor_lock(
         }
     }
 }
-
 pub fn check_collisions(
     player_transform: &Transform,
     collider_query: &Query<&Transform, (With<Collider>, Without<PlayersComponent>)>,
     house_collider_query: &Query<&Transform, (With<ColliderHouse>, Without<PlayersComponent>)>,
+    _bullet_query: &Query<&Transform, (With<Bullet>, Without<PlayersComponent>)>,
 ) -> bool {
+    // Check collision with other colliders
     for collider_transform in collider_query.iter() {
         if collide(
             player_transform.translation,
@@ -247,6 +255,7 @@ pub fn check_collisions(
             return true;
         }
     }
+    // Check collision with house colliders
     for house_collider_transform in house_collider_query.iter() {
         if collide(
             player_transform.translation,
@@ -259,9 +268,91 @@ pub fn check_collisions(
             return true;
         }
     }
+    // Check collision with bullets
+    // for bullet_transform in bullet_query.iter() {
+    //     for (_e, f) in remote_players.0.iter(){
+    //         if let Ok(transform) = query.get_mut(*f) {
+    //             if collide(
+    //                 transform.translation,
+    //                 Vec3::new(0.6, 1.0, 0.6),
+    //                 bullet_transform.translation,
+    //                 Vec3::new(0.1, 0.5, 0.0),
+    //             )
+    //             .is_some()
+    //             {
+    //                 println!("player hitttttttt");
+    //                 return true;
+    //             }
+    //         }
+    //     }
+    // }
     false
 }
-
+pub fn check_bullet_collisions(
+    mut commands: Commands,
+    bullet_query: Query<(Entity, &Transform), With<Bullet>>,
+    collider_query: Query<&Transform, (With<Collider>, Without<Bullet>)>,
+    house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Bullet>)>,
+    remote_players: ResMut<RemotePlayers>,
+    mut query: Query<&Transform>,
+) {
+    for (bullet_entity, bullet_transform) in bullet_query.iter() {
+        let mut should_despawn = false;
+        for (name, entity) in remote_players.0.iter() {
+            println!("name {}", name);
+            if let Ok(transform) = query.get_mut(*entity) {
+                if collide_bullet(
+                    bullet_transform.translation,
+                    Vec3::new(0.006, 0.2, 0.006),
+                    transform.translation,
+                    Vec3::new(0.5, 1.0, 0.5),
+                )
+                .is_some()
+                {
+                    should_despawn = true;
+                    println!("Bullet hit a player");
+                    break;
+                }
+            }
+        }
+        // Check collisions with walls
+        for collider_transform in collider_query.iter() {
+            if collide(
+                bullet_transform.translation,
+                Vec3::new(0.006, 0.2, 0.006),
+                collider_transform.translation,
+                Vec3::new(1.0, 1.0, 1.0),
+            )
+            .is_some()
+            {
+                should_despawn = true;
+                println!("Bullet hit a wall");
+                break;
+            }
+        }
+        // Check collisions with houses
+        if !should_despawn {
+            for house_transform in house_collider_query.iter() {
+                if collide(
+                    bullet_transform.translation,
+                    Vec3::new(0.006, 0.2, 0.006),
+                    house_transform.translation,
+                    Vec3::new(3.0, 2.5, 3.0),
+                )
+                .is_some()
+                {
+                    should_despawn = true;
+                    println!("Bullet hit a house");
+                    break;
+                }
+            }
+        }
+        // Despawn the bullet if it hit something
+        if should_despawn {
+            commands.entity(bullet_entity).despawn_recursive();
+        }
+    }
+}
 fn collide(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
     let collision_x = (pos1.x - pos2.x).abs() < (size1.x + size2.x) / 2.0;
     let collision_y = (pos1.y - pos2.y).abs() < (size1.y + size2.y) / 2.0;
@@ -272,19 +363,26 @@ fn collide(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
         None
     }
 }
+
+fn collide_bullet(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
+    let collision_x = (pos1.x - pos2.x).abs() < (size1.x + size2.x) / 2.0;
+    let collision_z = (pos1.z - pos2.z).abs() < (size1.z + size2.z) / 2.0;
+    if collision_x && collision_z {
+        Some(())
+    } else {
+        None
+    }
+}
+
 pub fn manage_remote_players(
     mut commands: Commands,
     enemy_animations: Res<PreloadedEnemyAnimations>,
-    _enemy_graph: Res<EnemyAnimations>,
+    enemy_graph: Res<EnemyAnimations>,
     mut remote_players: ResMut<RemotePlayers>,
     network: Res<NetworkConfig>,
     mut messages: ResMut<NetworkMessages>,
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut query: Query<&mut Transform, With<PlayersComponent>>,
-    mut game_status: ResMut<GameStatus>,
+    mut query: Query<&mut Transform>,
     mut players: ResMut<Players>,
-    mut timer: ResMut<DamageFlashTimer>,
-    mut active: ResMut<DamageFlashActive>,
 ) {
     while let Some(message) = messages.0.pop_front() {
         match &message.content {
@@ -326,9 +424,9 @@ pub fn manage_remote_players(
                             RemotePlayer {
                                 name: player_name.clone(),
                             },
-                            // AnimationPlayer::default(),
-                            // enemy_graph.graph.clone(),
-                            // AnimationState::default(),
+                            AnimationPlayer::default(),
+                            enemy_graph.graph.clone(),
+                            AnimationState::default(),
                         ))
                         .id();
                     remote_players.0.insert(player_name.clone(), remote_player);
@@ -342,15 +440,161 @@ pub fn manage_remote_players(
             _ => {}
         }
     }
-    if keyboard_input.just_pressed(KeyCode::KeyT) {
-        simulation_tir(
-            &network.player_name,
-            Some(&network),
-            &mut query,
-            &mut game_status,
-            &mut players,
-            &mut timer,
-            &mut active,
-        );
+}
+
+pub fn manage_shoot_logic(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut commands: Commands,
+    bullet_resources: Res<BulletResources>,
+    player_transform_query: Query<&Transform, With<PlayersComponent>>,
+    maze_state: Res<MazeState>,
+) {
+    if !maze_state.is_ready {
+        return;
+    }
+    if keyboard.pressed(KeyCode::Space) {
+        if let Ok(camera_transform) = player_transform_query.get_single() {
+            shoot_bullet(&mut commands, bullet_resources, &camera_transform);
+        }
+    }
+}
+
+pub fn update_bullets(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut bullet_query: Query<(Entity, &mut Transform, &Bullet)>,
+    collider_query: Query<&Transform, (With<Collider>, Without<Bullet>)>,
+    house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Bullet>)>,
+    remote_players: ResMut<RemotePlayers>,
+    mut query: Query<&Transform, (With<RemotePlayer>, Without<Bullet>)>,
+    network: Res<NetworkConfig>,
+) {
+    for (bullet_entity, mut transform, bullet) in bullet_query.iter_mut() {
+        let previous_position = transform.translation.clone();
+        let next_position =
+            transform.translation - bullet.direction * bullet.speed * time.delta_seconds();
+        let mut collision_detected = false;
+        for (name, entity) in remote_players.0.iter() {
+            if let Ok(player_transform) = query.get_mut(*entity) {
+                if collide_bullet(
+                    next_position,
+                    Vec3::new(0.006, 0.2, 0.006),
+                    player_transform.translation,
+                    Vec3::new(0.4, 1.5, 0.4),
+                )
+                .is_some()
+                {
+                    collision_detected = true;
+                    println!("Bullet hit playername {name}");
+                    let message = GameMessage {
+                        message_type: MessageType::DecreaseLife,
+                        sender: network.player_name.clone(),
+                        content: MessageContent::DecreaseLife {
+                            name: name.to_string(),
+                        },
+                    };
+                    if let Some(msg_bytes) = serialize_message(&message) {
+                        let _ = network.client_socket.send(&msg_bytes);
+                    }
+                    break;
+                }
+            }
+        }
+        for collider_transform in collider_query.iter() {
+            if collide(
+                next_position,
+                Vec3::new(0.006, 0.2, 0.006),
+                collider_transform.translation,
+                Vec3::new(1.0, 1.0, 1.0),
+            )
+            .is_some()
+            {
+                collision_detected = true;
+                println!("Bullet stopped: hit wall");
+                break;
+            }
+        }
+        if !collision_detected {
+            for house_transform in house_collider_query.iter() {
+                if collide(
+                    next_position,
+                    Vec3::new(0.006, 0.2, 0.006),
+                    house_transform.translation,
+                    Vec3::new(3.0, 2.5, 3.0),
+                )
+                .is_some()
+                {
+                    collision_detected = true;
+                    println!("Bullet stopped: hit house");
+                    break;
+                }
+            }
+        }
+        if collision_detected {
+            // Despawn la balle si elle entre en collision
+            commands.entity(bullet_entity).despawn_recursive();
+            break;
+        } else {
+            // Mettre à jour la position si pas de collision
+            transform.translation = next_position;
+            let line_entity = add_line_segment(
+                &mut commands,
+                &mut meshes,
+                &mut materials,
+                previous_position,
+                transform.translation,
+            );
+            commands
+                .entity(line_entity)
+                .insert(LineTimer(Timer::from_seconds(0.1, TimerMode::Once)));
+        }
+    }
+}
+
+pub fn add_line_segment(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
+    start: Vec3,
+    end: Vec3,
+) -> Entity {
+    let line_mesh = meshes.add(Mesh::from(Cuboid::new(
+        0.002,
+        0.002,
+        (end - start).length(),
+    )));
+    let line_material = materials.add(StandardMaterial {
+        base_color: Color::srgb(1.0, 0.0, 0.0),
+        ..Default::default()
+    });
+    let mid_point = (start + end) / 2.0;
+    let rotation = Quat::from_rotation_arc(Vec3::Z, (end - start).normalize());
+    let line_entity = commands
+        .spawn(PbrBundle {
+            mesh: line_mesh,
+            material: line_material,
+            transform: Transform {
+                translation: mid_point,
+                rotation,
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .id();
+    line_entity
+}
+
+pub fn despawn_after_time(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut query: Query<(Entity, &mut LineTimer)>,
+) {
+    for (entity, mut timer) in query.iter_mut() {
+        timer.0.tick(time.delta());
+        if timer.0.finished() {
+            commands.entity(entity).despawn_recursive();
+        }
     }
 }

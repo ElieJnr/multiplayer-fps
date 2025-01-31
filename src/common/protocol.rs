@@ -24,14 +24,14 @@ impl NetworkConfig {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GameMessage {
     pub message_type: MessageType,
     pub sender: String,
     pub content: MessageContent,
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum MessageType {
     NewConnection,
     GameUpdate,
@@ -41,6 +41,7 @@ pub enum MessageType {
     WaitForPlayers,
     StartGame,
     SyncPlayers,
+    DecreaseLife,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -76,6 +77,9 @@ pub enum MessageContent {
     },
     SyncPlayers {
         players: Players,
+    },
+    DecreaseLife {
+        name: String,
     },
 }
 
@@ -175,7 +179,7 @@ pub fn send_ready_msg(config: &NetworkConfig, player_name: &str) {
     {
         display_error(&format!("Failed to send disconnect message: {}", err));
     } else {
-        display_info(&format!("{} is disconnected successfully.", player_name));
+        display_info(&format!("{} is connected successfully.", player_name));
     }
 }
 

@@ -16,7 +16,7 @@ pub fn run_socket() {
     let mut players = Players::default();
 
     download_models();
-    
+
     match get_user_choice() {
         Some(1) => {
             handle_server_mode(&mut players);
@@ -50,10 +50,17 @@ fn get_min_players_from_user() -> PlayerCount {
 
     let mut input = String::new();
     io::stdin().read_line(&mut input).unwrap();
-    match input.trim().parse::<usize>().ok().filter(|&num| num >= DEFAULT_MIN_PLAYERS) {
+    match input
+        .trim()
+        .parse::<usize>()
+        .ok()
+        .filter(|&num| num >= DEFAULT_MIN_PLAYERS)
+    {
         Some(num) => PlayerCount::new(num),
         None => {
-            display_error("Number of players is less than the minimum required. Using default value.");
+            display_error(
+                "Number of players is less than the minimum required. Using default value.",
+            );
             PlayerCount::new(DEFAULT_MIN_PLAYERS)
         }
     }
@@ -65,11 +72,7 @@ fn handle_client_mode(state: &mut PlayerCountState) {
     }
 }
 
-pub fn server(
-    server_socket: UdpSocket,   
-    players: &mut Players,
-    player_count: &PlayerCount,
-) {
+pub fn server(server_socket: UdpSocket, players: &mut Players, player_count: &PlayerCount) {
     let mut buf = [0; 1024];
 
     loop {
@@ -102,6 +105,29 @@ pub fn broadcast_message(
                     player.name, err
                 )),
             }
+        }
+    }
+}
+
+pub fn broadcast_decrease_life(server_socket: &UdpSocket, players: &Players, target_name: &str) {
+    if let Some(player) = players.0.get(target_name) {
+        let message = GameMessage {
+            message_type: MessageType::DecreaseLife,
+            sender: "server".to_string(),
+            content: MessageContent::DecreaseLife {
+                name: target_name.to_string(),
+            },
+        };
+
+        if let Ok(serialized_message) = serde_json::to_vec(&message) {
+            if let Err(err) = server_socket.send_to(&serialized_message, player.address) {
+                display_error(&format!(
+                    "Failed to send hit message to {}: {}",
+                    player.name, err
+                ));
+            }
+        } else {
+            display_error("Failed to serialize DecreaseLife message");
         }
     }
 }
