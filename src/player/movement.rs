@@ -4,6 +4,7 @@ use crate::common::protocol::{
     serialize_message, GameMessage, MessageContent, MessageType, NetworkConfig,
 };
 use crate::common::sync::NetworkMessages;
+use crate::graphics::show_fps::{trigger_damage_flash, DamageFlashActive, DamageFlashTimer};
 use crate::maze::barre_etat::GameStatus;
 use crate::maze::models::*;
 use crate::maze::models::{Collider, ColliderHouse, MazeState, ObstaclePositions};
@@ -136,6 +137,8 @@ pub fn simulation_tir(
     network: Option<Res<NetworkConfig>>,
     mut game_status: ResMut<GameStatus>,
     mut players: ResMut<Players>,
+    mut timer: ResMut<DamageFlashTimer>,
+    mut active: ResMut<DamageFlashActive>,
 ) {
     while let Some(message) = messages.0.pop_front() {
         match &message.content {
@@ -144,6 +147,7 @@ pub fn simulation_tir(
                     display_info(&format!("Player {} has been hit", name));
                     if game_status.player_health > 0. {
                         game_status.player_health -= 0.2;
+                        trigger_damage_flash(&mut timer, &mut active);
                         display_info(&format!("Player {} has died", name));
                         if player.health <= 0 {
                             if let Some(network) = &network {
