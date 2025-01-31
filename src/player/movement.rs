@@ -1,5 +1,6 @@
 use super::player::shoot_bullet;
 use crate::client::player::Players;
+use crate::common::constant::HEALTH_NBR;
 use crate::common::protocol::{
     serialize_message, GameMessage, MessageContent, MessageType, NetworkConfig,
 };
@@ -118,12 +119,9 @@ pub fn simulation_tir(
         match &message.content {
             MessageContent::DecreaseLife { name, .. } => {
                 if let Some(player) = players.0.get_mut(name) {
-                    display_info(&format!("Player {} has been hit", name));
-
                     if game_status.player_health > 0. {
                         game_status.player_health -= 0.2;
-                        display_info(&format!("Player {} has died", name));
-                        if player.health <= 0 {
+                        if player.health <= 0 || player.health > HEALTH_NBR {
                             if let Some(network) = &network {
                                 let game_over_msg = GameMessage {
                                     message_type: MessageType::Disconnect,
@@ -572,6 +570,24 @@ pub fn despawn_after_time(
         timer.0.tick(time.delta());
         if timer.0.finished() {
             commands.entity(entity).despawn_recursive();
+        }
+    }
+}
+
+pub fn despawn_if_no_health(
+    mut commands: Commands,
+    remote_players: Res<RemotePlayers>,
+    players: Res<Players>,
+    mut query: Query<(Entity, &mut Transform)>,
+) {
+    for (player_name, &entity) in remote_players.0.iter() {
+        if let Ok((entity, _transform)) = query.get_mut(entity) {
+            if let Some(player) = players.0.get(player_name) {
+                if player.health <= 0 || player.health > HEALTH_NBR {
+                    display_info(&format!("Player Removed {}", player_name));
+                    commands.entity(entity).despawn_recursive();
+                }
+            }
         }
     }
 }
