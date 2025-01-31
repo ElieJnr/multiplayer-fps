@@ -22,27 +22,35 @@ impl Plugin for WaittingRoomPlugin {
 fn spawn_waitting_page(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
     let img = asset_server.load("textures/waitting_img.png");
-    // commands.spawn((
 
-    //     OnWaittingScreen,
-    // ));
     commands
         .spawn((
-            ImageBundle {
-                image: img.into(),
+            NodeBundle {
                 style: Style {
                     width: Val::Percent(100.0),
                     height: Val::Percent(100.0),
+                    align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
-                    align_content: AlignContent::Center,
+                    flex_direction: FlexDirection::Column,
                     ..Default::default()
                 },
-                // background_color: Color::WHITE.into(),
+                background_color: Color::BLACK.into(),
                 ..Default::default()
             },
             OnWaittingScreen,
         ))
         .with_children(|parent| {
+            parent.spawn(ImageBundle {
+                image: img.into(),
+                style: Style {
+                    width: Val::Px(500.0),
+                    justify_content: JustifyContent::Center,
+                    align_content: AlignContent::Center,
+                    ..Default::default()
+                },
+                background_color: Color::BLACK.into(),
+                ..Default::default()
+            });
             parent.spawn(TextBundle::from_section(
                 "Waiting for Players...".to_string(),
                 TextStyle {

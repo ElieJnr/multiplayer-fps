@@ -21,7 +21,6 @@ pub struct OnOptionScreen;
 #[derive(Component)]
 struct FadeTimer(Timer);
 
-// Component for the close button
 #[derive(Component)]
 pub struct CloseHelpButton;
 
@@ -85,13 +84,6 @@ fn main_menu_setup(mut commands: Commands, assets_server: Res<AssetServer>) {
             FadeTimer(Timer::from_seconds(1.5, TimerMode::Once)),
         ))
         .with_children(|parent| {
-            // parent
-            //     // texture: blood_texture_handle.clone(),
-            //     // transform: Transform::from_xyz(0.0, 0.0, 1.0),
-
-            //     // visibility: Visibility::Visible,
-            //     ..Default::default()
-            // });
             parent.spawn(ImageBundle {
                 image: UiImage {
                     texture: icon,
@@ -126,7 +118,6 @@ fn main_menu_setup(mut commands: Commands, assets_server: Res<AssetServer>) {
                     )),
                 ))
                 .with_children(|parent| {
-                    // Add buttons
                     spawn_menu_button(parent, "Play", &assets_server);
                     spawn_menu_button(parent, "Helps", &assets_server);
                     spawn_menu_button(parent, "Quit", &assets_server);
@@ -190,10 +181,10 @@ fn option_menu_setup(mut commands: Commands, _assets_server: Res<AssetServer>) {
                         background_color: Color::NONE.into(),
 
                         text: Text::from_section(
-                            "Close",
+                            "X",
                             TextStyle {
                                 font: _assets_server.load("fonts/FiraSans-Bold.ttf"),
-                                font_size: 20.0,
+                                font_size: 30.0,
                                 color: Color::WHITE,
                             },
                         ),

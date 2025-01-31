@@ -2,8 +2,10 @@ use bevy::{
     app::{App, Plugin, Update},
     asset::AssetServer,
     audio::{AudioBundle, AudioSource, PlaybackSettings},
+    ecs::schedule::IntoSystemConfigs,
     input::ButtonInput,
     prelude::{Commands, Component, KeyCode, OnEnter, OnExit, Res, Resource},
+    state::condition::in_state,
 };
 
 use super::{states::GameState, systems::menu::despawn_menu};
@@ -39,7 +41,10 @@ impl Plugin for SoundPlugin {
             .add_systems(OnEnter(GameState::Waitting), setup_waitting_track)
             .add_systems(OnExit(GameState::Menu), despawn_menu::<MenuTrack>)
             .add_systems(OnExit(GameState::Waitting), despawn_menu::<WaittingTrack>)
-            .add_systems(Update, setup_gameplay_track);
+            .add_systems(
+                Update,
+                setup_gameplay_track.run_if(in_state(GameState::Game)),
+            );
     }
 }
 

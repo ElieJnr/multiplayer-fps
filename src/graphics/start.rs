@@ -9,49 +9,62 @@ use crate::{
     client::player::*,
     common::{protocol::NetworkConfig, sync::NetworkPlugin},
     graphics::{resources::Map, states::GameState, systems::menu::menu_plugin},
-    maze::{maze::PosStruct, minimap::minimap::{load_minimap_textures, read_maze}}, player::model::PlayerPlugin,
+    maze::{
+        maze::PosStruct,
+        minimap::minimap::{load_minimap_textures, read_maze},
+    },
+    player::model::PlayerPlugin,
 };
 use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*, render::settings::WgpuSettings};
 
-pub fn start(
-    player_name: String,
-    server_address: String,
-    client_socket: Arc<UdpSocket>,
-    player_count_state: PlayerCountState,
-    initial_position: PosStruct,
-) {
+pub struct GameConfig {
+    pub player_name: String,
+    pub server_address: String,
+    pub client_socket: Arc<UdpSocket>,
+    pub player_count_state: PlayerCountState,
+    pub initial_position: PosStruct,
+}
+
+pub fn start(config: GameConfig) {
     let mut app = App::new();
 
+    // Window configuration
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
-            title: format!("Game - {}", player_name),
+            title: format!("Game - {}", config.player_name),
             resolution: (1200., 1000.).into(),
-            // mode: bevy::window::WindowMode::BorderlessFullscreen,
             ..default()
         }),
         ..default()
     }));
 
+    // Resource initialization
     app.insert_resource(Map::Map00)
         .insert_resource(NetworkConfig {
-            player_name,
-            server_address,
-            client_socket,
+            player_name: config.player_name,
+            server_address: config.server_address,
+            client_socket: config.client_socket,
         })
         .init_resource::<Players>()
         .init_resource::<PlayerCountState>()
-        .insert_resource(player_count_state)
-        .insert_resource(initial_position)
+        .insert_resource(config.player_count_state)
+        .insert_resource(config.initial_position)
         .insert_resource(MyWgpuSettings::new())
-        .init_state::<GameState>()
-        .add_systems(Startup, (minimap_setup, load_minimap_textures, read_maze))
-        .add_plugins(menu_plugin)
-        .add_plugins(MazePlugin)
-        .add_plugins(SoundPlugin)
-        .add_plugins(FrameTimeDiagnosticsPlugin)
-        .add_plugins(NetworkPlugin)
-        .add_plugins(PlayerPlugin)
-        .add_plugins(WaittingRoomPlugin);
+        .init_state::<GameState>();
+
+    // System setup
+    app.add_systems(Startup, (minimap_setup, load_minimap_textures, read_maze));
+
+    // Plugin setup
+    app.add_plugins((
+        menu_plugin,
+        MazePlugin,
+        SoundPlugin,
+        FrameTimeDiagnosticsPlugin,
+        NetworkPlugin,
+        PlayerPlugin,
+        WaittingRoomPlugin,
+    ));
 
     app.run();
 }

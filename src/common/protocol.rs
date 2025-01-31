@@ -40,7 +40,7 @@ pub enum MessageType {
     Disconnect,
     WaitForPlayers,
     StartGame,
-    SyncPlayers
+    SyncPlayers,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -76,7 +76,7 @@ pub enum MessageContent {
     },
     SyncPlayers {
         players: Players,
-    }
+    },
 }
 
 pub fn serialize_message(message: &GameMessage) -> Option<Vec<u8>> {
@@ -153,6 +153,8 @@ pub fn send_ready_msg(config: &NetworkConfig, player_name: &str) {
                 arrow_down: false,
                 arrow_left: false,
                 arrow_right: false,
+                r_key: false,
+                space: false,
                 mouse_delta: Vec2::default(),
                 ready: true,
                 shoot: false,

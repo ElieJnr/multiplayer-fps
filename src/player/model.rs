@@ -52,8 +52,10 @@ pub struct PlayerComponent;
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, preload_player_assets)
-            .add_systems(Update, (setup_player_animation, handle_keyboard_animation));
+        app.add_systems(Startup, preload_player_assets).add_systems(
+            Update,
+            (setup_player_animation, handle_keyboard_animation_for_player),
+        );
     }
 }
 
@@ -78,6 +80,8 @@ pub struct PlayerInput {
     pub arrow_down: bool,
     pub arrow_left: bool,
     pub arrow_right: bool,
+    pub r_key: bool,
+    pub space: bool,
     pub mouse_delta: Vec2,
     pub ready: bool,
     pub shoot: bool,

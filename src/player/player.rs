@@ -7,24 +7,23 @@ use std::{collections::HashMap, time::Duration};
 #[derive(Component)]
 pub struct BloodSplatter;
 
-pub fn handle_keyboard_animation(
+pub fn handle_keyboard_animation_for_player(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut query: Query<(Entity, &mut AnimationState)>,
     animations: ResMut<PlayerAnimations>,
     mut animation_players: Query<&mut AnimationPlayer>,
+    // mouse_input: Res<Input<MouseButton>>,
 ) {
     if let Ok((_entity, mut animation_state)) = query.get_single_mut() {
-        let new_animation = if keyboard.pressed(KeyCode::ArrowUp) {
-            "walk"
-        } else if keyboard.pressed(KeyCode::ArrowDown) {
+        let new_animation = if keyboard.pressed(KeyCode::KeyW) || keyboard.pressed(KeyCode::KeyS) {
             "walk"
         } else if keyboard.pressed(KeyCode::KeyR) {
             "reload_fast"
         } else if keyboard.pressed(KeyCode::Space) {
             "shoot"
-        } else if keyboard.just_released(KeyCode::ArrowUp) {
+        } else if keyboard.just_released(KeyCode::KeyW) {
             "stopwalk"
-        } else if keyboard.just_released(KeyCode::ArrowDown) {
+        } else if keyboard.just_released(KeyCode::KeyS) {
             "stopwalk"
         } else if keyboard.just_released(KeyCode::Space) {
             "stopshoot"

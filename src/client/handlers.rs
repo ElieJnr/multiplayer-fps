@@ -1,5 +1,5 @@
 use crate::graphics::resources::PlayerCountState;
-use crate::graphics::start::start;
+use crate::graphics::start::{start, GameConfig};
 use crate::maze::maze::PosStruct;
 use crate::{common::protocol::*, utils::logger::*};
 
@@ -49,15 +49,17 @@ pub fn handle_waiting(
                 .position,
         };
 
+        let config = GameConfig {
+            player_name: config.player_name.clone(),
+            server_address: config.server_address.clone(),
+            client_socket: config.client_socket.clone(),
+            player_count_state: state.clone(),
+            initial_position: pos,
+        };
+
         unsafe {
-            start(
-                config.player_name.clone(),
-                config.server_address.clone(),
-                config.client_socket.clone(),
-                state.clone(),
-                pos,
-            );
-            GAME_STARTED = true;
+            start(config);
+            GAME_STARTED = false;
         }
     } else {
         display_error("Received invalid content type for WaitForPlayers");
@@ -80,14 +82,16 @@ pub fn handle_start(content: MessageContent, config: &NetworkConfig, state: &mut
                 .position,
         };
 
+        let config = GameConfig {
+            player_name: config.player_name.clone(),
+            server_address: config.server_address.clone(),
+            client_socket: config.client_socket.clone(),
+            player_count_state: state.clone(),
+            initial_position: pos,
+        };
+
         unsafe {
-            start(
-                config.player_name.clone(),
-                config.server_address.clone(),
-                config.client_socket.clone(),
-                state.clone(),
-                pos,
-            );
+            start(config);
             GAME_STARTED = true;
         }
     } else {

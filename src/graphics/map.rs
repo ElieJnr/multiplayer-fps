@@ -20,7 +20,7 @@ use bevy::{
     window::{CursorGrabMode, Window},
 };
 
-use super::show_fps::show_degat;
+use super::show_fps::{show_degat, simulate_damage_flash, DamageFlashActive, DamageFlashTimer};
 use super::states::GameState;
 
 pub struct MazePlugin;
@@ -32,12 +32,17 @@ impl Plugin for MazePlugin {
             .init_resource::<PlayerMovement>()
             .init_resource::<PosStruct>()
             .insert_resource(RemotePlayers(HashMap::new()))
-            .init_resource::<ObstaclePositions>();
+            .init_resource::<ObstaclePositions>()
+            .init_resource::<DamageFlashTimer>()
+            .insert_resource(DamageFlashActive(false));
 
         app.add_plugins(GameStatusPlugin);
 
         app.add_systems(OnEnter(GameState::Game), setup_mouse)
-            .add_systems(OnEnter(GameState::Game), (maze_setup, setup_crosshair, show_degat))
+            .add_systems(
+                OnEnter(GameState::Game),
+                (maze_setup, setup_crosshair, show_degat),
+            )
             .add_systems(OnEnter(GameState::Game), display_minimap.after(maze_setup))
             .add_systems(
                 Update,
@@ -47,6 +52,7 @@ impl Plugin for MazePlugin {
                     camera_view_toggle,
                     rotate_sky,
                     update_minimap_player,
+                    simulate_damage_flash,
                 ),
             )
             .add_systems(OnExit(GameState::Game), cleanup_maze)
