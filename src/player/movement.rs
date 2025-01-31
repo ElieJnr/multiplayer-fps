@@ -1,6 +1,5 @@
 use super::player::shoot_bullet;
 use crate::client::player::Players;
-use crate::common::constant::HEALTH_NBR;
 use crate::common::protocol::{
     serialize_message, GameMessage, MessageContent, MessageType, NetworkConfig,
 };
@@ -147,6 +146,7 @@ pub fn handle_player_health(
     mut timer: ResMut<DamageFlashTimer>,
     mut active: ResMut<DamageFlashActive>,
     mut show_game_over: Query<&mut Visibility, With<GameOver>>,
+    visible: Query<&mut Visibility, With<GameOver>>,
 ) {
     while let Some(message) = messages.0.pop_front() {
         if let MessageContent::DecreaseLife { name, .. } = &message.content {
@@ -175,31 +175,11 @@ pub fn handle_player_health(
                     if let Some(&entity) = remote_players.0.get(name) {
                         if let Ok((entity, _)) = query.get(entity) {
                             commands.entity(entity).despawn_recursive();
+                            visible.iter().for_each(|mut _visible| {
+                                _visible = &Visibility::Visible;
+                            });
                         }
                     }
-                }
-            }
-        }
-    }
-}
-
-pub fn despawn_if_no_health(
-    mut commands: Commands,
-    remote_players: Res<RemotePlayers>,
-    players: Res<Players>,
-    mut query: Query<(Entity, &mut Transform)>,
-    visible: Query<&mut Visibility, With<GameOver>>,
-) {
-    let _ = visible;
-    for (player_name, &entity) in remote_players.0.iter() {
-        if let Ok((entity, _transform)) = query.get_mut(entity) {
-            if let Some(player) = players.0.get(player_name) {
-                if player.health <= 0 || player.health > HEALTH_NBR {
-                    display_info(&format!("Player Removed {}", player_name));
-                    commands.entity(entity).despawn_recursive();
-                    visible.iter().for_each(|mut _visible| {
-                        _visible = &Visibility::Visible;
-                    });
                 }
             }
         }
