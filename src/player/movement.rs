@@ -27,6 +27,7 @@ use bevy::scene::SceneBundle;
 use bevy::time::{Time, Timer, TimerMode};
 use bevy::utils::default;
 use bevy::window::{CursorGrabMode, Window};
+
 pub fn player_movement(
     time: Res<Time>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
@@ -40,8 +41,6 @@ pub fn player_movement(
     house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<PlayersComponent>)>,
     bullet_query: Query<&Transform, (With<Bullet>, Without<PlayersComponent>)>,
     maze_state: Res<MazeState>,
-    players: ResMut<Players>,
-    game_status: ResMut<GameStatus>,
 ) {
     if !maze_state.is_ready {
         return;
@@ -50,7 +49,6 @@ pub fn player_movement(
     for event in motion_evr.read() {
         mouse_delta += event.delta;
     }
-    simulation_tir(&keyboard_input, &network, &mut query, players, game_status);
     let input = PlayerInput {
         arrow_up: keyboard_input.pressed(KeyCode::KeyW),
         arrow_down: keyboard_input.pressed(KeyCode::KeyS),
@@ -110,57 +108,46 @@ pub fn player_movement(
         }
     }
 }
-fn simulation_tir(
-    keyboard_input: &Res<'_, ButtonInput<KeyCode>>,
-    network: &Option<Res<'_, NetworkConfig>>,
-    query: &mut Query<'_, '_, &mut Transform, With<PlayersComponent>>,
-    mut players: ResMut<'_, Players>,
+pub fn simulation_tir(
+    mut messages: ResMut<NetworkMessages>,
+    network: Option<Res<NetworkConfig>>,
     mut game_status: ResMut<GameStatus>,
+    mut players: ResMut<Players>,       
 ) {
-    if keyboard_input.just_pressed(KeyCode::KeyT) {
-        display_info("KeyT pressed, entering simulation_tir function");
-        if players.0.is_empty() {
-            display_info("No players found in the HashMap");
-        } else {
-            display_info(&format!("Number of players: {}", players.0.len()));
-        }
-        for (player_name, player) in players.0.iter_mut() {
-            display_info(&format!("Processing player: {}", player_name));
-            display_info(&format!("Player health before: {}", player.health));
-            if player.health > 0 {
-                player.health -= 1;
-                game_status.player_health -= 0.2;
-                display_info(&format!("Player health after: {}", player.health));
-                display_info(&format!(
-                    "Game status health: {}",
-                    game_status.player_health
-                ));
-                if player.health == 0 {
-                    // Remove the player
-                    query.iter_mut().for_each(|mut transform| {
-                        transform.translation = Vec3::new(0.0, -100.0, 0.0);
-                    });
-                    // Send game over message
-                    if let Some(network) = network {
-                        let game_over_msg = GameMessage {
-                            message_type: MessageType::Disconnect,
-                            sender: "server".to_string(),
-                            content: MessageContent::ServerInfo {
-                                server_status: format!(
-                                    "Player {} has died. Game Over!",
-                                    player_name
-                                ),
-                            },
-                        };
-                        if let Some(msg_bytes) = serialize_message(&game_over_msg) {
-                            network.client_socket.send(&msg_bytes).unwrap();
+    while let Some(message) = messages.0.pop_front() {
+        match &message.content {
+            MessageContent::DecreaseLife { name, .. } => {
+                if let Some(player) = players.0.get_mut(name) {
+                    display_info(&format!("Player {} has been hit", name));
+
+                    if game_status.player_health > 0. {
+                        game_status.player_health -= 0.2;
+                        display_info(&format!("Player {} has died", name));
+                        if player.health <= 0 {
+                            if let Some(network) = &network {
+                                let game_over_msg = GameMessage {
+                                    message_type: MessageType::Disconnect,
+                                    sender: "server".to_string(),
+                                    content: MessageContent::ServerInfo {
+                                        server_status: format!(
+                                            "Player {} has died. Game Over!",
+                                            name
+                                        ),
+                                    },
+                                };
+                                if let Some(msg_bytes) = serialize_message(&game_over_msg) {
+                                    let _ = network.client_socket.send(&msg_bytes);
+                                }
+                            }
                         }
                     }
                 }
             }
+            _ => {}
         }
     }
 }
+
 pub fn apply_input(
     transform: &mut Transform,
     input: &PlayerInput,
@@ -350,13 +337,12 @@ fn collide(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
 fn collide_bullet(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
     let collision_x = (pos1.x - pos2.x).abs() < (size1.x + size2.x) / 2.0;
     let collision_z = (pos1.z - pos2.z).abs() < (size1.z + size2.z) / 2.0;
-    if collision_x  && collision_z {
+    if collision_x && collision_z {
         Some(())
     } else {
         None
     }
 }
-
 
 pub fn manage_remote_players(
     mut commands: Commands,
@@ -366,57 +352,66 @@ pub fn manage_remote_players(
     network: Res<NetworkConfig>,
     mut messages: ResMut<NetworkMessages>,
     mut query: Query<&mut Transform>,
+    mut players: ResMut<Players>,
 ) {
     while let Some(message) = messages.0.pop_front() {
-        if let MessageContent::GameUpdate {
-            position: (x, z),
-            rotation,
-            mouse_delta,
-            ..
-        } = &message.content
-        {
-            let player_name = &message.sender;
-            if player_name == &network.player_name {
-                continue;
-            }
-            if let Some(&entity) = remote_players.0.get(player_name) {
-                if let Ok(mut transform) = query.get_mut(entity) {
-                    transform.translation.x = *x;
-                    transform.translation.z = *z;
-                    transform.translation.y = 0.0;
-                    transform.rotate_y(-mouse_delta.x * 0.003);
+        match &message.content {
+            MessageContent::GameUpdate {
+                position: (x, z),
+                rotation,
+                mouse_delta,
+                ..
+            } => {
+                let player_name = &message.sender;
+                if player_name == &network.player_name {
+                    continue;
                 }
-            } else {
-                let remote_player = commands
-                    .spawn((
-                        SceneBundle {
-                            scene: enemy_animations.model.clone(),
-                            transform: Transform {
-                                translation: Vec3::new(*x, 0.0, *z),
-                                rotation: Quat::from_euler(
-                                    EulerRot::XYZ,
-                                    0.0,
-                                    rotation.y + std::f32::consts::PI,
-                                    0.0,
-                                ),
-                                scale: Vec3::splat(0.5),
+                if let Some(&entity) = remote_players.0.get(player_name) {
+                    if let Ok(mut transform) = query.get_mut(entity) {
+                        transform.translation.x = *x;
+                        transform.translation.z = *z;
+                        transform.translation.y = 0.0;
+                        transform.rotate_y(-mouse_delta.x * 0.003);
+                    }
+                } else {
+                    let remote_player = commands
+                        .spawn((
+                            SceneBundle {
+                                scene: enemy_animations.model.clone(),
+                                transform: Transform {
+                                    translation: Vec3::new(*x, 0.0, *z),
+                                    rotation: Quat::from_euler(
+                                        EulerRot::XYZ,
+                                        0.0,
+                                        rotation.y + std::f32::consts::PI,
+                                        0.0,
+                                    ),
+                                    scale: Vec3::splat(0.5),
+                                    ..default()
+                                },
                                 ..default()
                             },
-                            ..default()
-                        },
-                        RemotePlayer {
-                            name: player_name.clone(),
-                        },
-                        AnimationPlayer::default(),
-                        enemy_graph.graph.clone(),
-                        AnimationState::default(),
-                    ))
-                    .id();
-                remote_players.0.insert(player_name.clone(), remote_player);
+                            RemotePlayer {
+                                name: player_name.clone(),
+                            },
+                            AnimationPlayer::default(),
+                            enemy_graph.graph.clone(),
+                            AnimationState::default(),
+                        ))
+                        .id();
+                    remote_players.0.insert(player_name.clone(), remote_player);
+                }
             }
+            MessageContent::SyncPlayers {
+                players: synced_players,
+            } => {
+                players.0 = synced_players.0.clone();
+            }
+            _ => {}
         }
     }
 }
+
 pub fn manage_shoot_logic(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut commands: Commands,
@@ -444,27 +439,37 @@ pub fn update_bullets(
     house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Bullet>)>,
     remote_players: ResMut<RemotePlayers>,
     mut query: Query<&Transform, (With<RemotePlayer>, Without<Bullet>)>,
+    network: Res<NetworkConfig>,
 ) {
     for (bullet_entity, mut transform, bullet) in bullet_query.iter_mut() {
         let previous_position = transform.translation.clone();
         let next_position =
             transform.translation - bullet.direction * bullet.speed * time.delta_seconds();
         let mut collision_detected = false;
-
         for (name, entity) in remote_players.0.iter() {
             if let Ok(player_transform) = query.get_mut(*entity) {
-            if collide_bullet(
-                next_position,
-                Vec3::new(0.006, 0.2, 0.006),
-                player_transform.translation,
-                Vec3::new(0.4, 1.0, 0.4),
-            )
-            .is_some()
-            {
-                collision_detected = true;
-                println!("Bullet hit playername {name}");
-                break;
-            }
+                if collide_bullet(
+                    next_position,
+                    Vec3::new(0.006, 0.2, 0.006),
+                    player_transform.translation,
+                    Vec3::new(0.4, 1.5, 0.4),
+                )
+                .is_some()
+                {
+                    collision_detected = true;
+                    println!("Bullet hit playername {name}");
+                    let message = GameMessage {
+                        message_type: MessageType::DecreaseLife,
+                        sender: network.player_name.clone(),
+                        content: MessageContent::DecreaseLife {
+                            name: name.to_string(),
+                        },
+                    };
+                    if let Some(msg_bytes) = serialize_message(&message) {
+                        let _ = network.client_socket.send(&msg_bytes);
+                    }
+                    break;
+                }
             }
         }
         for collider_transform in collider_query.iter() {
@@ -500,10 +505,10 @@ pub fn update_bullets(
         if collision_detected {
             // Despawn la balle si elle entre en collision
             commands.entity(bullet_entity).despawn_recursive();
+            break;
         } else {
             // Mettre à jour la position si pas de collision
             transform.translation = next_position;
-
             let line_entity = add_line_segment(
                 &mut commands,
                 &mut meshes,
@@ -550,7 +555,6 @@ pub fn add_line_segment(
         .id();
     line_entity
 }
-
 
 pub fn despawn_after_time(
     time: Res<Time>,

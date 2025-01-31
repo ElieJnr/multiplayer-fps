@@ -24,14 +24,14 @@ impl NetworkConfig {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GameMessage {
     pub message_type: MessageType,
     pub sender: String,
     pub content: MessageContent,
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum MessageType {
     NewConnection,
     GameUpdate,
@@ -40,6 +40,8 @@ pub enum MessageType {
     Disconnect,
     WaitForPlayers,
     StartGame,
+    SyncPlayers,
+    DecreaseLife
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -73,6 +75,12 @@ pub enum MessageContent {
         msg: String,
         players: Players,
     },
+    SyncPlayers{
+        players: Players,
+    },
+    DecreaseLife{
+        name: String,
+    }
 }
 
 pub fn serialize_message(message: &GameMessage) -> Option<Vec<u8>> {
