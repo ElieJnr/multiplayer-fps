@@ -459,7 +459,7 @@ pub fn update_bullets(
                     next_position,
                     Vec3::new(0.006, 0.2, 0.006),
                     player_transform.translation,
-                    Vec3::new(0.4, 1.0, 0.4),
+                    Vec3::new(0.4, 1.5, 0.4),
                 )
                 .is_some()
                 {
@@ -512,6 +512,7 @@ pub fn update_bullets(
         if collision_detected {
             // Despawn la balle si elle entre en collision
             commands.entity(bullet_entity).despawn_recursive();
+            break;
         } else {
             // Mettre à jour la position si pas de collision
             transform.translation = next_position;
