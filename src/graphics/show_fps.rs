@@ -119,6 +119,7 @@ pub fn spawn_game_over_ui(mut commands: Commands, asset_server: Res<AssetServer>
                 ..Default::default()
             },
             visibility: Visibility::Hidden,
+            background_color: Color::BLACK.into(),
             ..Default::default()
         })
         .insert(GameOver);
