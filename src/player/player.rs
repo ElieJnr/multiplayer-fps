@@ -1,4 +1,4 @@
-use super::{model::*, movement::get_player_input};
+use super::model::*;
 use crate::maze::models::{ColliderEnemy, PlayersComponent};
 use bevy::gltf::GltfAssetLabel;
 use bevy::prelude::*;

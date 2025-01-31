@@ -68,7 +68,6 @@ pub struct PlayerInput {
     pub arrow_down: bool,
     pub arrow_left: bool,
     pub arrow_right: bool,
-    pub reload: bool,
     pub mouse_delta: Vec2,
     pub ready: bool,
     pub shoot: bool

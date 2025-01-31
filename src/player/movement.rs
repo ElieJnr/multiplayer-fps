@@ -1,5 +1,6 @@
 use super::player::shoot_bullet;
 use crate::client::player::Players;
+use crate::common::constant::HEALTH_NBR;
 use crate::common::protocol::{
     serialize_message, GameMessage, MessageContent, MessageType, NetworkConfig,
 };
@@ -8,7 +9,7 @@ use crate::maze::barre_etat::GameStatus;
 use crate::maze::models::*;
 use crate::maze::models::{Collider, ColliderHouse, MazeState, ObstaclePositions};
 use crate::player::model::*;
-use bevy::ecs::system::ParamSet;
+use crate::utils::logger::display_info;
 use bevy::asset::Assets;
 use bevy::color::Color;
 use bevy::ecs::entity::Entity;
@@ -97,6 +98,7 @@ pub fn player_movement(
                         timestamp: time.elapsed_seconds_f64(),
                     },
                 };
+
                 if let Some(msg_bytes) = serialize_message(&player_action_message) {
                     network.client_socket.send(&msg_bytes).unwrap();
                 }
@@ -126,18 +128,15 @@ pub fn simulation_tir(
     mut messages: ResMut<NetworkMessages>,
     network: Option<Res<NetworkConfig>>,
     mut game_status: ResMut<GameStatus>,
-    mut players: ResMut<Players>,       
+    mut players: ResMut<Players>,
 ) {
     while let Some(message) = messages.0.pop_front() {
         match &message.content {
             MessageContent::DecreaseLife { name, .. } => {
-                if let Some(player) = players.0.get_mut(name) {
-                    display_info(&format!("Player {} has been hit", name));
-
+                if let Some(_player) = players.0.get_mut(name) {
                     if game_status.player_health > 0. {
                         game_status.player_health -= 0.2;
-                        display_info(&format!("Player {} has died", name));
-                        if player.health <= 0 {
+                        if game_status.player_health <= 0. {
                             if let Some(network) = &network {
                                 let game_over_msg = GameMessage {
                                     message_type: MessageType::Disconnect,
@@ -227,6 +226,7 @@ pub fn toggle_cursor_lock(
         }
     }
 }
+
 pub fn check_collisions(
     player_transform: &Transform,
     collider_query: &Query<&Transform, (With<Collider>, Without<PlayersComponent>)>,
@@ -279,6 +279,7 @@ pub fn check_collisions(
     // }
     false
 }
+
 pub fn check_bullet_collisions(
     mut commands: Commands,
     bullet_query: Query<(Entity, &Transform), With<Bullet>>,
@@ -344,6 +345,7 @@ pub fn check_bullet_collisions(
         }
     }
 }
+
 fn collide(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
     let collision_x = (pos1.x - pos2.x).abs() < (size1.x + size2.x) / 2.0;
     let collision_y = (pos1.y - pos2.y).abs() < (size1.y + size2.y) / 2.0;
@@ -586,6 +588,25 @@ pub fn despawn_after_time(
         timer.0.tick(time.delta());
         if timer.0.finished() {
             commands.entity(entity).despawn_recursive();
+        }
+    }
+}
+
+pub fn despawn_if_no_health(
+    mut commands: Commands,
+    remote_players: Res<RemotePlayers>,
+    players: Res<Players>,
+    mut query: Query<(Entity, &mut Transform)>,
+) {
+    for (player_name, &entity) in remote_players.0.iter() {
+        if let Ok((entity, _transform)) = query.get_mut(entity) {
+            if let Some(player) = players.0.get(player_name) {
+                display_info(&format!("player health {}", player.health));
+                if player.health <= 0 || player.health > HEALTH_NBR {
+                    display_info(&format!("Player Removed {}", player_name));
+                    commands.entity(entity).despawn_recursive();
+                }
+            }
         }
     }
 }

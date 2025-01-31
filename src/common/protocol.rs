@@ -158,7 +158,6 @@ pub fn send_ready_msg(config: &NetworkConfig, player_name: &str) {
                 arrow_left: false,
                 arrow_right: false,
                 mouse_delta: Vec2::default(),
-                reload: false,
                 ready: true,
                 shoot: false,
             },
