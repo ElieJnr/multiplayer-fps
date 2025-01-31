@@ -22,6 +22,8 @@ use lazy_static::lazy_static;
 use rand::Rng;
 use std::sync::Mutex;
 
+use super::udp::broadcast_decrease_life;
+
 pub fn handle_message(
     server_socket: &UdpSocket,
     players: &mut Players,
@@ -33,17 +35,22 @@ pub fn handle_message(
         MessageType::NewConnection => {
             handle_new_connection(server_socket, players, message, src, player_count);
         }
-        MessageType::PlayerAction => {
-            handle_player_action(server_socket, players, message, &player_count)
+        MessageType::GameUpdate | MessageType::PlayerAction => {
+            handle_player_action(server_socket, players, message, &player_count);
         }
-        MessageType::GameUpdate => handle_game_update(server_socket, players, message),
         MessageType::Disconnect => handle_disconnect(server_socket, players, message, src),
+        MessageType::DecreaseLife => {
+            if let MessageContent::DecreaseLife { name } = &message.content {
+                broadcast_decrease_life(server_socket, players, name);
+            } 
+        },
         _ => display_error(&format!(
             "Unhandled message type: {:?}",
             message.message_type
         )),
     }
 }
+
 
 fn handle_new_connection(
     server_socket: &UdpSocket,
@@ -201,57 +208,60 @@ pub fn handle_player_action(
     message: GameMessage,
     player_count: &PlayerCount,
 ) {
-    if let MessageContent::PlayerAction {
-        action,
-        sequence_number,
-        timestamp,
-    } = message.content
-    {
-        if let Some(player) = players.0.get_mut(&message.sender) {
-            if action.ready {
-                handle_ready_state(server_socket, players, &message.sender, &player_count);
-                return;
-            }
-
-            update_player_movement(player, &action);
-
-            if action.shoot {
-                player.health -= 1;
-                println!("Player {} health: {}", player.name, player.health);
-
-                if player.health == 0 {
-                    display_info(&format!("Player {} is dead.", player.name));
-                    //  on pourra le deconnecter plutard içi...
+    match message.content {
+        MessageContent::PlayerAction {
+            action,
+            sequence_number,
+            timestamp,
+        } => {
+            if let Some(player) = players.0.get_mut(&message.sender) {
+                if action.ready {
+                    handle_ready_state(server_socket, players, &message.sender, player_count);
+                    return;
                 }
 
-                broadcast_players(server_socket, players);
+                update_player_movement(player, &action);
+            } 
+
+            if let Some(player) = players.0.get(&message.sender) {
+                broadcast_sync_players(server_socket, players, &message.sender);
+                broadcast_game_update(
+                    server_socket,
+                    players,
+                    &message.sender,
+                    sequence_number,
+                    timestamp,
+                    player,
+                    action.mouse_delta,
+                );
             }
-
-            let player = players.0.get(&message.sender).unwrap();
-            broadcast_game_update(
-                server_socket,
-                players,
-                &message.sender,
-                sequence_number,
-                timestamp,
-                player,
-                action.mouse_delta,
-            );
         }
-    }
-}
+        MessageContent::GameUpdate {
+            position,
+            rotation,
+            sequence_number,
+            timestamp,
+            mouse_delta,
+        } => {
+            if let Some(player) = players.0.get_mut(&message.sender) {
+                player.movement.position = Vec3::new(position.0, player.movement.position.y, position.1);
+                player.movement.rotation = rotation;
+            } 
 
-fn broadcast_players(server_socket: &UdpSocket, players: &Players) {
-    let msg = GameMessage {
-        message_type: MessageType::SyncPlayers,
-        sender: "server".to_string(),
-        content: MessageContent::SyncPlayers {
-            players: players.clone(),
-        },
-    };
-
-    if let Some(msg_bytes) = serialize_message(&msg) {
-        broadcast_message(server_socket, players.clone(), msg_bytes, None, true);
+            if let Some(player) = players.0.get(&message.sender) {
+                broadcast_sync_players(server_socket, players, &message.sender);
+                broadcast_game_update(
+                    server_socket,
+                    players,
+                    &message.sender,
+                    sequence_number,
+                    timestamp,
+                    player,
+                    mouse_delta,
+                );
+            }
+        }
+        _ => {}
     }
 }
 
@@ -338,7 +348,21 @@ fn broadcast_game_update(
     }
 }
 
-fn handle_game_update(server_socket: &UdpSocket, players: &mut Players, message: GameMessage) {
+fn broadcast_sync_players(server_socket: &UdpSocket, players: &Players, player_name: &str) {
+    let update_msg = GameMessage {
+        message_type: MessageType::SyncPlayers,
+        sender: player_name.to_string(),
+        content: MessageContent::SyncPlayers {
+            players: players.clone(),
+        },
+    };
+
+    if let Some(msg_bytes) = serialize_message(&update_msg) {
+        broadcast_message(server_socket, players.clone(), msg_bytes, None, true);
+    }
+}
+
+/* fn handle_game_update(server_socket: &UdpSocket, players: &mut Players, message: GameMessage) {
     let update_msg = GameMessage {
         message_type: MessageType::GameUpdate,
         sender: message.sender.to_string(),
@@ -351,7 +375,7 @@ fn handle_game_update(server_socket: &UdpSocket, players: &mut Players, message:
     };
 
     broadcast_message(server_socket, players.clone(), msg_json, None, true);
-}
+} */
 
 lazy_static! {
     pub static ref ALL_POSITION: Mutex<HashMap<String, Vec<f32>>> = {
