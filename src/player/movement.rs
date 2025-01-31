@@ -136,44 +136,49 @@ pub fn player_movement(
     }
 }
 
-pub fn simulation_tir(
+pub fn handle_player_health(
+    mut commands: Commands,
     mut messages: ResMut<NetworkMessages>,
     network: Option<Res<NetworkConfig>>,
     mut game_status: ResMut<GameStatus>,
     mut players: ResMut<Players>,
+    remote_players: Res<RemotePlayers>,
+    query: Query<(Entity, &mut Transform)>,
     mut timer: ResMut<DamageFlashTimer>,
     mut active: ResMut<DamageFlashActive>,
+    mut show_game_over: Query<&mut Visibility, With<GameOver>>,
 ) {
     while let Some(message) = messages.0.pop_front() {
-        match &message.content {
-            MessageContent::DecreaseLife { name, .. } => {
-                if let Some(player) = players.0.get_mut(name) {
-                    display_info(&format!("Player {} has been hit", name));
-                    if game_status.player_health > 0. {
-                        game_status.player_health -= 0.2;
-                        trigger_damage_flash(&mut timer, &mut active);
-                        display_info(&format!("Player {} has died", name));
-                        if player.health <= 0 {
-                            if let Some(network) = &network {
-                                let game_over_msg = GameMessage {
-                                    message_type: MessageType::Disconnect,
-                                    sender: "server".to_string(),
-                                    content: MessageContent::ServerInfo {
-                                        server_status: format!(
-                                            "Player {} has died. Game Over!",
-                                            name
-                                        ),
-                                    },
-                                };
-                                if let Some(msg_bytes) = serialize_message(&game_over_msg) {
-                                    let _ = network.client_socket.send(&msg_bytes);
-                                }
-                            }
+        if let MessageContent::DecreaseLife { name, .. } = &message.content {
+            if let Some(_player) = players.0.get_mut(name) {
+                if game_status.player_health > 0. {
+                    game_status.player_health -= 0.2;
+                    trigger_damage_flash(&mut timer, &mut active);
+                }
+                if game_status.player_health <= 0. {
+                    display_info(&format!("Player {} has died", name));
+                    show_game_over.iter_mut().for_each(|mut _visible| {
+                        *_visible = Visibility::Visible;
+                    });
+                    if let Some(network) = &network {
+                        let game_over_msg = GameMessage {
+                            message_type: MessageType::Disconnect,
+                            sender: message.sender,
+                            content: MessageContent::ServerInfo {
+                                server_status: format!("Player {} has died. Game Over!", name),
+                            },
+                        };
+                        if let Some(msg_bytes) = serialize_message(&game_over_msg) {
+                            let _ = network.client_socket.send(&msg_bytes);
+                        }
+                    }
+                    if let Some(&entity) = remote_players.0.get(name) {
+                        if let Ok((entity, _)) = query.get(entity) {
+                            commands.entity(entity).despawn_recursive();
                         }
                     }
                 }
             }
-            _ => {}
         }
     }
 }
@@ -526,7 +531,7 @@ pub fn update_bullets(
             .is_some()
             {
                 collision_detected = true;
-                println!("Bullet stopped: hit wall");
+                // println!("Bullet stopped: hit wall");
                 break;
             }
         }

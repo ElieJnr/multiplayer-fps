@@ -162,7 +162,7 @@ fn handle_disconnect(
 
     let broadcast_msg = GameMessage {
         message_type: MessageType::ServerInfo,
-        sender: "server".to_string(),
+        sender: message.sender.clone(),
         content: MessageContent::ServerInfo {
             server_status: format!("{} has disconnected.", message.sender),
         },

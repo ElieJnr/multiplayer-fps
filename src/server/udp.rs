@@ -109,8 +109,15 @@ pub fn broadcast_message(
     }
 }
 
-pub fn broadcast_decrease_life(server_socket: &UdpSocket, players: &Players, target_name: &str) {
-    if let Some(player) = players.0.get(target_name) {
+pub fn broadcast_decrease_life(
+    server_socket: &UdpSocket,
+    players: &mut Players,
+    target_name: &str,
+) {
+
+    if let Some(player) = players.0.get_mut(target_name) {
+        player.health -= 1;
+
         let message = GameMessage {
             message_type: MessageType::DecreaseLife,
             sender: "server".to_string(),
@@ -126,8 +133,6 @@ pub fn broadcast_decrease_life(server_socket: &UdpSocket, players: &Players, tar
                     player.name, err
                 ));
             }
-        } else {
-            display_error("Failed to serialize DecreaseLife message");
         }
     }
 }
