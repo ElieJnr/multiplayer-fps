@@ -8,7 +8,7 @@ use crate::maze::textures::rotate_sky;
 use crate::player::model::RemotePlayers;
 use crate::player::model::{BulletResources, PlayerMovement};
 use crate::player::movement::{
-    camera_view_toggle, despawn_after_time, manage_remote_players, manage_shoot_logic, player_movement, simulation_tir, toggle_cursor_lock, update_bullets
+    camera_view_toggle, despawn_after_time, despawn_if_no_health, manage_remote_players, manage_shoot_logic, player_movement, simulation_tir, toggle_cursor_lock, update_bullets
 };
 use bevy::{
     app::{App, Plugin, Update},
@@ -42,7 +42,8 @@ impl Plugin for MazePlugin {
             .add_systems(Update, update_minimap_player)
             .add_systems(Update, update_bullets)
             .add_systems(Update, simulation_tir)
-            .add_systems(Update, despawn_after_time);
+            .add_systems(Update, despawn_after_time)
+            .add_systems(Update, despawn_if_no_health);
 
         app.add_systems(OnExit(GameState::Game), cleanup_maze)
             .add_systems(Update, (update_minimap, toggle_cursor_lock));

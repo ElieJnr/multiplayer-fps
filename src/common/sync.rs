@@ -74,7 +74,6 @@ fn check_network_messages(
     }
 }
 
-// Sépare la logique de traitement des messages
 fn handle_game_message(message: GameMessage, state: &mut PlayerCountState) {
     match message.message_type {
         MessageType::StartGame => {

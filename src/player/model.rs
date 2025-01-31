@@ -6,7 +6,6 @@ use std::collections::VecDeque;
 pub struct PlayerBuild;
 #[derive(Component)]
 pub struct LineTimer(pub Timer);
-
 #[derive(Component)]
 pub struct AnimationState {
     pub current_animation: String,

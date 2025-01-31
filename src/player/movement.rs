@@ -1,5 +1,6 @@
 use super::player::shoot_bullet;
 use crate::client::player::Players;
+use crate::common::constant::HEALTH_NBR;
 use crate::common::protocol::{
     serialize_message, GameMessage, MessageContent, MessageType, NetworkConfig,
 };
@@ -63,6 +64,7 @@ pub fn player_movement(
         || input.arrow_left
         || input.arrow_right
         || mouse_delta != Vec2::ZERO
+        || input.shoot
     {
         *sequence_number += 1;
         let delta_time = time.delta_seconds();
@@ -87,6 +89,20 @@ pub fn player_movement(
             };
             movement.input_buffer.push_back(input_sequence);
             if let Some(network) = network.as_ref() {
+                let player_action_message = GameMessage {
+                    message_type: MessageType::PlayerAction,
+                    sender: network.player_name.clone(),
+                    content: MessageContent::PlayerAction {
+                        action: input.clone(),
+                        sequence_number: *sequence_number,
+                        timestamp: time.elapsed_seconds_f64(),
+                    },
+                };
+
+                if let Some(msg_bytes) = serialize_message(&player_action_message) {
+                    network.client_socket.send(&msg_bytes).unwrap();
+                }
+
                 let message = GameMessage {
                     message_type: MessageType::GameUpdate,
                     sender: network.player_name.clone(),
@@ -108,24 +124,19 @@ pub fn player_movement(
         }
     }
 }
-
 pub fn simulation_tir(
     mut messages: ResMut<NetworkMessages>,
     network: Option<Res<NetworkConfig>>,
     mut game_status: ResMut<GameStatus>,
-    // remote_players: ResMut<RemotePlayers>,
-    mut players: ResMut<Players>,       
+    mut players: ResMut<Players>,
 ) {
     while let Some(message) = messages.0.pop_front() {
         match &message.content {
             MessageContent::DecreaseLife { name, .. } => {
-                if let Some(player) = players.0.get_mut(name) {
-                    display_info(&format!("Player {} has been hit", name));
-
+                if let Some(_player) = players.0.get_mut(name) {
                     if game_status.player_health > 0. {
                         game_status.player_health -= 0.2;
-                        display_info(&format!("Player {} has died", name));
-                        if player.health <= 0 {
+                        if game_status.player_health <= 0. {
                             if let Some(network) = &network {
                                 let game_over_msg = GameMessage {
                                     message_type: MessageType::Disconnect,
@@ -150,11 +161,6 @@ pub fn simulation_tir(
             _ => {}
         }
     }
-}
-
-
-pub fn despawn_player(){
-
 }
 
 pub fn apply_input(
@@ -182,7 +188,11 @@ pub fn apply_input(
     transform.translation.y = movement.ground_level;
 }
 // permet de changer la vue de la camera
-pub fn camera_view_toggle(keyboard_input: Res<ButtonInput<KeyCode>>, mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<PlayersComponent>)>, mut camera_state: ResMut<CameraState>) {
+pub fn camera_view_toggle(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<PlayersComponent>)>,
+    mut camera_state: ResMut<CameraState>,
+) {
     if keyboard_input.just_pressed(KeyCode::KeyV) {
         camera_state.is_top_view = !camera_state.is_top_view;
         if let Ok(mut camera_transform) = camera_query.get_single_mut() {
@@ -202,7 +212,10 @@ pub fn camera_view_toggle(keyboard_input: Res<ButtonInput<KeyCode>>, mut camera_
     }
 }
 // permet de rendre visible et invisible la souris avec la touche space
-pub fn toggle_cursor_lock(keyboard_input: Res<ButtonInput<KeyCode>>, mut windows: Query<&mut Window>) {
+pub fn toggle_cursor_lock(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut windows: Query<&mut Window>,
+) {
     if keyboard_input.just_pressed(KeyCode::Space) {
         if let Ok(mut window) = windows.get_single_mut() {
             if window.cursor.grab_mode == CursorGrabMode::Locked {
@@ -215,6 +228,7 @@ pub fn toggle_cursor_lock(keyboard_input: Res<ButtonInput<KeyCode>>, mut windows
         }
     }
 }
+
 pub fn check_collisions(
     player_transform: &Transform,
     collider_query: &Query<&Transform, (With<Collider>, Without<PlayersComponent>)>,
@@ -250,6 +264,7 @@ pub fn check_collisions(
     
     false
 }
+
 pub fn check_bullet_collisions(
     mut commands: Commands,
     bullet_query: Query<(Entity, &Transform), With<Bullet>>,
@@ -315,6 +330,7 @@ pub fn check_bullet_collisions(
         }
     }
 }
+
 fn collide(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()> {
     let collision_x = (pos1.x - pos2.x).abs() < (size1.x + size2.x) / 2.0;
     let collision_y = (pos1.y - pos2.y).abs() < (size1.y + size2.y) / 2.0;
@@ -426,7 +442,18 @@ pub fn manage_shoot_logic(
     }
 }
 
-pub fn update_bullets(time: Res<Time>, mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>, mut bullet_query: Query<(Entity, &mut Transform, &Bullet)>, collider_query: Query<&Transform, (With<Collider>, Without<Bullet>)>, house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Bullet>)>, remote_players: ResMut<RemotePlayers>, mut query: Query<&Transform, (With<RemotePlayer>, Without<Bullet>)>, network: Res<NetworkConfig>) {
+pub fn update_bullets(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut bullet_query: Query<(Entity, &mut Transform, &Bullet)>,
+    collider_query: Query<&Transform, (With<Collider>, Without<Bullet>)>,
+    house_collider_query: Query<&Transform, (With<ColliderHouse>, Without<Bullet>)>,
+    remote_players: ResMut<RemotePlayers>,
+    mut query: Query<&Transform, (With<RemotePlayer>, Without<Bullet>)>,
+    network: Res<NetworkConfig>,
+) {
     for (bullet_entity, mut transform, bullet) in bullet_query.iter_mut() {
         let previous_position = transform.translation.clone();
         let next_position =
@@ -551,6 +578,25 @@ pub fn despawn_after_time(
         timer.0.tick(time.delta());
         if timer.0.finished() {
             commands.entity(entity).despawn_recursive();
+        }
+    }
+}
+
+pub fn despawn_if_no_health(
+    mut commands: Commands,
+    remote_players: Res<RemotePlayers>,
+    players: Res<Players>,
+    mut query: Query<(Entity, &mut Transform)>,
+) {
+    for (player_name, &entity) in remote_players.0.iter() {
+        if let Ok((entity, _transform)) = query.get_mut(entity) {
+            if let Some(player) = players.0.get(player_name) {
+                display_info(&format!("player health {}", player.health));
+                if player.health <= 0 || player.health > HEALTH_NBR {
+                    display_info(&format!("Player Removed {}", player_name));
+                    commands.entity(entity).despawn_recursive();
+                }
+            }
         }
     }
 }
