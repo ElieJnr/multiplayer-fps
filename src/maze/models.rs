@@ -34,6 +34,9 @@ pub struct Pillar {
 pub struct Collider;
 
 #[derive(Component)]
+pub struct ColliderEnemy;
+
+#[derive(Component)]
 pub struct ColliderHouse;
 
 #[derive(Component)]
@@ -52,6 +55,11 @@ pub struct Maze {
 
 #[derive(Resource, Default)]
 pub struct MazeState {
+    pub is_ready: bool,
+}
+
+#[derive(Resource, Default)]
+pub struct DeleteState {
     pub is_ready: bool,
 }
 

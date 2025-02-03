@@ -16,7 +16,7 @@ pub struct Players(pub HashMap<String, Player>);
 pub struct Player {
     pub name: String,
     pub address: SocketAddr,
-    pub health: u32,
+    pub health: i32,
     pub ready: bool,
     pub movement: PlayerMovement,
 }

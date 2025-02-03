@@ -198,7 +198,7 @@ fn spawn_health_fill(parent: &mut ChildBuilder) {
     parent.spawn((
         NodeBundle {
             style: Style {
-                width: Val::Percent(90.0),
+                width: Val::Percent(100.0),
                 height: Val::Percent(100.0),
                 ..default()
             },

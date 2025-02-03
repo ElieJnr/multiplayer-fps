@@ -2,8 +2,10 @@ use bevy::{
     app::{App, Plugin, Update},
     asset::AssetServer,
     audio::{AudioBundle, AudioSource, PlaybackSettings},
-    input::ButtonInput,
+    ecs::schedule::IntoSystemConfigs,
+    input::{mouse::MouseButton, ButtonInput},
     prelude::{Commands, Component, KeyCode, OnEnter, OnExit, Res, Resource},
+    state::condition::in_state,
 };
 
 use super::{states::GameState, systems::menu::despawn_menu};
@@ -39,7 +41,10 @@ impl Plugin for SoundPlugin {
             .add_systems(OnEnter(GameState::Waitting), setup_waitting_track)
             .add_systems(OnExit(GameState::Menu), despawn_menu::<MenuTrack>)
             .add_systems(OnExit(GameState::Waitting), despawn_menu::<WaittingTrack>)
-            .add_systems(Update, setup_gameplay_track);
+            .add_systems(
+                Update,
+                setup_gameplay_track.run_if(in_state(GameState::Game)),
+            );
     }
 }
 
@@ -83,12 +88,12 @@ fn setup_gameplay_track(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
+    mouse_input: Res<ButtonInput<MouseButton>>,
 ) {
     let gunshot = asset_server.load::<AudioSource>("sounds/gunshot.ogg");
     let walk = asset_server.load::<AudioSource>("sounds/walk.ogg");
-    let reload = asset_server.load::<AudioSource>("sounds/reload.ogg");
 
-    if keyboard_input.just_pressed(KeyCode::Space) {
+    if mouse_input.just_released(MouseButton::Left) {
         commands.spawn((AudioBundle {
             source: gunshot,
             settings: PlaybackSettings {
@@ -97,26 +102,16 @@ fn setup_gameplay_track(
                 ..Default::default()
             },
         },));
-    } else if keyboard_input.just_pressed(KeyCode::ArrowUp)
-        || keyboard_input.just_pressed(KeyCode::ArrowLeft)
-        || keyboard_input.just_pressed(KeyCode::ArrowRight)
-        || keyboard_input.just_pressed(KeyCode::ArrowDown)
+    } else if keyboard_input.just_pressed(KeyCode::KeyW)
+        || keyboard_input.just_pressed(KeyCode::KeyA)
+        || keyboard_input.just_pressed(KeyCode::KeyD)
+        || keyboard_input.just_pressed(KeyCode::KeyS)
     {
         commands.spawn((AudioBundle {
             source: walk,
             settings: PlaybackSettings {
                 mode: bevy::audio::PlaybackMode::Once,
                 volume: bevy::audio::Volume::new(1.0),
-                ..Default::default()
-            },
-        },));
-    } else if keyboard_input.just_pressed(KeyCode::KeyR) {
-        commands.spawn((AudioBundle {
-            source: reload,
-            settings: PlaybackSettings {
-                mode: bevy::audio::PlaybackMode::Once,
-                volume: bevy::audio::Volume::new(1.0),
-                speed: 1.2,
                 ..Default::default()
             },
         },));

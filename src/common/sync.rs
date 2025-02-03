@@ -25,6 +25,7 @@ pub struct NetworkPlugin;
 impl Plugin for NetworkPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<NetworkTimer>()
+            .init_resource::<NetworkGameUpdate>()
             .init_resource::<NetworkMessages>()
             .add_systems(Update, check_network_messages);
     }
@@ -38,12 +39,23 @@ impl Default for NetworkMessages {
         Self(VecDeque::new())
     }
 }
+
+#[derive(Resource)]
+pub struct NetworkGameUpdate(pub VecDeque<GameMessage>);
+
+impl Default for NetworkGameUpdate {
+    fn default() -> Self {
+        Self(VecDeque::new())
+    }
+}
+
 fn check_network_messages(
     time: Res<Time>,
     mut timer: ResMut<NetworkTimer>,
     network_config: Res<NetworkConfig>,
     mut state: ResMut<PlayerCountState>,
     mut network_messages: ResMut<NetworkMessages>,
+    mut network_update: ResMut<NetworkGameUpdate>,
 ) {
     if time.elapsed_seconds() - timer.last_check < 0.016 {
         return;
@@ -59,8 +71,14 @@ fn check_network_messages(
             Some((data, _)) => {
                 if let Some(game_message) = deserialize_message(&data) {
                     match game_message.message_type {
-                        MessageType::GameUpdate | MessageType::PlayerAction => {
+                        MessageType::GameUpdate
+                        // | MessageType::PlayerAction
+                        | MessageType::SyncPlayers =>
+                         {
                             network_messages.0.push_back(game_message);
+                        }
+                        MessageType::DecreaseLife => {
+                            network_update.0.push_back(game_message);
                         }
                         _ => handle_game_message(game_message, &mut state),
                     }
@@ -71,7 +89,6 @@ fn check_network_messages(
     }
 }
 
-// Sépare la logique de traitement des messages
 fn handle_game_message(message: GameMessage, state: &mut PlayerCountState) {
     match message.message_type {
         MessageType::StartGame => {

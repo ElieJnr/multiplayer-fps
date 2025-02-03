@@ -1,38 +1,36 @@
 use super::model::*;
-use crate::maze::models::PlayersComponent;
+use crate::maze::models::{ColliderEnemy, PlayersComponent};
 use bevy::gltf::GltfAssetLabel;
 use bevy::prelude::*;
 use std::{collections::HashMap, time::Duration};
+#[derive(Component)]
+pub struct BloodSplatter;
 
-pub fn handle_keyboard_animation(
+pub fn handle_keyboard_animation_for_player(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut query: Query<(Entity, &mut AnimationState)>,
     animations: ResMut<PlayerAnimations>,
-    mut animation_players: Query<&mut AnimationPlayer>,
+    mut animation_players: Query<&mut AnimationPlayer>, // mouse_input: Res<Input<MouseButton>>,
 ) {
     if let Ok((_entity, mut animation_state)) = query.get_single_mut() {
-        let new_animation = if keyboard.pressed(KeyCode::ArrowUp) {
-            "walk"
-        } else if keyboard.pressed(KeyCode::ArrowDown) {
+        let new_animation = if keyboard.pressed(KeyCode::KeyW) || keyboard.pressed(KeyCode::KeyS) {
             "walk"
         } else if keyboard.pressed(KeyCode::KeyR) {
             "reload_fast"
         } else if keyboard.pressed(KeyCode::Space) {
             "shoot"
-        } else if keyboard.just_released(KeyCode::ArrowUp) {
+        } else if keyboard.just_released(KeyCode::KeyW) {
             "stopwalk"
-        } else if keyboard.just_released(KeyCode::ArrowDown) {
+        } else if keyboard.just_released(KeyCode::KeyS) {
             "stopwalk"
         } else if keyboard.just_released(KeyCode::Space) {
             "stopshoot"
         } else {
             "static"
         };
-
         if new_animation == "reload_fast" {
             if new_animation != animation_state.current_animation {
                 animation_state.current_animation = new_animation.to_string();
-
                 if let Some(player_entity) = animations.animation_player_entity {
                     if let Ok(mut player) = animation_players.get_mut(player_entity) {
                         if let Some(&animation_index) = animations.animations.get(new_animation) {
@@ -49,7 +47,6 @@ pub fn handle_keyboard_animation(
         } else if !new_animation.starts_with("stop") && new_animation != "reload_fast" {
             if new_animation != animation_state.current_animation {
                 animation_state.current_animation = new_animation.to_string();
-
                 if let Some(player_entity) = animations.animation_player_entity {
                     if let Ok(mut player) = animation_players.get_mut(player_entity) {
                         if let Some(&animation_index) = animations.animations.get(new_animation) {
@@ -89,7 +86,6 @@ pub fn setup_player_animation(
                 .play(&mut player, idle_animation, Duration::ZERO)
                 .repeat();
         }
-
         commands
             .entity(entity)
             .insert(animations.graph.clone())
@@ -97,7 +93,6 @@ pub fn setup_player_animation(
         animations.animation_player_entity = Some(entity);
     }
 }
-
 pub fn preload_player_assets(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
@@ -120,7 +115,6 @@ pub fn preload_player_assets(
         ],
         "PlayerAnimations",
     );
-
     preload_assets(
         &mut commands,
         &asset_server,
@@ -130,7 +124,6 @@ pub fn preload_player_assets(
         "EnemyAnimations",
     );
 }
-
 fn preload_assets(
     commands: &mut Commands,
     asset_server: &AssetServer,
@@ -157,7 +150,6 @@ fn preload_assets(
         animation_indices.insert(name.clone(), node_index);
     }
     let graph_handle = animation_graphs.add(graph);
-
     match resource_name {
         "PlayerAnimations" => {
             commands.insert_resource(PreloadedPlayerAnimations {
@@ -224,27 +216,29 @@ pub fn create_players(
         graph: player_graph.graph.clone(),
     });
 }
-
-pub fn create_bullet(
+pub fn shoot_bullet(
     commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<StandardMaterial>>,
-    position: Vec3,
+    bullet_resources: Res<BulletResources>,
+    camera_transform: &Transform,
 ) {
-    let bullet_mesh = meshes.add(Mesh::from(Cylinder {
-        radius: 0.1,
-        half_height: 0.5,
-        ..Default::default()
-    }));
-    let bullet_material = materials.add(StandardMaterial {
-        base_color: Color::srgb(0.0, 0.0, 1.0),
-        ..Default::default()
-    });
-
-    commands.spawn(PbrBundle {
-        mesh: bullet_mesh,
-        material: bullet_material,
-        transform: Transform::from_translation(position),
-        ..Default::default()
-    });
+    let bullet_direction = camera_transform.forward();
+    let bullet_start_position =
+        camera_transform.translation + bullet_direction * -0.2 + Vec3::new(0.0, 0.1, 0.0);
+    commands.spawn((
+        PbrBundle {
+            mesh: bullet_resources.mesh.clone(),
+            material: bullet_resources.material.clone(),
+            transform: Transform {
+                translation: bullet_start_position,
+                rotation: Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2),
+                ..Default::default()
+            },
+            ..Default::default()
+        },
+        ColliderEnemy,
+        Bullet {
+            direction: *bullet_direction,
+            speed: 20.0,
+        },
+    ));
 }

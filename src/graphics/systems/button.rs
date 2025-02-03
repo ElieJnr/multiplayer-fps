@@ -33,6 +33,12 @@ pub fn spawn_menu_button(parent: &mut ChildBuilder, label: &str, assets_server: 
                     margin: UiRect::all(Val::Px(5.0)),
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
+                    // border: UiRect {
+                    //     left: Val::Px(5.0),
+                    //     right: Val::Px(5.0),
+                    //     top: Val::Px(5.0),
+                    //     bottom: Val::Px(5.0),
+                    // },
                     ..Default::default()
                 },
                 background_color: NORMAL_BUTTON_COLOR.into(),

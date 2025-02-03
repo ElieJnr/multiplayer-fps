@@ -75,7 +75,7 @@ fn receive_server_message(config: &NetworkConfig, state: &mut PlayerCountState) 
         }
         if error_count >= 5 {
             display_warning("Too many errors. Disconnecting the player.");
-            handle_disconnect(MessageContent::Disconnect {
+            handle_disconnect_client(MessageContent::Disconnect {
                 reason: "Failed to receive data".to_string(),
             });
             break;
@@ -93,7 +93,7 @@ fn process_game_message(
             // println!("Received game update: {:?}", game_message.content);
         }
         MessageType::Disconnect => {
-            handle_disconnect(game_message.content);
+            handle_disconnect_client(game_message.content);
             return true;
         }
         MessageType::NewConnection => handle_new_connection(game_message.content),
@@ -101,6 +101,7 @@ fn process_game_message(
         MessageType::ServerInfo => handle_server_info(game_message.content),
         MessageType::WaitForPlayers => handle_waiting(game_message.content, config, state),
         MessageType::StartGame => handle_start(game_message.content, config, state),
+        _ => {}
     }
     false
 }
