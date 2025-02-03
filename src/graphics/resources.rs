@@ -92,7 +92,6 @@ fn setup_gameplay_track(
 ) {
     let gunshot = asset_server.load::<AudioSource>("sounds/gunshot.ogg");
     let walk = asset_server.load::<AudioSource>("sounds/walk.ogg");
-    let reload = asset_server.load::<AudioSource>("sounds/reload.ogg");
 
     if mouse_input.just_released(MouseButton::Left) {
         commands.spawn((AudioBundle {
