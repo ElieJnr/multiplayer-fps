@@ -3,7 +3,7 @@ use bevy::{
     asset::AssetServer,
     audio::{AudioBundle, AudioSource, PlaybackSettings},
     ecs::schedule::IntoSystemConfigs,
-    input::ButtonInput,
+    input::{mouse::MouseButton, ButtonInput},
     prelude::{Commands, Component, KeyCode, OnEnter, OnExit, Res, Resource},
     state::condition::in_state,
 };
@@ -88,12 +88,13 @@ fn setup_gameplay_track(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
+    mouse_input: Res<ButtonInput<MouseButton>>,
 ) {
     let gunshot = asset_server.load::<AudioSource>("sounds/gunshot.ogg");
     let walk = asset_server.load::<AudioSource>("sounds/walk.ogg");
     let reload = asset_server.load::<AudioSource>("sounds/reload.ogg");
 
-    if keyboard_input.just_pressed(KeyCode::Space) {
+    if mouse_input.just_released(MouseButton::Left) {
         commands.spawn((AudioBundle {
             source: gunshot,
             settings: PlaybackSettings {
@@ -102,10 +103,10 @@ fn setup_gameplay_track(
                 ..Default::default()
             },
         },));
-    } else if keyboard_input.just_pressed(KeyCode::ArrowUp)
-        || keyboard_input.just_pressed(KeyCode::ArrowLeft)
-        || keyboard_input.just_pressed(KeyCode::ArrowRight)
-        || keyboard_input.just_pressed(KeyCode::ArrowDown)
+    } else if keyboard_input.just_pressed(KeyCode::KeyW)
+        || keyboard_input.just_pressed(KeyCode::KeyA)
+        || keyboard_input.just_pressed(KeyCode::KeyD)
+        || keyboard_input.just_pressed(KeyCode::KeyS)
     {
         commands.spawn((AudioBundle {
             source: walk,
@@ -115,7 +116,7 @@ fn setup_gameplay_track(
                 ..Default::default()
             },
         },));
-    } else if keyboard_input.just_pressed(KeyCode::KeyR) {
+    } else if mouse_input.pressed(MouseButton::Right) {
         commands.spawn((AudioBundle {
             source: reload,
             settings: PlaybackSettings {

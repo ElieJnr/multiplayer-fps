@@ -155,7 +155,6 @@ pub fn handle_player_health(
                     trigger_damage_flash(&mut timer, &mut active);
                 }
                 if game_status.player_health <= 0. {
-                    display_info(&format!("Player {} has died", name));
                     show_game_over.iter_mut().for_each(|mut _visible| {
                         *_visible = Visibility::Visible;
                     });
