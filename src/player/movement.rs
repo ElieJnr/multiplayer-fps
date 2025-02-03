@@ -153,10 +153,10 @@ pub fn handle_player_health(
                     trigger_damage_flash(&mut timer, &mut active);
                 }
                 if game_status.player_health <= 0. {
-                    delete_state.is_ready = true;
                     show_game_over.iter_mut().for_each(|mut _visible| {
                         *_visible = Visibility::Visible;
                     });
+                    delete_state.is_ready = true;
 
                     if let Some(network) = &network {
                         let game_over_msg = GameMessage {
