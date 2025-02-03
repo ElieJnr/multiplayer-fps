@@ -1,5 +1,6 @@
 use super::player::shoot_bullet;
 use crate::client::player::Players;
+use crate::common::constant::HEALTH_NBR;
 use crate::common::protocol::{
     serialize_message, GameMessage, MessageContent, MessageType, NetworkConfig,
 };
@@ -145,6 +146,7 @@ pub fn handle_player_health(
     mut timer: ResMut<DamageFlashTimer>,
     mut active: ResMut<DamageFlashActive>,
     mut show_game_over: Query<&mut Visibility, With<GameOver>>,
+    mut delete_state: ResMut<DeleteState>,
     // visible: Query<&mut Visibility, With<GameOver>>,
 ) {
     while let Some(message) = messages.0.pop_front() {
@@ -155,6 +157,8 @@ pub fn handle_player_health(
                     trigger_damage_flash(&mut timer, &mut active);
                 }
                 if game_status.player_health <= 0. {
+                    delete_state.is_ready = true;
+
                     if let Some(network) = &network {
                         let game_over_msg = GameMessage {
                             message_type: MessageType::Disconnect,
@@ -593,4 +597,24 @@ pub fn despawn_after_time(
             commands.entity(entity).despawn_recursive();
         }
     }
+}
+
+pub fn despawn_if_no_health(mut commands: Commands, remote_players: Res<RemotePlayers>, players: Res<Players>, mut query: Query<(Entity, &mut Transform)>,  delete_state: ResMut<DeleteState>,) {
+    if delete_state.is_ready {
+        return;
+    }
+    let mut count = 0;
+    for (player_name, &entity) in remote_players.0.iter() {
+        count +=1;
+        if let Ok((entity, _transform)) = query.get_mut(entity) {
+            if let Some(player) = players.0.get(player_name) {
+                // display_info(&format!("player health {}", player.health));
+                if player.health <= 0 || player.health > HEALTH_NBR {
+                    // display_info(&format!("Player Removed {}", player_name));
+                    commands.entity(entity).despawn_recursive();
+                }
+            }
+        }
+    }
+    println!("Count {}", count);
 }
