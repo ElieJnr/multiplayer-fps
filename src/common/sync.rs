@@ -72,8 +72,10 @@ fn check_network_messages(
                 if let Some(game_message) = deserialize_message(&data) {
                     match game_message.message_type {
                         MessageType::DecreaseLife
-                        | MessageType::PlayerAction
-                        | MessageType::SyncPlayers => {
+                        // | MessageType::PlayerAction
+                        // | MessageType::SyncPlayers 
+                        =>
+                         {
                             network_messages.0.push_back(game_message);
                         }
                         MessageType::GameUpdate => {
