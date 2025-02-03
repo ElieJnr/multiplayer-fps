@@ -116,15 +116,5 @@ fn setup_gameplay_track(
                 ..Default::default()
             },
         },));
-    } else if mouse_input.pressed(MouseButton::Right) {
-        commands.spawn((AudioBundle {
-            source: reload,
-            settings: PlaybackSettings {
-                mode: bevy::audio::PlaybackMode::Once,
-                volume: bevy::audio::Volume::new(1.0),
-                speed: 1.2,
-                ..Default::default()
-            },
-        },));
     }
 }
