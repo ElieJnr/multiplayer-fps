@@ -3,7 +3,7 @@ use crate::client::player::Players;
 use crate::common::protocol::{
     serialize_message, GameMessage, MessageContent, MessageType, NetworkConfig,
 };
-use crate::common::sync::NetworkGameUpdate;
+use crate::common::sync::{NetworkGameUpdate, NetworkMessages};
 use crate::graphics::show_fps::{
     trigger_damage_flash, DamageFlashActive, DamageFlashTimer, GameOver,
 };
@@ -379,7 +379,7 @@ pub fn manage_remote_players(
     enemy_graph: Res<EnemyAnimations>,
     mut remote_players: ResMut<RemotePlayers>,
     network: Res<NetworkConfig>,
-    mut messages: ResMut<NetworkGameUpdate>,
+    mut messages: ResMut<NetworkMessages>,
     mut query: Query<&mut Transform>,
     mut players: ResMut<Players>,
 ) {
