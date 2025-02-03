@@ -145,7 +145,7 @@ pub fn handle_player_health(
     mut timer: ResMut<DamageFlashTimer>,
     mut active: ResMut<DamageFlashActive>,
     mut show_game_over: Query<&mut Visibility, With<GameOver>>,
-    visible: Query<&mut Visibility, With<GameOver>>,
+    // visible: Query<&mut Visibility, With<GameOver>>,
 ) {
     while let Some(message) = messages.0.pop_front() {
         if let MessageContent::DecreaseLife { name, .. } = &message.content {
@@ -174,9 +174,6 @@ pub fn handle_player_health(
                     if let Some(&entity) = remote_players.0.get(name) {
                         if let Ok((entity, _)) = query.get(entity) {
                             commands.entity(entity).despawn_recursive();
-                            visible.iter().for_each(|mut _visible| {
-                                _visible = &Visibility::Visible;
-                            });
                         }
                     }
                 }
