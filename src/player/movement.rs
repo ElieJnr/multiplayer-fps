@@ -136,18 +136,14 @@ pub fn player_movement(
 }
 
 pub fn handle_player_health(
-    mut commands: Commands,
     mut messages: ResMut<NetworkGameUpdate>,
     network: Option<Res<NetworkConfig>>,
     mut game_status: ResMut<GameStatus>,
     mut players: ResMut<Players>,
-    remote_players: Res<RemotePlayers>,
-    mut query: Query<(Entity, &mut Transform)>,
     mut timer: ResMut<DamageFlashTimer>,
     mut active: ResMut<DamageFlashActive>,
     mut show_game_over: Query<&mut Visibility, With<GameOver>>,
     mut delete_state: ResMut<DeleteState>,
-    // visible: Query<&mut Visibility, With<GameOver>>,
 ) {
     while let Some(message) = messages.0.pop_front() {
         if let MessageContent::DecreaseLife { name, .. } = &message.content {
@@ -158,6 +154,9 @@ pub fn handle_player_health(
                 }
                 if game_status.player_health <= 0. {
                     delete_state.is_ready = true;
+                    show_game_over.iter_mut().for_each(|mut _visible| {
+                        *_visible = Visibility::Visible;
+                    });
 
                     if let Some(network) = &network {
                         let game_over_msg = GameMessage {
@@ -169,17 +168,6 @@ pub fn handle_player_health(
                         };
                         if let Some(msg_bytes) = serialize_message(&game_over_msg) {
                             let _ = network.client_socket.send(&msg_bytes);
-                        }
-                    }
-
-                    for (player_name, &entity) in remote_players.0.iter() {
-                        if let Ok((entity, _transform)) = query.get_mut(entity) {
-                            if let Some(_player) = players.0.get(player_name) {
-                                commands.entity(entity).despawn_recursive();
-                                show_game_over.iter_mut().for_each(|mut _visible| {
-                                    *_visible = Visibility::Visible;
-                                });
-                            }
                         }
                     }
                 }
@@ -599,13 +587,17 @@ pub fn despawn_after_time(
     }
 }
 
-pub fn despawn_if_no_health(mut commands: Commands, remote_players: Res<RemotePlayers>, players: Res<Players>, mut query: Query<(Entity, &mut Transform)>,  delete_state: ResMut<DeleteState>,) {
+pub fn despawn_if_no_health(
+    mut commands: Commands,
+    remote_players: Res<RemotePlayers>,
+    players: Res<Players>,
+    mut query: Query<(Entity, &mut Transform)>,
+    delete_state: ResMut<DeleteState>,
+) {
     if delete_state.is_ready {
         return;
     }
-    let mut count = 0;
     for (player_name, &entity) in remote_players.0.iter() {
-        count +=1;
         if let Ok((entity, _transform)) = query.get_mut(entity) {
             if let Some(player) = players.0.get(player_name) {
                 // display_info(&format!("player health {}", player.health));
@@ -616,5 +608,4 @@ pub fn despawn_if_no_health(mut commands: Commands, remote_players: Res<RemotePl
             }
         }
     }
-    println!("Count {}", count);
 }
