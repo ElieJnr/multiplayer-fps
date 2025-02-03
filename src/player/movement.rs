@@ -12,7 +12,6 @@ use crate::maze::models::*;
 use crate::maze::models::{Collider, ColliderHouse, MazeState, ObstaclePositions};
 use crate::player::model::*;
 use crate::utils::logger::display_info;
-use bevy::animation::AnimationPlayer;
 use bevy::asset::Assets;
 use bevy::color::Color;
 use bevy::ecs::entity::Entity;
@@ -376,7 +375,7 @@ fn collide_bullet(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()
 pub fn manage_remote_players(
     mut commands: Commands,
     enemy_animations: Res<PreloadedEnemyAnimations>,
-    enemy_graph: Res<EnemyAnimations>,
+    // enemy_graph: Res<EnemyAnimations>,
     mut remote_players: ResMut<RemotePlayers>,
     network: Res<NetworkConfig>,
     mut messages: ResMut<NetworkMessages>,
@@ -423,9 +422,9 @@ pub fn manage_remote_players(
                             RemotePlayer {
                                 name: player_name.clone(),
                             },
-                            AnimationPlayer::default(),
-                            enemy_graph.graph.clone(),
-                            AnimationState::default(),
+                            // AnimationPlayer::default(),
+                            // enemy_graph.graph.clone(),
+                            // AnimationState::default(),
                         ))
                         .id();
                     remote_players.0.insert(player_name.clone(), remote_player);
@@ -442,7 +441,7 @@ pub fn manage_remote_players(
 }
 
 pub fn manage_shoot_logic(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    mouse_input: Res<ButtonInput<MouseButton>>,
     mut commands: Commands,
     bullet_resources: Res<BulletResources>,
     player_transform_query: Query<&Transform, With<PlayersComponent>>,
@@ -451,7 +450,7 @@ pub fn manage_shoot_logic(
     if !maze_state.is_ready {
         return;
     }
-    if keyboard.just_released(KeyCode::Space) {
+    if mouse_input.just_released(MouseButton::Left) {
         if let Ok(camera_transform) = player_transform_query.get_single() {
             shoot_bullet(&mut commands, bullet_resources, &camera_transform);
         }
