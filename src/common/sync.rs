@@ -61,7 +61,7 @@ fn check_network_messages(
                     match game_message.message_type {
                         MessageType::DecreaseLife
                         | MessageType::GameUpdate
-                        // | MessageType::PlayerAction
+                        | MessageType::PlayerAction
                         | MessageType::SyncPlayers => {
                             network_messages.0.push_back(game_message);
                         }
