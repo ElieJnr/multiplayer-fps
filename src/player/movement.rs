@@ -11,7 +11,6 @@ use crate::maze::barre_etat::GameStatus;
 use crate::maze::models::*;
 use crate::maze::models::{Collider, ColliderHouse, MazeState, ObstaclePositions};
 use crate::player::model::*;
-use crate::utils::logger::display_info;
 use bevy::animation::AnimationPlayer;
 use bevy::asset::Assets;
 use bevy::color::Color;
@@ -171,15 +170,11 @@ pub fn handle_player_health(
 
                     for (player_name, &entity) in remote_players.0.iter() {
                         if let Ok((entity, _transform)) = query.get_mut(entity) {
-                            if let Some(player) = players.0.get(player_name) {
-                                display_info(&format!("player health {}", player.health));
-                                if player.health <= 0 {
-                                    display_info(&format!("Player Removed {}", player_name));
-                                    commands.entity(entity).despawn_recursive();
-                                    show_game_over.iter_mut().for_each(|mut _visible| {
-                                        *_visible = Visibility::Visible;
-                                    });
-                                }
+                            if let Some(_player) = players.0.get(player_name) {
+                                commands.entity(entity).despawn_recursive();
+                                show_game_over.iter_mut().for_each(|mut _visible| {
+                                    *_visible = Visibility::Visible;
+                                });
                             }
                         }
                     }
