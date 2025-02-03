@@ -170,6 +170,9 @@ pub fn handle_player_health(
                             let _ = network.client_socket.send(&msg_bytes);
                         }
                     }
+
+                    display_info(&format!("Despawning Before player {}", name));
+
                     if let Some(&entity) = remote_players.0.get(name) {
                         display_info(&format!("Despawning player {}", name));
                         if let Ok((entity, _)) = query.get(entity) {
