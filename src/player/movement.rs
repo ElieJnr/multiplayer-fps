@@ -3,7 +3,7 @@ use crate::client::player::Players;
 use crate::common::protocol::{
     serialize_message, GameMessage, MessageContent, MessageType, NetworkConfig,
 };
-use crate::common::sync::NetworkMessages;
+use crate::common::sync::{NetworkGameUpdate, NetworkMessages};
 use crate::graphics::show_fps::{
     trigger_damage_flash, DamageFlashActive, DamageFlashTimer, GameOver,
 };
@@ -378,9 +378,9 @@ pub fn manage_remote_players(
     // enemy_graph: Res<EnemyAnimations>,
     mut remote_players: ResMut<RemotePlayers>,
     network: Res<NetworkConfig>,
-    mut messages: ResMut<NetworkMessages>,
+    mut messages: ResMut<NetworkGameUpdate>,
     mut query: Query<&mut Transform>,
-    mut players: ResMut<Players>,
+    mut _players: ResMut<Players>,
 ) {
     while let Some(message) = messages.0.pop_front() {
         match &message.content {
@@ -430,11 +430,11 @@ pub fn manage_remote_players(
                     remote_players.0.insert(player_name.clone(), remote_player);
                 }
             }
-            MessageContent::SyncPlayers {
-                players: synced_players,
-            } => {
-                players.0 = synced_players.0.clone();
-            }
+            // MessageContent::SyncPlayers {
+            //     players: synced_players,
+            // } => {
+            //     players.0 = synced_players.0.clone();
+            // }
             _ => {}
         }
     }
