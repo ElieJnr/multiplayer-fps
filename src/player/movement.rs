@@ -172,6 +172,7 @@ pub fn handle_player_health(
                         }
                     }
                     if let Some(&entity) = remote_players.0.get(name) {
+                        display_info(&format!("Despawning player {}", name));
                         if let Ok((entity, _)) = query.get(entity) {
                             commands.entity(entity).despawn_recursive();
                         }
