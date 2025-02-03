@@ -142,7 +142,7 @@ pub fn handle_player_health(
     mut game_status: ResMut<GameStatus>,
     mut players: ResMut<Players>,
     remote_players: Res<RemotePlayers>,
-    query: Query<(Entity, &mut Transform)>,
+    mut query: Query<(Entity, &mut Transform)>,
     mut timer: ResMut<DamageFlashTimer>,
     mut active: ResMut<DamageFlashActive>,
     mut show_game_over: Query<&mut Visibility, With<GameOver>>,
@@ -156,9 +156,6 @@ pub fn handle_player_health(
                     trigger_damage_flash(&mut timer, &mut active);
                 }
                 if game_status.player_health <= 0. {
-                    show_game_over.iter_mut().for_each(|mut _visible| {
-                        *_visible = Visibility::Visible;
-                    });
                     if let Some(network) = &network {
                         let game_over_msg = GameMessage {
                             message_type: MessageType::Disconnect,
@@ -172,12 +169,18 @@ pub fn handle_player_health(
                         }
                     }
 
-                    display_info(&format!("Despawning Before player {}", name));
-
-                    if let Some(&entity) = remote_players.0.get(name) {
-                        display_info(&format!("Despawning player {}", name));
-                        if let Ok((entity, _)) = query.get(entity) {
-                            commands.entity(entity).despawn_recursive();
+                    for (player_name, &entity) in remote_players.0.iter() {
+                        if let Ok((entity, _transform)) = query.get_mut(entity) {
+                            if let Some(player) = players.0.get(player_name) {
+                                display_info(&format!("player health {}", player.health));
+                                if player.health <= 0 {
+                                    display_info(&format!("Player Removed {}", player_name));
+                                    commands.entity(entity).despawn_recursive();
+                                    show_game_over.iter_mut().for_each(|mut _visible| {
+                                        *_visible = Visibility::Visible;
+                                    });
+                                }
+                            }
                         }
                     }
                 }
