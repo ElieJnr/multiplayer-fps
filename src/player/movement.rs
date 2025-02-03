@@ -3,7 +3,7 @@ use crate::client::player::Players;
 use crate::common::protocol::{
     serialize_message, GameMessage, MessageContent, MessageType, NetworkConfig,
 };
-use crate::common::sync::{NetworkGameUpdate, NetworkMessages};
+use crate::common::sync::NetworkGameUpdate;
 use crate::graphics::show_fps::{
     trigger_damage_flash, DamageFlashActive, DamageFlashTimer, GameOver,
 };
@@ -12,6 +12,7 @@ use crate::maze::models::*;
 use crate::maze::models::{Collider, ColliderHouse, MazeState, ObstaclePositions};
 use crate::player::model::*;
 use crate::utils::logger::display_info;
+use bevy::animation::AnimationPlayer;
 use bevy::asset::Assets;
 use bevy::color::Color;
 use bevy::ecs::entity::Entity;
@@ -136,7 +137,7 @@ pub fn player_movement(
 
 pub fn handle_player_health(
     mut commands: Commands,
-    mut messages: ResMut<NetworkMessages>,
+    mut messages: ResMut<NetworkGameUpdate>,
     network: Option<Res<NetworkConfig>>,
     mut game_status: ResMut<GameStatus>,
     mut players: ResMut<Players>,
@@ -375,12 +376,12 @@ fn collide_bullet(pos1: Vec3, size1: Vec3, pos2: Vec3, size2: Vec3) -> Option<()
 pub fn manage_remote_players(
     mut commands: Commands,
     enemy_animations: Res<PreloadedEnemyAnimations>,
-    // enemy_graph: Res<EnemyAnimations>,
+    enemy_graph: Res<EnemyAnimations>,
     mut remote_players: ResMut<RemotePlayers>,
     network: Res<NetworkConfig>,
     mut messages: ResMut<NetworkGameUpdate>,
     mut query: Query<&mut Transform>,
-    mut _players: ResMut<Players>,
+    mut players: ResMut<Players>,
 ) {
     while let Some(message) = messages.0.pop_front() {
         match &message.content {
@@ -422,19 +423,19 @@ pub fn manage_remote_players(
                             RemotePlayer {
                                 name: player_name.clone(),
                             },
-                            // AnimationPlayer::default(),
-                            // enemy_graph.graph.clone(),
-                            // AnimationState::default(),
+                            AnimationPlayer::default(),
+                            enemy_graph.graph.clone(),
+                            AnimationState::default(),
                         ))
                         .id();
                     remote_players.0.insert(player_name.clone(), remote_player);
                 }
             }
-            // MessageContent::SyncPlayers {
-            //     players: synced_players,
-            // } => {
-            //     players.0 = synced_players.0.clone();
-            // }
+            MessageContent::SyncPlayers {
+                players: synced_players,
+            } => {
+                players.0 = synced_players.0.clone();
+            }
             _ => {}
         }
     }
